@@ -11,6 +11,10 @@ class GeoType extends Model {
 
 	public $incrementing = false;
 
+	public function setParentIdAttribute($parent_id) {
+		$this->attributes['parent_id'] = trim($parent_id) == '' ? null : $parent_id;
+	}
+
 	protected $table = 'geo_type';
 
 	protected $fillable = [
@@ -19,6 +23,7 @@ class GeoType extends Model {
 		'updated_at',
 		'deleted_at',
 		'parent_id',
+		'study_id',
 		'name',
 		'can_enumerator_add',
 		'can_contain_respondent',

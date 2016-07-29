@@ -141,6 +141,7 @@ class GeoTypeController extends Controller
 
 		$geoTypeId = Uuid::uuid4();
 		$parentId = $request->input('parent_id');
+		$studyId = $request->input('study_id');
 		$name = $request->input('name');
 		$canEnumeratorAdd = $request->input('can_enumerator_add') === null ? false : true;
 		$canContainRespondent = $request->input('can_contain_respondent') === null ? false : true;
@@ -149,6 +150,7 @@ class GeoTypeController extends Controller
 
 		$newGeoTypeModel->id = $geoTypeId;
 		$newGeoTypeModel->parent_id = $parentId;
+		$newGeoTypeModel->study_id = $studyId;
 		$newGeoTypeModel->name = $name;
 		$newGeoTypeModel->can_enumerator_add = $canEnumeratorAdd;
 		$newGeoTypeModel->can_contain_respondent = $canContainRespondent;
