@@ -161,6 +161,35 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'LocaleController@createLocale'
 	);
 
+	//****************************//
+	//* Device Controller Routes *//
+	//****************************//
+
+	$app->get(
+		'device/{id}',
+		'DeviceController@getDevice'
+	);
+
+	$app->delete(
+		'device/{id}',
+		'DeviceController@removeDevice'
+	);
+
+	$app->post(
+		'device/{id}',
+		'DeviceController@updateDevice'
+	);
+
+	$app->get(
+		'device',
+		'DeviceController@getAllDevices'
+	);
+
+	$app->put(
+		'device',
+		'DeviceController@createDevice'
+	);
+
 	//**************************************//
 	//* Translation Controller Routes *//
 	//**************************************//
