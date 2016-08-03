@@ -57,7 +57,7 @@ class FormController extends Controller
 
 	public function getAllForms(Request $request) {
 
-		$formModel = Form::toSql();
+		$formModel = Form::get();
 
 		return response()->json(
 			['forms' => $formModel],
