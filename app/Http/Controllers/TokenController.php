@@ -37,7 +37,8 @@ class TokenController extends Controller {
 
 		return response()->json([
 			'user' => [
-				'id' => $userModel->id
+				'id' => $userModel->id,
+				'name' => $userModel->name
 			],
 			'token' => [
 				'hash' => $tokenModel->token_hash,
