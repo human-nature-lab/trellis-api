@@ -63,7 +63,7 @@ class SectionController extends Controller
 			], $validator->statusCode());
 		}
 
-			$sectionModel = Section::select('section.id', 'tt.translated_text AS text')
+			$sectionModel = Section::select('section.id', 'tt.translated_text AS text', 'fs.sort_order AS sort_order')
 					->join('form_section AS fs', 'fs.section_id', '=', 'section.id')
 					->join('translation_text AS tt', 'tt.translation_id', '=', 'section.name_translation_id')
 					->where('fs.form_id', $formId)
