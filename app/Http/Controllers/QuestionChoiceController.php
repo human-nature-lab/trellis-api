@@ -39,7 +39,7 @@ class QuestionChoiceController extends Controller
 
 		$newQuestionChoiceModel = new QuestionChoice;
 
-		DB::transaction(function() use($request, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel, $questionId) {
+		DB::transaction(function() use($request, $questionChoiceId, $choiceId, $translationId, $translationTextId, $questionId, $newQuestionChoiceModel) {
 
 			$newTranslationModel = new Translation;
 			$newTranslationModel->id = $translationId;
@@ -58,17 +58,29 @@ class QuestionChoiceController extends Controller
 			$newChoiceModel->val = $request->input('val');
 			$newChoiceModel->save();
 
+			// Get the next available sort_order for the question, this should avoid race conditions as it is within the same transaction
+			$sort_order = DB::select('select (ifnull((max(sort_order) + 1), 1)) as sort_order from question_choice where question_id = ?', [$questionId]);
 			$newQuestionChoiceModel->id = $questionChoiceId;
 			$newQuestionChoiceModel->question_id = $questionId;
 			$newQuestionChoiceModel->choice_id = $choiceId;
-			$newQuestionChoiceModel->sort_order = $request->input('sort_order');
+
+			//$newQuestionChoiceModel->sort_order = $request->input('sort_order');
+			//$newQuestionChoiceModel->sort_order = DB::raw('select ifnull((max(sort_order) + 1), 1) from question_choice where question_id = $questionId');
+			$newQuestionChoiceModel->sort_order = $sort_order[0]->sort_order;
 			$newQuestionChoiceModel->save();
+			//DB::insert("insert into question_choice qc1 (id, question_id, choice_id, sort_order) values ('?', '?', '?', (select ifnull((max(qc2.sort_order) + 1), 1) from question_choice qc2 where qc2.question_id = '?')", [$questionChoiceId, $questionId, $choiceId, $questionId]);
 
 			$newQuestionChoiceModel->translated_text = $request->input('translated_text');
-			$newQuestionChoiceModel->sort_order = $request->input('sort_order');
 			$newQuestionChoiceModel->val = $request->input('val');
 
 		});
+
+		/*
+		$newQuestionChoiceModel = DB::select("select qc.id, qc.question_id, qc.choice_id, qc.sort_order,
+                                                               c.val, c.choice_translation_id,
+                                                               (select translated_text from translation_text where locale_id = '?' and translation_id = c.choice_translation_id) as translated_text
+                                                               from question_choice qc where qc.id = '?' left join choice c on qc.choice_id = c.id",[$request->input('locale_id'), $questionChoiceId]);
+		*/
 
 		return response()->json([
 				'questionChoice' => $newQuestionChoiceModel
