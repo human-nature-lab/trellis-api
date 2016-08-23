@@ -132,6 +132,16 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'UserController@createUser'
 	);
 
+	$app->put(
+		'user/{user_id}/studies/{study_id}',
+		'UserController@saveStudy'
+	);
+
+	$app->delete(
+		'user/{user_id}/studies/{study_id}',
+		'UserController@deleteStudy'
+	);
+
 	//****************************//
 	//* Locale Controller Routes *//
 	//****************************//

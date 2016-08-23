@@ -6,7 +6,10 @@ use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
+use Ramsey\Uuid\Uuid;
 use App\Models\User;
+use App\Models\UserStudy;
+use App\Models\Study;
 
 class UserController extends Controller
 {
@@ -41,14 +44,71 @@ class UserController extends Controller
 	public function getAllUsers(Request $request) {
 
 		if (!empty($request->input('study'))) {
-			$userModel = User::join('study', 'user.selected_study_id', '=', 'study.id')
-				->get();
+			//$userModel = User::join('study', 'user.selected_study_id', '=', 'study.id')->get();
+			$userModel = User::with('studies')->get();
 		} else {
 			$userModel = User::get();
 		}
 
 		return response()->json(
 			['users' => $userModel],
+			Response::HTTP_OK
+		);
+	}
+
+	public function saveStudy($userId, $studyId) {
+		$validator = Validator::make([
+			'user_id' => $userId,
+			'study_id' => $studyId], [
+			'user_id' => 'required|string|min:36',
+			'study_id' => 'required|string|min:36'
+		]);
+
+		if ($validator->fails() === true) {
+			return response()->json([
+				'msg' => 'Validation failed',
+				'err' => $validator->errors()
+			], $validator->statusCode());
+		}
+
+		$user = User::findOrFail($userId);
+		$study = Study::findOrFail($studyId);
+		$userStudy = new UserStudy;
+		$userStudy->id = Uuid::uuid4();
+		$userStudy->user_id = $userId;
+		$userStudy->study_id = $studyId;
+		$userStudy->save();
+		//$user->studies()->save($study);
+		$userModel = $user::with('studies')->get();
+		return response()->json(
+			['user' => $userModel],
+			Response::HTTP_OK
+		);
+	}
+
+	public function deleteStudy($userId, $studyId) {
+		$validator = Validator::make([
+			'user_id' => $userId,
+			'study_id' => $studyId], [
+			'user_id' => 'required|string|min:36',
+			'study_id' => 'required|string|min:36'
+		]);
+
+		if ($validator->fails() === true) {
+			return response()->json([
+				'msg' => 'Validation failed',
+				'err' => $validator->errors()
+			], $validator->statusCode());
+		}
+
+		$userStudy = UserStudy::where('user_id', $userId)
+			->where('study_id', $studyId)
+			->firstOrFail();
+
+		$userStudy->delete();
+
+		return response()->json(
+			[],
 			Response::HTTP_OK
 		);
 	}

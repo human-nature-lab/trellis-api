@@ -13,6 +13,8 @@ class User extends Model
 
 	protected $table = 'user';
 
+	protected $hidden = array('password');
+
 	protected $fillable = [
 		'id',
 		'created_at',
@@ -22,4 +24,11 @@ class User extends Model
 		'username',
 		'password'
 	];
+
+	public function studies() {
+		return $this
+		    ->belongsToMany('App\Models\Study', 'user_study')
+		    ->whereNull('user_study.deleted_at')
+			->withTimestamps();
+	}
 }

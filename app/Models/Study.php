@@ -24,4 +24,8 @@ class Study extends Model
 		'census_form_master_id',
 		'default_locale_id'
 	];
+
+	public function users() {
+		return $this->belongsToMany('App\Models\User', 'user_study');
+	}
 }
