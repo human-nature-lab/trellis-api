@@ -184,16 +184,27 @@ class UserController extends Controller
 			'name' => 'required|string|min:1|max:255',
 			'username' => 'required|string|min:1|max:63',
 			'password' => 'required|string|min:1|max:63',
+            'password_confirmation' => 'required|string|min:1|max:63',
 			'role' => 'string|min:1|max:64',
 			'selected_study_id' => 'string|min:36'
 		]);
 
-		if ($validator->fails() === true) {
+
+
+		if ($validator->fails() === true ) {
 			return response()->json([
 				'msg' => 'Validation failed',
 				'err' => $validator->errors()
 			], $validator->statusCode());
 		}
+
+        if ($request->input('password') !==  $request->input('password_confirmation')) {
+            return response()->json([
+                'msg' => 'Passwords don\'t match',
+                'err' => Array("Passwords don't match")
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
 
 		$userId = Uuid::uuid4();
 		$userName = $request->input('name');
@@ -214,5 +225,6 @@ class UserController extends Controller
 		return response()->json([
 			'user' => $newUserModel
 		], Response::HTTP_OK);
+
 	}
 }
