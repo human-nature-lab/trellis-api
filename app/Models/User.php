@@ -13,8 +13,6 @@ class User extends Model
 
 	protected $table = 'user';
 
-	protected $hidden = array('password');
-
 	protected $fillable = [
 		'id',
 		'created_at',

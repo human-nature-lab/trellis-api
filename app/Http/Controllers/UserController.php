@@ -28,7 +28,7 @@ class UserController extends Controller
 			], $validator->statusCode());
 		}
 
-		$userModel = User::find($id);
+		$userModel = User::find($id)->get(['id', 'name', 'username', 'role', 'selected_study_id']);
 
 		if ($userModel === null) {
 			return response()->json([
@@ -44,16 +44,14 @@ class UserController extends Controller
 	public function getAllUsers(Request $request) {
 
 		if (!empty($request->input('study'))) {
-			//$userModel = User::join('study', 'user.selected_study_id', '=', 'study.id')->get();
-			$userModel = User::with('studies')->get();
+			$userModel = User::with('studies')->get(['id', 'name', 'username', 'role', 'selected_study_id']);
 		} else {
-			$userModel = User::get();
+			$userModel = User::get(['id', 'name', 'username', 'role', 'selected_study_id']);
 		}
 
-		return response()->json(
-			['users' => $userModel],
-			Response::HTTP_OK
-		);
+		return response()->json([
+			'users' => $userModel,
+			], Response::HTTP_OK);
 	}
 
 	public function saveStudy($userId, $studyId) {
