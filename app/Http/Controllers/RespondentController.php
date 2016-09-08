@@ -6,6 +6,11 @@ use App\Models\Respondent;
 use \DateTime;
 use \Input;
 use \DB;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Validator;
+use Ramsey\Uuid\Uuid;
+
 
 class RespondentController extends Controller {
 
@@ -18,10 +23,75 @@ class RespondentController extends Controller {
         return view('respondents.respondents', array('title' => 'Respondents', 'respondents' => $respondents));
     }
 
+    public function getAllRespondents(Request $request) {
+
+        $respondents = Respondent::get();
+
+        return response()->json(
+            ['respondents' => $respondents],
+            Response::HTTP_OK
+        );
+    }
+
     public function create(){
 
         return view('respondents.create');
 
+    }
+
+    public function createRespondent(Request $request) {
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'string|min:1|max:65535'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $id = Uuid::uuid4();
+        $respondentName = $request->input('name');
+
+        $newRespondentModel = new Respondent;
+        $newRespondentModel->id = $id;
+        $newRespondentModel->name = $respondentName;
+        $newRespondentModel->save();
+
+        return response()->json([
+            'respondent' => $newRespondentModel
+        ], Response::HTTP_OK);
+    }
+
+    public function removeRespondent(Request $request, $id) {
+
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondentModel = Respondent::find($id);
+
+        if ($respondentModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $respondentModel->delete();
+
+        return response()->json([
+
+        ]);
     }
 
     public function store(){

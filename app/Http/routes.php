@@ -200,6 +200,25 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'DeviceController@createDevice'
 	);
 
+	//****************************//
+	//* Respondent Controller Routes *//
+	//****************************//
+
+	$app->get(
+		'respondent',
+		'RespondentController@getAllRespondents'
+	);
+
+	$app->put(
+		'respondent',
+		'RespondentController@createRespondent'
+	);
+
+	$app->delete(
+		'respondent/{id}',
+		'RespondentController@removeRespondent'
+	);
+
 	//**************************************//
 	//* Translation Controller Routes *//
 	//**************************************//
