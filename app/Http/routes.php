@@ -219,6 +219,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'RespondentController@removeRespondent'
 	);
 
+	$app->post(
+		'respondent/{id}',
+		'RespondentController@updateRespondent'
+	);
+
 	//**************************************//
 	//* Translation Controller Routes *//
 	//**************************************//

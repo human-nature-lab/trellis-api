@@ -25,7 +25,7 @@ class RespondentController extends Controller {
 
     public function getAllRespondents(Request $request) {
 
-        $respondents = Respondent::get();
+        $respondents = Respondent::with('photos')->get();
 
         return response()->json(
             ['respondents' => $respondents],
@@ -37,6 +37,27 @@ class RespondentController extends Controller {
 
         return view('respondents.create');
 
+    }
+
+    public function updateRespondent(Request $request, $id) {
+        $validator = Validator::make($request->all(), [
+            'name' => 'string|min:1|max:65535|required'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondent = Respondent::find($id);
+        $respondent->name = $request->input('name');
+        $respondent->save();
+
+        return response()->json([
+            'respondent' => $respondent
+        ], Response::HTTP_OK);
     }
 
     public function createRespondent(Request $request) {
@@ -65,7 +86,7 @@ class RespondentController extends Controller {
         ], Response::HTTP_OK);
     }
 
-    public function removeRespondent(Request $request, $id) {
+    public function removeRespondent($id) {
 
         $validator = Validator::make(
             ['id' => $id],
@@ -114,6 +135,7 @@ class RespondentController extends Controller {
         return view('respondents.show')->with('respondent', $respondent);
 
     }
+
 
     public function edit($id){
 
