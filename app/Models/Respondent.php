@@ -21,4 +21,11 @@ class Respondent extends Model
         'geo_id',
         'name'
     ];
+
+    public function photos() {
+        return $this
+        ->belongsToMany('App\Models\Photo', 'respondent_photo')
+        ->whereNull('respondent_photo.deleted_at')
+        ->withTimestamps();
+    }
 }

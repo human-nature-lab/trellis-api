@@ -25,7 +25,7 @@ class RespondentController extends Controller {
 
     public function getAllRespondents(Request $request) {
 
-        $respondents = Respondent::get();
+        $respondents = Respondent::with('photos')->get();
 
         return response()->json(
             ['respondents' => $respondents],
@@ -86,7 +86,7 @@ class RespondentController extends Controller {
         ], Response::HTTP_OK);
     }
 
-    public function removeRespondent(Request $request, $id) {
+    public function removeRespondent($id) {
 
         $validator = Validator::make(
             ['id' => $id],
