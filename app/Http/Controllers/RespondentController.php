@@ -39,6 +39,27 @@ class RespondentController extends Controller {
 
     }
 
+    public function updateRespondent(Request $request, $id) {
+        $validator = Validator::make($request->all(), [
+            'name' => 'string|min:1|max:65535|required'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondent = Respondent::find($id);
+        $respondent->name = $request->input('name');
+        $respondent->save();
+
+        return response()->json([
+            'respondent' => $respondent
+        ], Response::HTTP_OK);
+    }
+
     public function createRespondent(Request $request) {
 
         $validator = Validator::make($request->all(), [
@@ -114,6 +135,7 @@ class RespondentController extends Controller {
         return view('respondents.show')->with('respondent', $respondent);
 
     }
+
 
     public function edit($id){
 
