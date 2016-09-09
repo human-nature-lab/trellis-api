@@ -94,10 +94,10 @@ class GeoTypeController extends Controller
 		], Response::HTTP_OK);
 	}
 
-	public function removeGeo(Request $request, $id) {
+	public function removeGeoType($geo_type_id) {
 
 		$validator = Validator::make(
-			['id' => $id],
+			['id' => $geo_type_id],
 			['id' => 'required|string|min:36']
 		);
 
@@ -108,7 +108,7 @@ class GeoTypeController extends Controller
 			], $validator->statusCode());
 		}
 
-		$geoTypeModel = GeoType::find($id);
+		$geoTypeModel = GeoType::find($geo_type_id);
 
 		if ($geoTypeModel === null) {
 			return response()->json([
@@ -128,8 +128,8 @@ class GeoTypeController extends Controller
 		$validator = Validator::make($request->all(), [
 			'parent_id' => 'string|min:36',
 			'name' => 'required|string|min:1',
-			'can_enumerator_add' => 'boolean',
-			'can_contain_respondent' => 'boolean'
+			'can_enumerator_add' => 'required|boolean',
+			'can_contain_respondent' => 'required|boolean'
 		]);
 
 		if ($validator->fails() === true) {
@@ -143,8 +143,8 @@ class GeoTypeController extends Controller
 		$parentId = $request->input('parent_id');
 		$studyId = $request->input('study_id');
 		$name = $request->input('name');
-		$canEnumeratorAdd = $request->input('can_enumerator_add') === null ? false : true;
-		$canContainRespondent = $request->input('can_contain_respondent') === null ? false : true;
+		$canEnumeratorAdd = $request->input('can_enumerator_add');
+		$canContainRespondent = $request->input('can_contain_respondent');
 
 		$newGeoTypeModel = new GeoType;
 

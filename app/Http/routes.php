@@ -446,7 +446,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 	);
 
 	$app->delete(
-		'gep/id/{geo_id}',
+		'geo/id/{geo_id}',
 		'GeoController@removeGeo'
 	);
 
@@ -475,7 +475,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 	);
 
 	$app->delete(
-		'gep/type/{geo_type_id}',
+		'geo/type/{geo_type_id}',
 		'GeoTypeController@removeGeoType'
 	);
 
