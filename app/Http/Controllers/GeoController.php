@@ -141,9 +141,9 @@ class GeoController extends Controller
 			'localeId' => 'required|string|min:36|exists:locale,id',
 			'geo_type_id' => 'required|string|min:36|exists:geo_type,id',
 			'parent_id' => 'string|min:36|exists:geo,id',
-			'latitude' => 'required|string|min:1',
-			'longitude' => 'required|string|min:1',
-			'altitude' => 'required|string|min:1',
+			'latitude' => 'string|min:1',
+			'longitude' => 'string|min:1',
+			'altitude' => 'string|min:1',
 			'name' => 'required|string|min:1'
 		]);
 
