@@ -55,7 +55,7 @@ class GeoController extends Controller
 			], $validator->statusCode());
 		}
 
-		$geoModel = Geo::select('geo.id', 'gt.name AS type_name', 'geo.parent_id', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'tt.translated_text AS name')
+		$geoModel = Geo::select('geo.id', 'gt.name AS type_name', 'gt.id as geo_type_id','geo.parent_id', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'tt.translated_text AS name')
 			->join('translation_text AS tt', 'tt.translation_id', '=', 'geo.name_translation_id')
 			->join('geo_type AS gt', 'gt.id', '=', 'geo.geo_type_id')
 			->where('tt.locale_id', $localeId)
@@ -96,7 +96,7 @@ class GeoController extends Controller
 			], Response::HTTP_NOT_FOUND);
 		}
 
-		$geoModel->fill->input();
+		$geoModel->fill($request->input());
 		$geoModel->save();
 
 		return response()->json([

@@ -495,7 +495,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 	);
 
 	$app->get(
-		'geo/type/{geo_type_id}/parent',
+		'geo/type/{parent_geo_id}/parent',
 		'GeoTypeController@getAllEligibleGeoTypesOfParentGeo'
 	);
 

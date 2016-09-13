@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
 use App\Models\GeoType;
+use App\Models\Geo;
 use Ramsey\Uuid\Uuid;
 
 class GeoTypeController extends Controller
@@ -49,9 +50,10 @@ class GeoTypeController extends Controller
 		);
 	}
 
-	public function getAllEligibleGeoTypesOfParentGeo(Request $request) {
-
-			$geoTypeModel = GeoType::where('geo_type.parent_id', $request->input('geoTypeId'))
+	public function getAllEligibleGeoTypesOfParentGeo($parent_geo_id) {
+            $geoModel = Geo::where('geo.id',$parent_geo_id)
+                ->first();
+			$geoTypeModel = GeoType::where('geo_type.parent_id', $geoModel->geo_type_id)
 				->get();
 
 		return response()->json([
@@ -67,14 +69,15 @@ class GeoTypeController extends Controller
 			'id' => 'required|string|min:36',
 			'parent_id' => 'string|min:36',
 			'name' => 'string|min:1',
-			'can_enumerator_add' => 'integer|min:1|max:1',
-			'can_contain_respondent' => 'integer|min:1|max:1'
+			'can_enumerator_add' => 'required|boolean',
+			'can_contain_respondent' => 'required|boolean'
+            //'can_enumerator_add' => 'integer|min:1|max:1',
 		]);
 
 		if ($validator->fails() === true) {
 			return response()->json([
 				'msg' => 'Validation failed',
-				'err' => $validator->errors()
+				'err' => $validator->errors(),
 			], $validator->statusCode());
 		}
 
@@ -86,7 +89,7 @@ class GeoTypeController extends Controller
 			], Response::HTTP_NOT_FOUND);
 		}
 
-		$geoTypeModel->fill->input();
+		$geoTypeModel->fill($request->input());
 		$geoTypeModel->save();
 
 		return response()->json([
