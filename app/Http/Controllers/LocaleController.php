@@ -55,9 +55,9 @@ class LocaleController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'language_tag' => 'string|min:2|max:3',
             'language_name' => 'string|min:1|max:255',
-            'language_native' => 'string|min:1|max:255'
+            'language_native' => 'string|min:1|max:255',
+            'language_tag' => 'string|min:2|max:3'
         ]);
 
         if ($validator->fails() === true) {
@@ -75,7 +75,7 @@ class LocaleController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $localeModel->fill->input();
+        $localeModel->fill($request->input());
         $localeModel->save();
 
         return response()->json([
