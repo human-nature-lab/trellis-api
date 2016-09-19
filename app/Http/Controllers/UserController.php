@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Models\UserStudy;
 use App\Models\Study;
 
-class UserController extends Controller
+class   UserController extends Controller
 {
 
 	public function getUser(Request $request, $id) {
