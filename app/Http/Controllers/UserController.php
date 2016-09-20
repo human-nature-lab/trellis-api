@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Models\UserStudy;
 use App\Models\Study;
 
-class UserController extends Controller
+class   UserController extends Controller
 {
 
 	public function getUser(Request $request, $id) {
@@ -139,7 +139,7 @@ class UserController extends Controller
 			], Response::HTTP_NOT_FOUND);
 		}
 
-		$userModel->fill->input();
+		$userModel->fill->fill($request->input());
 		$userModel->save();
 
 		return response()->json([

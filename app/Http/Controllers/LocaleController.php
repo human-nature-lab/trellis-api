@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\Locale;
+
 
 class LocaleController extends Controller
 {
@@ -53,9 +55,9 @@ class LocaleController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'language_tag' => 'string|min:2|max:3',
             'language_name' => 'string|min:1|max:255',
-            'language_native' => 'string|min:1|max:255'
+            'language_native' => 'string|min:1|max:255',
+            'language_tag' => 'string|min:2|max:3'
         ]);
 
         if ($validator->fails() === true) {
@@ -73,7 +75,7 @@ class LocaleController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $localeModel->fill->input();
+        $localeModel->fill($request->input());
         $localeModel->save();
 
         return response()->json([
@@ -113,9 +115,9 @@ class LocaleController extends Controller
     public function createLocale(Request $request) {
 
         $validator = Validator::make($request->all(), [
-            'language_tag' => 'string|min:2|max:3',
             'language_name' => 'string|min:1|max:255',
-            'language_native' => 'string|min:1|max:255'
+            'language_native' => 'string|min:1|max:255',
+            'language_tag' => 'string|min:2|max:3'
         ]);
 
         if ($validator->fails() === true) {
@@ -128,13 +130,13 @@ class LocaleController extends Controller
         $localeId = Uuid::uuid4();
         $localeTag = $request->input('language_tag');
         $localeName = $request->input('language_name');
-        $languageNative = $request->input('language_native');
+        $localeNative = $request->input('language_native');
 
         $newLocaleModel = new Locale;
         $newLocaleModel->id = $localeId;
         $newLocaleModel->language_tag = $localeTag;
         $newLocaleModel->language_name = $localeName;
-        $newLocaleModel->language_native = $languageNative;
+        $newLocaleModel->language_native = $localeNative;
         $newLocaleModel->save();
 
         return response()->json([
