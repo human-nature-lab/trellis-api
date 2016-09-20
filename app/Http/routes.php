@@ -36,6 +36,14 @@ $app->post(
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function($app){
 
 	//**************************//
+	//* Photo Controller Routes *//
+	//**************************//
+	$app->get(
+		'photo/{id}',
+		'PhotoController@getPhoto'
+	);
+
+	//**************************//
 	//* Form Controller Routes *//
 	//**************************//
 
@@ -222,6 +230,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 	$app->post(
 		'respondent/{id}',
 		'RespondentController@updateRespondent'
+	);
+
+	$app->post(
+		'respondent/{respondent_id}/photos',
+		'RespondentController@addPhoto'
 	);
 
 	//**************************************//
