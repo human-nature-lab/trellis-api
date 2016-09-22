@@ -28,4 +28,10 @@ class Study extends Model
 	public function users() {
 		return $this->belongsToMany('App\Models\User', 'user_study');
 	}
+    public function locales() {
+        return $this
+            ->belongsToMany('App\Models\Locale', 'study_locale')
+            ->whereNull('study_locale.deleted_at')
+            ->withTimestamps();
+    }
 }
