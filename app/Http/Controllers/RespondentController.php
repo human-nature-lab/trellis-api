@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Respondent;
+use App\Models\Photo;
+use App\Models\RespondentPhoto;
 use \DateTime;
 use \Input;
 use \DB;
@@ -10,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
 use Ramsey\Uuid\Uuid;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Adapter\Local;
 
 
 class RespondentController extends Controller {
@@ -31,6 +35,60 @@ class RespondentController extends Controller {
             ['respondents' => $respondents],
             Response::HTTP_OK
         );
+    }
+
+    public function addPhoto(Request $request, $respondentId) {
+        $validator = Validator::make([
+            'respondent_id' => $respondentId], [
+            'respondent_id' => 'required|string|min:36'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+        $filesystem = new Filesystem($adapter);
+
+        $respondent = Respondent::find($respondentId);
+        $hasFile = $request->hasFile('file');
+        if($hasFile and $respondent->exists()) {
+            $file = $request->file('file');
+            $stream = fopen($file->getRealPath(), 'r+');
+            $extension = $file->getClientOriginalExtension();
+            $newName = Uuid::uuid4();
+            $fileName = $newName.'.'.$extension;
+            $filesystem->writeStream($fileName, $stream);
+            fclose($stream);
+
+            $photo = new Photo;
+            $photoId = Uuid::uuid4();
+            $photo->id = $photoId;
+            $photo->file_name = $fileName;
+            $photo->save();
+
+            $respondentPhoto = new RespondentPhoto;
+            $respondentPhoto->id = Uuid::uuid4();
+            $respondentPhoto->respondent_id = $respondentId;
+            $respondentPhoto->photo_id = $photoId;
+            $maxCount = RespondentPhoto::where('respondent_id', $respondentId)->max('sort_order');
+            $maxCount = ($maxCount == null) ? 1 : $maxCount + 1;
+            $respondentPhoto->sort_order = $maxCount;
+            $respondentPhoto->save();
+
+            return response()->json(
+                ['photo' => $photo],
+                Response::HTTP_OK
+            );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Invalid photo or invalid respondent id'
+            ], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     public function create(){

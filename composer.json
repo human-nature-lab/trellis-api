@@ -9,7 +9,8 @@
 		"laravel/lumen-framework": "5.1.*",
 		"vlucas/phpdotenv": "~1.0",
 		"ramsey/uuid": "^3.0",
-		"barryvdh/laravel-cors": "^0.7.3"
+		"barryvdh/laravel-cors": "^0.7.3",
+	    "league/flysystem": "~1.0"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "~4.0",
