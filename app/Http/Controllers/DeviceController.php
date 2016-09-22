@@ -133,7 +133,7 @@ class DeviceController extends Controller
 			], Response::HTTP_NOT_FOUND);
 		}
 
-		$deviceModel->fill->input();
+		$deviceModel->fill($request->input());
 		$deviceModel->save();
 
 		return response()->json([
