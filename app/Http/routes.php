@@ -116,6 +116,16 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'StudyController@createStudy'
 	);
 
+    $app->put(
+        'study/{study_id}/locales/{locale_id}',
+        'StudyController@saveLocale'
+    );
+
+    $app->delete(
+        'study/{study_id}/locales/{locale_id}',
+        'StudyController@deleteLocale'
+    );
+
 	//**************************//
 	//* User Controller Routes *//
 	//**************************//

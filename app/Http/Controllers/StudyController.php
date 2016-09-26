@@ -8,6 +8,8 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\Study;
+use App\Models\Locale;
+use App\Models\StudyLocale;
 
 class StudyController extends Controller
 {
@@ -41,9 +43,10 @@ class StudyController extends Controller
 
 	public function getAllStudies(Request $request) {
 
-		$studyModel = Study::select('study.id', 'study.name', 'study.photo_quality', 'l.language_name', 'study.default_locale_id')
-			->join('locale AS l', 'l.id', '=', 'default_locale_id')
-			->get();
+//		$studyModel = Study::select('study.id', 'study.name', 'study.photo_quality', 'l.language_name', 'study.default_locale_id')
+//			->join('locale AS l', 'l.id', '=', 'default_locale_id')
+//			->get();
+        $studyModel = Study::with('locales')->get();
 
 		return response()->json(
 			['studies' => $studyModel],
@@ -148,4 +151,62 @@ class StudyController extends Controller
 			'study' => $newStudyModel
 		], Response::HTTP_OK);
 	}
+
+    public function saveLocale($studyId, $localeId) {
+        $validator = Validator::make([
+            'study_id' => $studyId,
+            'locale_id' => $localeId], [
+            'study_id' => 'required|string|min:36',
+            'locale_id' => 'required|string|min:36'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $study = Study::findOrFail($studyId);
+        $locale = Locale::findOrFail($localeId);
+        $studyLocale = new StudyLocale;
+        $studyLocale->id = Uuid::uuid4();
+        $studyLocale->study_id = $studyId;
+        $studyLocale->locale_id = $localeId;
+        $studyLocale->save();
+        //$study->locales()->save($locale);
+        $studyModel = $study::with('locales')->get();
+        return response()->json(
+            ['study' => $studyModel],
+            Response::HTTP_OK
+        );
+    }
+
+    public function deleteLocale($studyId, $localeId) {
+        $validator = Validator::make([
+            'study_id' => $studyId,
+            'locale_id' => $localeId], [
+            'study_id' => 'required|string|min:36',
+            'locale_id' => 'required|string|min:36'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $studyLocale = StudyLocale::where('study_id', $studyId)
+            ->where('locale_id', $localeId)
+            ->firstOrFail();
+
+        $studyLocale->delete();
+
+        return response()->json(
+            [],
+            Response::HTTP_OK
+        );
+    }
+
 }
