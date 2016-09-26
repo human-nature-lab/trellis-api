@@ -138,8 +138,9 @@ class   UserController extends Controller
 				'msg' => 'URL resource not found'
 			], Response::HTTP_NOT_FOUND);
 		}
-
+        $userPassword = bcrypt($request->input('password'));
 		$userModel->fill($request->input());
+        $userModel->password = $userPassword;
 		$userModel->save();
 
 		return response()->json([
