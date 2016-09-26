@@ -18,9 +18,14 @@ $app->get(
 	'SyncController@heartbeat'
 );
 
-$app->put(
-	'device/{device_id}/sync/image',
-	'SyncController@uploadImages'
+$app->post(
+	'device/{device_id}/image',
+	'SyncController@syncImages'
+);
+
+$app->get(
+	'device/{device_id}/image',
+	'SyncController@listImages'
 );
 
 $app->put(

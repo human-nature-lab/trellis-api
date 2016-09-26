@@ -2,23 +2,13 @@
 
 namespace app\Http\Controllers;
 
-use Ramsey\Uuid\Uuid;
-use Laravel\Lumen\Routing\Controller;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Laravel\Lumen\Routing\Controller;
 use Validator;
-use DB;
-
-use App\Models\AssignConditionTag, App\Models\Choice, App\Models\ConditionTag, App\Models\Datum, App\Models\DatumPhoto,
-    App\Models\DatumType, App\Models\Edge, App\Models\EdgeDatum, App\Models\Form, App\Models\FormSection, App\Models\FormSkip,
-    App\Models\Geo, App\Models\GeoPhoto, App\Models\GeoType, App\Models\GroupTag, App\Models\GroupTagType,
-    App\Models\Interview, App\Models\InterviewQuestion, App\Models\Locale, App\Models\Parameter, App\Models\Photo,
-    App\Models\PhotoTag, App\Models\Question, App\Models\QuestionAssignConditionTag, App\Models\QuestionChoice,
-    App\Models\QuestionGroup, App\Models\QuestionGroupSkip, App\Models\QuestionParameter, App\Models\QuestionType,
-    App\Models\Respondent, App\Models\RespondentConditionTag, App\Models\RespondentGroupTag, App\Models\RespondentPhoto,
-    App\Models\Section, App\Models\SectionQuestionGroup, App\Models\Skip, App\Models\SkipConditionTag, App\Models\Study,
-    App\Models\StudyForm, App\Models\StudyLocale, App\Models\StudyRespondent, App\Models\Survey, App\Models\SurveyConditionTag,
-    App\Models\Tag, App\Models\Translation, App\Models\TranslationText, App\Models\User, App\Models\UserStudy;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Adapter\Local;
 
 class SyncController extends Controller
 {
@@ -108,5 +98,81 @@ class SyncController extends Controller
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
         return response()->json([], Response::HTTP_OK);
 
+    }
+
+    public function listImages($deviceId)
+    {
+        //the fields are fileName:<string>, deviceId:<string>, action:<string>, length:<number>,base64:<string/base64>. Note that base64 uses no linefeeds
+        $validator = Validator::make(array_merge([], [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        $returnArray = array();
+        $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+        $filesystem = new Filesystem($adapter);
+
+        $contents = $filesystem->listContents();
+
+        foreach ($contents as $object) {
+            if ($object['extension'] == "jpg") {
+                $returnArray[] = array('fileName' => $object['path'], 'length' => $object['size']);
+            }
+        }
+
+        return response()->json($returnArray, Response::HTTP_OK);
+    }
+
+    public function syncImages(Request $request, $deviceId)
+    {
+        //the fields are fileName:<string>, deviceId:<string>, action:<string>, length:<number>,base64:<string/base64>. Note that base64 uses no linefeeds
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id',
+            'fileName' => 'required|string|min:1',
+            'action' => 'required|string|min:1',
+            'base64' => 'string'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        if ($request->input('action') == 'up') {
+            // TODO: replace hard-coded directory with config / env variable
+            $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+            $filesystem = new Filesystem($adapter);
+            $data = base64_decode($request->input('base64'));
+            $filesystem->put($request->input('fileName'), $data);
+        } else {
+            $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+            $filesystem = new Filesystem($adapter);
+            $exists = $filesystem->has($request->input('fileName'));
+            if ($exists) {
+                $contents = $filesystem->read($request->input('fileName'));
+                $size = $filesystem->getSize($request->input('fileName'));
+
+                $base64 = base64_encode($contents);
+
+                return response()->json([
+                    'fileName' => $request->input('fileName'),
+                    'device_id' => $deviceId,
+                    'length' => $size,
+                    'base64' => $base64],
+                    Response::HTTP_OK);
+            }
+        }
     }
 }

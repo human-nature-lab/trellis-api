@@ -139,7 +139,7 @@ class   UserController extends Controller
 			], Response::HTTP_NOT_FOUND);
 		}
 
-		$userModel->fill->fill($request->input());
+		$userModel->fill($request->input());
 		$userModel->save();
 
 		return response()->json([
