@@ -26,12 +26,21 @@ class Study extends Model
 	];
 
 	public function users() {
-		return $this->belongsToMany('App\Models\User', 'user_study');
+		return $this->belongsToMany('App\Models\User', 'user_study')
+		->whereNull('user_study.deleted_at')
+		->withTimestamps();
 	}
+
+	public function respondents() {
+		return $this->belongsToMany('App\Models\Respondent', 'study_respondent')
+		->whereNull('study_respondent.deleted_at')
+		->withTimestamps();
+	}
+
     public function locales() {
         return $this
-            ->belongsToMany('App\Models\Locale', 'study_locale')
-            ->whereNull('study_locale.deleted_at')
-            ->withTimestamps();
+        ->belongsToMany('App\Models\Locale', 'study_locale')
+        ->whereNull('study_locale.deleted_at')
+        ->withTimestamps();
     }
 }

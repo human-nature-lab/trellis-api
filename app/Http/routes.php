@@ -232,6 +232,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'RespondentController@getAllRespondents'
 	);
 
+	$app->get(
+		'respondent/{study_id}',
+		'RespondentController@getAllRespondentsByStudyId'
+	);
+
 	$app->put(
 		'respondent',
 		'RespondentController@createRespondent'

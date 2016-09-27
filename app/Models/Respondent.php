@@ -28,4 +28,10 @@ class Respondent extends Model
         ->whereNull('respondent_photo.deleted_at')
         ->withTimestamps();
     }
+
+    public function studies() {
+        return $this->belongsToMany('App\Models\Study', 'study_respondent')
+        ->whereNull('study_respondent.deleted_at')
+        ->withTimestamps();
+    }
 }

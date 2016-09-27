@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Respondent;
 use App\Models\Photo;
+use App\Models\Study;
 use App\Models\RespondentPhoto;
+use App\Models\StudyRespondent;
 use \DateTime;
 use \Input;
 use \DB;
@@ -35,6 +37,32 @@ class RespondentController extends Controller {
             ['respondents' => $respondents],
             Response::HTTP_OK
         );
+    }
+
+    public function getAllRespondentsByStudyId($study_id) {
+        $validator = Validator::make(
+            ['study_id' => $study_id],
+            ['study_id' => 'required|string|min:36|exists:study,id']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
+        $respondents = Respondent::with('photos')->whereHas('studies', function($query) use ($study_id) {
+            $query->where('study.id', '=', $study_id);
+        })->get();
+
+        return response()->json(
+            ['respondents' => $respondents],
+            Response::HTTP_OK
+        );
+
+
     }
 
     public function addPhoto(Request $request, $respondentId) {
@@ -119,9 +147,9 @@ class RespondentController extends Controller {
     }
 
     public function createRespondent(Request $request) {
-
         $validator = Validator::make($request->all(), [
-            'name' => 'string|min:1|max:65535'
+            'name' => 'string|min:1|max:65535',
+			'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -131,13 +159,22 @@ class RespondentController extends Controller {
             ], $validator->statusCode());
         }
 
-        $id = Uuid::uuid4();
+        $respondentId = Uuid::uuid4();
         $respondentName = $request->input('name');
 
         $newRespondentModel = new Respondent;
-        $newRespondentModel->id = $id;
+        $newRespondentModel->id = $respondentId;
         $newRespondentModel->name = $respondentName;
         $newRespondentModel->save();
+
+        $studyId = $request->input('study_id');
+        $studyRespondentId = Uuid::uuid4();
+
+        $newStudyRespondentModel = new StudyRespondent;
+        $newStudyRespondentModel->id = $studyRespondentId;
+        $newStudyRespondentModel->respondent_id = $respondentId;
+        $newStudyRespondentModel->study_id = $studyId;
+        $newStudyRespondentModel->save();
 
         return response()->json([
             'respondent' => $newRespondentModel
