@@ -87,6 +87,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'FormController@editFormPrep'
 	);
 
+
 	//***************************//
 	//* Study Controller Routes *//
 	//***************************//
@@ -395,6 +396,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'form/section/group/{group_id}/question/',
 			'QuestionController@createQuestion'
 	);
+
+    $app->post(
+        'form/section/group/{group_id}/question/{question_id}',
+        'QuestionController@moveQuestion'
+    );
 
 	$app->delete(
 			'form/section/group/question/{question_id}',

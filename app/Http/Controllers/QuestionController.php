@@ -15,9 +15,51 @@ use App\Http\Controllers\Controller;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
+use Log;
 
 class QuestionController extends Controller
 {
+
+    public function moveQuestion(Request $request, $question_id, $question_group_id) {
+        $validator = Validator::make(array_merge($request->all(),[
+            'question_id' => $question_id,
+            'question_group_id' => $question_group_id
+        ]), [
+            'question_id' => 'required|string|min:36',
+            'question_group_id' => 'required|string|min:36',
+            'sort_order' => 'required|integer|min:1'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $questionModel = Question::find($question_id);
+
+        if ($questionModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $sortOrder = $request->input('sort_order');
+
+        // increment the sort_order of all questions in the question group with sort order >= sort_order
+        DB::statement('update question set sort_order = sort_order + 1 where sort_order >= ? and question_group_Id = ? and deleted_at = null', [$sortOrder, $question_group_id]);
+
+        // This is a comment
+        $questionModel->question_group_id = $question_group_id;
+        $questionModel->sort_order = $sortOrder;
+        $questionModel->save();
+
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
+
 	public function getQuestion(Request $request, $id) {
 
 		$validator = Validator::make(
@@ -50,7 +92,8 @@ class QuestionController extends Controller
 			'formId' => $formId,
 			'localeId' => $localeId
 		]), [
-			'formId' => 'required|string|min:36|exists:form,id',
+
+            'formId' => 'required|string|min:36|exists:form,id',
 			'localeId' => 'required|string|min:36|exists:locale,id'
 		]);
 
@@ -289,8 +332,7 @@ class QuestionController extends Controller
 				'id' => 'required|string|min:36|exists:question_group,id',
 				'translated_text' => 'required|string|min:1',
 				'var_name' => 'required|string|min:1',
-				'question_type_id' => 'required|string|min:36|exists:question_type,id',
-				'sort_order' => 'required|integer|min:0'
+				'question_type_id' => 'required|string|min:36|exists:question_type,id'
 		]);
 
 		if ($validator->fails() === true) {
@@ -325,7 +367,13 @@ class QuestionController extends Controller
 			$newQuestionModel->question_type_id = $request->input('question_type_id');
 			$newQuestionModel->question_translation_id = $translationId;
 			$newQuestionModel->question_group_id = $questionGroupId;
-			$newQuestionModel->sort_order = $request->input('sort_order');
+			//$newQuestionModel->sort_order = $request->input('sort_order');
+            $maxSortOrder = DB::table('question')
+                ->where('question_group_id', '=', $questionGroupId)
+                ->whereNull('deleted_at')
+                ->max('sort_order');
+
+            $newQuestionModel->sort_order = $maxSortOrder + 1;
 			$newQuestionModel->var_name = $request->input('var_name');
 			$newQuestionModel->save();
 			$newQuestionModel->translated_text = $request->input('translated_text');
