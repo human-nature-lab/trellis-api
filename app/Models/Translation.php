@@ -20,4 +20,9 @@ class Translation extends Model
 			'deleted_at',
 	];
 
+    public function translationText() {
+        return $this
+            ->hasMany('App\Models\TranslationText')
+            ->with('locale');
+    }
 }

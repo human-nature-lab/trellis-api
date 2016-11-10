@@ -22,4 +22,8 @@ class TranslationText extends Model
 		'locale_id',
 		'translated_text'
 	];
+
+    public function locale() {
+        return $this->belongsTo('App\Models\Locale', 'locale_id');
+    }
 }

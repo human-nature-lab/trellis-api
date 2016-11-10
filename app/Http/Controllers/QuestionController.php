@@ -295,30 +295,16 @@ class QuestionController extends Controller
 			], $validator->statusCode());
 		}
 
-		$questionModel = Form::find($questionId);
+		$questionModel = Question::find($questionId);
 
 		if ($questionModel === null) {
 			return response()->json([
 				'msg' => 'URL resource was not found'
 			], Response::HTTP_NOT_FOUND);
 		}
-		if ($questionModel->type === 'multiple_select' || $questionModel->type === 'multiple_choice') {
-			DB::transaction(function() use($request, $questionId, $questionModel) {
-				QuestionParameter::where('question_id', $questionId)->delete();
 
-				Choice::join('question_choice AS qc', 'qc.choice_id', '=', 'choice.id')
-					->where('qc.question_id', $questionId)
-					->delete();
+        $questionModel->delete();
 
-				QuestionChoice::where('question_id', $questionId)
-					->delete();
-
-				QuestionParameter::where('question_id', $questionId)
-					->delete();
-
-				$questionModel->delete();
-			});
-		}
 		return response()->json([
 
 		]);
@@ -376,7 +362,8 @@ class QuestionController extends Controller
             $newQuestionModel->sort_order = $maxSortOrder + 1;
 			$newQuestionModel->var_name = $request->input('var_name');
 			$newQuestionModel->save();
-			$newQuestionModel->translated_text = $request->input('translated_text');
+
+            $newQuestionModel->translated_text = $request->input('translated_text');
 		});
 
 		if ($newQuestionModel === null) {

@@ -22,4 +22,8 @@ class QuestionParameter extends Model {
         'parameter_id',
         'val'
     ];
+
+    public function parameter() {
+        return $this->belongsTo('App\Models\Parameter', 'parameter_id');
+    }
 }

@@ -307,7 +307,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 	);
 
 	$app->delete(
-			'form/section/group/{group_id}/question/',
+			'form/section/group/{group_id}',
 			'QuestionGroupController@removeQuestionGroup'
 	);
 
@@ -479,6 +479,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'form/section/group/question/choice/{choice_id}',
 			'QuestionChoiceController@updateQuestionChoice'
 	);
+
+    $app->post(
+        'form/section/group/question/{question_id}/choices',
+        'QuestionChoiceController@updateQuestionChoices'
+    );
 
 	//*************************//
 	//* Geo Controller Routes *//

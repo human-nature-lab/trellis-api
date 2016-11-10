@@ -20,4 +20,17 @@ class QuestionGroup extends Model
 			'updated_at',
 			'deleted_at',
 	];
+
+    public function delete() {
+        //$this->questions()->delete();
+        Question::where("question_group_id", $this->id)->delete();
+        return parent::delete();
+    }
+
+    public function questions() {
+        return $this
+            ->hasMany('App\Models\Question')
+            ->with('choices', 'questionTranslation', 'questionType', 'questionParameters');
+    }
+
 }

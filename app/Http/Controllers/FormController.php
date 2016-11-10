@@ -42,7 +42,8 @@ class FormController extends Controller
 			], $validator->statusCode());
 		}
 
-		$formModel = Form::find($id);
+		//$formModel = Form::find($id);
+        $formModel = Form::with('sections', 'nameTranslation')->find($id);
 
 		if ($formModel === null) {
 			return response()->json([

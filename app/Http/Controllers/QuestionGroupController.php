@@ -70,10 +70,10 @@ class QuestionGroupController extends Controller
 		);
 	}
 
-	public function removeQuestionGroup(Request $request, $id) {
+	public function removeQuestionGroup(Request $request, $group_id) {
 
 		$validator = Validator::make(
-			['id' => $id],
+			['id' => $group_id],
 			['id' => 'required|string|min:36']
 		);
 
@@ -84,7 +84,7 @@ class QuestionGroupController extends Controller
 			], $validator->statusCode());
 		}
 
-		$questionGroupModel = QuestionGroup::find($id);
+		$questionGroupModel = QuestionGroup::find($group_id);
 
 		if ($questionGroupModel === null) {
 			return response()->json([
@@ -128,7 +128,13 @@ class QuestionGroupController extends Controller
 			$sectionQuestionGroupModel->id = $sectionQuestionGroupId;
 			$sectionQuestionGroupModel->section_id = $sectionId;
 			$sectionQuestionGroupModel->question_group_id = $questionGroupId;
-			$sectionQuestionGroupModel->question_group_order = 1;
+            $maxQuestionGroupOrder = DB::table('section_question_group')
+                ->where('section_id', '=', $sectionId)
+                ->whereNull('deleted_at')
+                ->max('question_group_order');
+
+			//$sectionQuestionGroupModel->question_group_order = 1;
+            $sectionQuestionGroupModel->question_group_order = $maxQuestionGroupOrder + 1;
 			$sectionQuestionGroupModel->save();
 		});
 

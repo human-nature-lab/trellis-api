@@ -21,4 +21,10 @@ class Choice extends Model {
         'choice_translation_id',
         'val'
     ];
+
+    public function choiceTranslation() {
+        return $this
+            ->belongsTo('App\Models\Translation', 'choice_translation_id')
+            ->with('translationText');
+    }
 }

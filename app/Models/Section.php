@@ -20,4 +20,18 @@ class Section extends Model
 		'deleted_at',
 		'name_translation_id',
 	];
+
+    public function nameTranslation() {
+        return $this
+            ->belongsTo('App\Models\Translation', 'name_translation_id')
+            ->with('translationText');
+    }
+
+    public function questionGroups() {
+        return $this
+            ->belongsToMany('App\Models\QuestionGroup', 'section_question_group')
+            ->whereNull('section_question_group.deleted_at')
+            ->withTimestamps()
+            ->with('questions');
+    }
 }

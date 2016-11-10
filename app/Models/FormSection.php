@@ -21,8 +21,14 @@ class FormSection extends Model {
 		'form_id',
 		'section_id',
 		'sort_order',
-		'is_repeated',
+		'is_repeatable',
 		'max_repetitions',
-		'repeat_prompt'
+		'repeat_prompt_translation_id'
 	];
+
+    public function repeatPromptTranslation() {
+        return $this
+            ->belongsTo('App\Models\Translation', 'repeat_prompt_translation_id')
+            ->with('translationText');
+    }
 }
