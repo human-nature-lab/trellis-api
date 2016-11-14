@@ -8,6 +8,7 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\TranslationText;
+use Log;
 
 class TranslationTextController extends Controller
 {
@@ -49,14 +50,13 @@ class TranslationTextController extends Controller
 		);
 	}
 
-	public function updateTranslationText(Request $request, $id) {
+	public function updateTranslationText(Request $request, $translation_id, $text_id) {
 
 		$validator = Validator::make(array_merge($request->all(),[
-			'id' => $id
+			'translation_id' => $translation_id,
+            'text_id' => $text_id
 		]), [
-			'id' => 'required|string|min:36',
-			'locale_id' => 'string|min:36',
-			'translated_text' => 'required|string|min:1'
+			'translated_text' => 'required|string'
 		]);
 
 		if ($validator->fails() === true) {
@@ -66,7 +66,7 @@ class TranslationTextController extends Controller
 			], $validator->statusCode());
 		}
 
-		$translationTextModel = TranslationText::find($id);
+		$translationTextModel = TranslationText::find($text_id);
 
 		if ($translationTextModel === null) {
 			return response()->json([
@@ -74,7 +74,7 @@ class TranslationTextController extends Controller
 			], Response::HTTP_NOT_FOUND);
 		}
 
-		$translationTextModel->fill->input();
+		$translationTextModel->translated_text = $request->input('translated_text');
 		$translationTextModel->save();
 
 		return response()->json([
@@ -111,13 +111,15 @@ class TranslationTextController extends Controller
 		], Response::HTTP_NO_CONTENT);
 	}
 
-	public function createTranslationText(Request $request) {
+	public function createTranslationText(Request $request, $translation_id) {
 
-		$validator = Validator::make($request->all(), [
+        $validator = Validator::make(array_merge($request->all(),[
+            'translation_id' => $translation_id
+        ]), [
 			'translation_id' => 'required|string|min:36',
 			'locale_id' => 'string|min:36',
-			'translated_text' => 'required|string|min:1'
-		]);
+			'translated_text' => 'required|string'
+        ]);
 
 		if ($validator->fails() === true) {
 			return response()->json([
@@ -128,7 +130,7 @@ class TranslationTextController extends Controller
 
 		$translationTextId = Uuid::uuid4();
 		$localeId = $request->input('locale_id');
-		$translationId = $request->input('translation_id');
+		$translationId = $translation_id;
 		$translatedText = $request->input('translated_text');
 
 		$newTranslationTextModel = new TranslationText;
@@ -138,8 +140,13 @@ class TranslationTextController extends Controller
 		$newTranslationTextModel->translated_text = $translatedText;
 		$newTranslationTextModel->save();
 
+        //$returnTranslationTextModel = $newTranslationTextModel->create();
+        $returnTranslationTextModel = TranslationText::with('locale')->find($translationTextId);
+        Log::Debug("returnTranslationTextModel");
+        Log::Debug($returnTranslationTextModel);
+
 		return response()->json([
-			'translationText' => $newTranslationTextModel
+			'translationText' => $returnTranslationTextModel
 		], Response::HTTP_OK);
 	}
 }
