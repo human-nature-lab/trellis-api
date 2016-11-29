@@ -173,4 +173,37 @@ class QuestionGroupController extends Controller
 				'msg' => Response::$statusTexts[Response::HTTP_OK]
 		], Response::HTTP_OK);
 	}
+
+
+    public function updateSectionQuestionGroups(Request $request) {
+        // PATCH method for updating multiple section_question_group rows at once
+        // Should be provided an array of section question group objects with UID and one or more fields to be updated
+        // TODO: Validate that each question provided has a valid ID, easier when upgrading to laravel 5.3+
+        $validator = Validator::make($request->all(), [
+            'sectionQuestionGroups' => 'required|array'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $sectionQuestionGroups = $request->input('sectionQuestionGroups');
+
+        DB::transaction(function () use ($sectionQuestionGroups) {
+            foreach($sectionQuestionGroups as $sectionQuestionGroup) {
+                DB::table('section_question_group')
+                    ->where('section_id', $sectionQuestionGroup['section_id'])
+                    ->where('question_group_id', $sectionQuestionGroup['question_group_id'])
+                    ->whereNull('deleted_at')
+                    ->update($sectionQuestionGroup);
+            }
+        });
+
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 }

@@ -31,6 +31,7 @@ class Section extends Model
         return $this
             ->belongsToMany('App\Models\QuestionGroup', 'section_question_group')
             ->whereNull('section_question_group.deleted_at')
+            ->withPivot('section_id', 'question_group_order')
             ->withTimestamps()
             ->with('questions');
     }

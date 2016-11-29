@@ -326,6 +326,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'QuestionGroupController@updateQuestionGroup'
 	);
 
+    // Route to update / reorder multiple section questions groups at once
+    $app->patch(
+        'form/section/groups',
+        'QuestionGroupController@updateSectionQuestionGroups'
+    );
+
 	//*****************************//
 	//* Section Controller Routes *//
 	//*****************************//
@@ -421,6 +427,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'form/section/group/question/{question_id}',
 			'QuestionController@updateQuestion'
 	);
+
+	// Route to update / reorder multiple questions at once
+    $app->patch(
+        'form/section/group/questions',
+        'QuestionController@updateQuestions'
+    );
 
 	//************************************//
 	//* Question Type Controller Routers *//

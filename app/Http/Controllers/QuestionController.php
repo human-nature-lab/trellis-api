@@ -173,7 +173,38 @@ class QuestionController extends Controller
 		);
 	}
 
-	public function updateQuestion(Request $request, $questionId) {
+    public function updateQuestions(Request $request) {
+        // PATCH method for updating multiple questions at once
+        // Should be provided an array of question objects with UID and one or more fields to be updated
+        // TODO: Validate that each question provided has a valid ID, easier when upgrading to laravel 5.3+
+        $validator = Validator::make($request->all(), [
+            'questions' => 'required|array'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $questions = $request->input('questions');
+
+        DB::transaction(function () use ($questions) {
+            foreach($questions as $question) {
+                DB::table('question')
+                    ->where('id', $question['id'])
+                    ->update($question);
+            }
+        });
+
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
+
+
+    public function updateQuestion(Request $request, $questionId) {
 
 		$validator = Validator::make(array_merge($request->all(),[
 			'id' => $questionId

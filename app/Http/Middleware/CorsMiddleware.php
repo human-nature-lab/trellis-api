@@ -20,7 +20,8 @@ class CorsMiddleware {
 		'HEAD',
 		'DELETE',
 		'PUT',
-		'POST'
+		'POST',
+        'PATCH'
 	];
 
 	public function handle($request, Closure $next) {
