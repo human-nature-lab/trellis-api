@@ -361,6 +361,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'SectionController@createSection'
 	);
 
+    // Route to update / reorder multiple form_section rows at once
+    $app->patch(
+        'form/sections',
+        'SectionController@updateSections'
+    );
+
 	//****************************************//
 	//* Question Condition Controller Routes *//
 	//****************************************//

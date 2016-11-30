@@ -120,6 +120,38 @@ class SectionController extends Controller
 		], Response::HTTP_OK);
 	}
 
+    public function updateSections(Request $request) {
+        // PATCH method for updating multiple form_section rows at once
+        // Should be provided an array of objects with form_id, section_id, and one or more fields to be updated
+        // TODO: Validate that each question provided has a valid ID, easier when upgrading to laravel 5.3+
+        $validator = Validator::make($request->all(), [
+            'sections' => 'required|array'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $sections = $request->input('sections');
+
+        DB::transaction(function () use ($sections) {
+            foreach($sections as $section) {
+                DB::table('form_section')
+                    ->where('form_id', $section['form_id'])
+                    ->where('section_id', $section['section_id'])
+                    ->whereNull('deleted_at')
+                    ->update($section);
+            }
+        });
+
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
+
 	public function removeSection(Request $request, $id) {
 
 		$validator = Validator::make(
