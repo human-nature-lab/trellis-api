@@ -440,6 +440,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'QuestionController@updateQuestions'
     );
 
+    // Route to update / reorder multiple question_choice rows at once
+    $app->patch(
+        'form/section/group/question/choices',
+        'QuestionController@updateChoices'
+    );
+
 	//************************************//
 	//* Question Type Controller Routers *//
 	//************************************//
