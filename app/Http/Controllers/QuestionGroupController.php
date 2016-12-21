@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
+use App\Models\Section;
 use App\Models\QuestionGroup;
 use App\Models\SectionQuestionGroup;
 use DB;
@@ -138,8 +139,12 @@ class QuestionGroupController extends Controller
 			$sectionQuestionGroupModel->save();
 		});
 
+        $returnQuestionGroup = Section::find($sectionId)
+            ->questionGroups()
+            ->find($questionGroupId);
+
 		return response()->json([
-			'questionGroup' => $questionGroupModel
+			'questionGroup' => $returnQuestionGroup
 		], Response::HTTP_OK);
 	}
 
