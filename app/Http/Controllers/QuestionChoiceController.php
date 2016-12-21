@@ -87,6 +87,35 @@ class QuestionChoiceController extends Controller
 		], Response::HTTP_OK);
 	}
 
+    public function removeChoice($questionId, $choiceId) {
+        $validator = Validator::make([
+            'question_id' => $questionId,
+            'choice_id' => $choiceId], [
+            'question_id' => 'required|string|min:36|exists:question,id',
+            'choice_id' => 'required|string|min:36|exists:choice,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        $questionChoice = QuestionChoice::where('question_id', $questionId)
+            ->where('choice_id', $choiceId)
+            ->firstOrFail();
+
+        //TODO: delete choice when orphaned
+
+        $questionChoice->delete();
+
+        return response()->json(
+            [],
+            Response::HTTP_OK
+        );
+    }
+
 	public function removeQuestionChoice(Request $request, $id) {
 
 		$validator = Validator::make(

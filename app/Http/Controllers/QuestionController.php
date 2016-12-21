@@ -392,10 +392,10 @@ class QuestionController extends Controller
 		}
 
 		$newQuestionModel = new Question;
+        $questionId = Uuid::uuid4();
 
-		DB::transaction(function() use ($request, $newQuestionModel, $questionGroupId) {
+		DB::transaction(function() use ($questionId, $request, $newQuestionModel, $questionGroupId) {
 
-			$questionId = Uuid::uuid4();
 			$translationId = Uuid::uuid4();
 			$translationTextId = Uuid::uuid4();
 
@@ -426,17 +426,19 @@ class QuestionController extends Controller
 			$newQuestionModel->var_name = $request->input('var_name');
 			$newQuestionModel->save();
 
-            $newQuestionModel->translated_text = $request->input('translated_text');
 		});
 
-		if ($newQuestionModel === null) {
+        $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters')
+          ->find($questionId);
+
+		if ($returnQuestion === null) {
 			return response()->json([
 				'msg' => 'Form creation failed.'
 			], Response::HTTP_INTERNAL_SERVER_ERROR);
 		}
 
 		return response()->json([
-			'question' => $newQuestionModel
+			'question' => $returnQuestion
 		], Response::HTTP_OK);
 	}
 }

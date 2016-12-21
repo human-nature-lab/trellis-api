@@ -419,6 +419,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'QuestionController@removeQuestion'
 	);
 
+
 	$app->get(
 			'form/section/group/question/{question_id}',
 			'QuestionController@getQuestion'
@@ -488,6 +489,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 			'form/section/group/question/choice/{question_choice_id}',
 			'QuestionChoiceController@removeQuestionChoice'
 	);
+
+    $app->delete(
+            'form/section/group/question/{question_id}/choice/{choice_id}',
+            'QuestionChoiceController@removeChoice'
+    );
 
 	$app->get(
 			'form/section/group/question/choice/{choice_id}',
