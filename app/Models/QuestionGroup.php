@@ -22,8 +22,9 @@ class QuestionGroup extends Model
 	];
 
     public function delete() {
-        //$this->questions()->delete();
         Question::where("question_group_id", $this->id)->delete();
+        SectionQuestionGroup::where("question_group_id", $this->id)->delete();
+
         return parent::delete();
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
+use App\Models\Form;
 use App\Models\Section;
 use App\Models\FormSection;
 use App\Models\Study;
@@ -263,12 +264,16 @@ class SectionController extends Controller
 			$newFormSectionModel->repeat_prompt_translation_id = $request->input('repeat_prompt_');
 			$newFormSectionModel->save();
 
-			$newSectionModel->translated_text = $request->input('translated_text');
-			$newSectionModel->sort_order = $request->input('sort_order');
+			//$newSectionModel->translated_text = $request->input('translated_text');
+			//$newSectionModel->sort_order = $request->input('sort_order');
 		});
 
+        $returnSection = Form::find($formId)
+            ->sections()
+            ->find($sectionId);
+
 		return response()->json([
-			'section' => $newSectionModel
+			'section' => $returnSection
 		], Response::HTTP_OK);
 	}
 }
