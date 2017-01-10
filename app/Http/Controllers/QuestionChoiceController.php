@@ -9,14 +9,65 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
+use App\Models\Question;
 use App\Models\QuestionChoice;
 use App\Models\Choice;
 use App\Models\Translation;
 use App\Models\TranslationText;
 use DB;
+use Log;
 
 class QuestionChoiceController extends Controller
 {
+    public function createNewQuestionChoice(Request $request, $questionId) {
+
+        $validator = Validator::make(array_merge($request->all(), [
+            'question_id' => $questionId]), [
+            'question_id' => 'required|string|min:36|exists:question,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $questionChoiceId = Uuid::uuid4();
+        $choiceId = Uuid::uuid4();
+        $translationId = Uuid::uuid4();
+        $newQuestionChoiceModel = new QuestionChoice;
+
+        DB::transaction(function() use($questionChoiceId, $choiceId, $translationId, $questionId, $newQuestionChoiceModel) {
+
+            $newTranslationModel = new Translation;
+            $newTranslationModel->id = $translationId;
+            $newTranslationModel->save();
+
+            $newChoiceModel = new Choice;
+            $newChoiceModel->id = $choiceId;
+            $newChoiceModel->choice_translation_id = $translationId;
+            $newChoiceModel->val = "";
+            $newChoiceModel->save();
+
+            // Get the next available sort_order for the question, this should avoid race conditions as it is within the same transaction
+            $sort_order = DB::select('select (ifnull((max(sort_order) + 1), 1)) as sort_order from question_choice where question_id = ?', [$questionId]);
+            $newQuestionChoiceModel->id = $questionChoiceId;
+            $newQuestionChoiceModel->question_id = $questionId;
+            $newQuestionChoiceModel->choice_id = $choiceId;
+            $newQuestionChoiceModel->sort_order = $sort_order[0]->sort_order;
+            $newQuestionChoiceModel->save();
+        });
+
+        $returnQuestionChoice = Question::find($questionId)
+            ->choices()
+            ->find($choiceId);
+
+        return response()->json([
+            'choice' => $returnQuestionChoice
+        ], Response::HTTP_OK);
+    }
+
 	public function createQuestionChoice(Request $request, $questionId) {
 
 		$validator = Validator::make(array_merge($request->all(), [

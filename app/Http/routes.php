@@ -482,7 +482,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 
 	$app->put(
 			'form/section/group/question/{question_id}/choice',
-			'QuestionChoiceController@createQuestionChoice'
+			'QuestionChoiceController@createNewQuestionChoice'
 	);
 
 	$app->delete(
