@@ -9,6 +9,7 @@ use Laravel\Lumen\Routing\Controller;
 use Validator;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
+use Log;
 
 class SyncController extends Controller
 {
@@ -92,8 +93,16 @@ class SyncController extends Controller
 
         DB::statement('SET FOREIGN_KEY_CHECKS = 0');
         foreach ($request->input('rows') as $row) {
+            /*
             $newClassName = "\\App\\Models\\" . str_replace(' ', '', str_replace('_', '', ucwords($request->input('table'), '_')));
             $newClassName::create($row);
+            */
+            // Need to INSERT IGNORE to allow for resuming incomplete syncs
+            $fields = implode(',', array_keys($row));
+            $values = '?' . str_repeat(',?', count($row) - 1);
+            $insertQuery = 'insert ignore into ' . $request->input('table') . ' (' . $fields . ') values (' . $values . ')';
+            Log::debug($insertQuery);
+            DB::insert($insertQuery, array_values($row));
         }
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
         return response()->json([], Response::HTTP_OK);
