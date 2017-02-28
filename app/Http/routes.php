@@ -87,6 +87,14 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'FormController@editFormPrep'
 	);
 
+    //*******************************//
+    //* Interview Controller Routes *//
+    //*******************************//
+
+    $app->post(
+        'form/{id}/interview/{respondentId}/submit',
+        'InterviewController@submit'
+    );
 
 	//***************************//
 	//* Study Controller Routes *//

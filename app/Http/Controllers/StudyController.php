@@ -28,7 +28,8 @@ class StudyController extends Controller
 			], $validator->statusCode());
 		}
 
-		$studyModel = Study::find($id);
+		//$studyModel = Study::find($id);
+        $studyModel = Study::with('locales')->find($id);
 
 		if ($studyModel === null) {
 			return response()->json([
