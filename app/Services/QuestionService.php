@@ -5,7 +5,11 @@ namespace app\Services;
 use App\Services\TranslationService;
 use App\Services\TranslationTextService;
 use App\Models\Question;
+use App\Models\Translation;
+use App\Models\TranslationText;
 use Ramsey\Uuid\Uuid;
+use DB;
+use Illuminate\Support\Facades\Log;
 
 class QuestionService
 {
@@ -43,5 +47,65 @@ class QuestionService
         return $question;
     }
 
-    public static function addQuestionHtml($request)
+    public function createQuestion($questionText, $localeId, $questionTypeId, $questionGroupId, $varName) {
+        // TODO: handle error when locale tag is not found.
+        $localeTag = DB::table('locale')->where('id', '=', $localeId)->locale_tag;
+
+        $textLocaleArray = Array(
+            $localeTag => $questionText
+        );
+
+        $returnQuestion = createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName);
+
+        return $returnQuestion;
+    }
+
+    public function createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName) {
+        $newQuestionModel = new Question;
+        $questionId = Uuid::uuid4();
+
+        DB::transaction(function() use ($questionId, $textLocaleArray, $questionTypeId, $questionGroupId, $varName, $newQuestionModel) {
+
+            $translationId = Uuid::uuid4();
+            $newTranslationModel = new Translation;
+            $newTranslationModel->id = $translationId;
+            $newTranslationModel->save();
+
+            foreach ($textLocaleArray as $localeTag => $translationText) {
+                $translationTextId = Uuid::uuid4();
+
+                $newTranslationTextModel = new TranslationText;
+
+                $newTranslationTextModel->id = $translationTextId;
+                $newTranslationTextModel->translation_id = $translationId;
+                Log::info('$localeTag: ' . $localeTag);
+                Log::info('$translationText: ' . $translationText);
+                $newTranslationTextModel->locale_id = DB::table('locale')->where('language_tag', '=', $localeTag)->first()->id;
+
+                $newTranslationTextModel->translated_text = $translationText;
+                $newTranslationTextModel->save();
+            }
+
+            $newQuestionModel->id = $questionId;
+            $newQuestionModel->question_type_id = $questionTypeId;
+            $newQuestionModel->question_translation_id = $translationId;
+            $newQuestionModel->question_group_id = $questionGroupId;
+
+            $maxSortOrder = DB::table('question')
+                ->where('question_group_id', '=', $questionGroupId)
+                ->whereNull('deleted_at')
+                ->max('sort_order');
+
+            $newQuestionModel->sort_order = $maxSortOrder + 1;
+            $newQuestionModel->var_name = $varName;
+            $newQuestionModel->save();
+
+        });
+
+        $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters')
+            ->find($questionId);
+
+        return $returnQuestion;
+
+    }
 }

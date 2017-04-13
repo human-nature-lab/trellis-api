@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\QuestionParameter;
 use App\Models\TranslationText;
 use App\Models\Translation;
+use App\Services\QuestionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Http\Requests;
@@ -373,7 +374,7 @@ class QuestionController extends Controller
 		]);
 	}
 
-	public function createQuestion(Request $request, $questionGroupId) {
+	public function createQuestion(Request $request, $questionGroupId, QuestionService $questionService) {
 
 		$validator = Validator::make(array_merge($request->all(),[
 				'id' => $questionGroupId
@@ -391,45 +392,13 @@ class QuestionController extends Controller
 			], $validator->statusCode());
 		}
 
-		$newQuestionModel = new Question;
-        $questionId = Uuid::uuid4();
-
-		DB::transaction(function() use ($questionId, $request, $newQuestionModel, $questionGroupId) {
-
-			$translationId = Uuid::uuid4();
-			$translationTextId = Uuid::uuid4();
-
-			$newTranslationModel = new Translation;
-
-			$newTranslationModel->id = $translationId;
-			$newTranslationModel->save();
-
-			$newTranslationTextModel = new TranslationText;
-
-			$newTranslationTextModel->id = $translationTextId;
-			$newTranslationTextModel->translation_id = $translationId;
-			$newTranslationTextModel->locale_id = $request->input('locale_id');
-			$newTranslationTextModel->translated_text = $request->input('translated_text');
-			$newTranslationTextModel->save();
-
-			$newQuestionModel->id = $questionId;
-			$newQuestionModel->question_type_id = $request->input('question_type_id');
-			$newQuestionModel->question_translation_id = $translationId;
-			$newQuestionModel->question_group_id = $questionGroupId;
-			//$newQuestionModel->sort_order = $request->input('sort_order');
-            $maxSortOrder = DB::table('question')
-                ->where('question_group_id', '=', $questionGroupId)
-                ->whereNull('deleted_at')
-                ->max('sort_order');
-
-            $newQuestionModel->sort_order = $maxSortOrder + 1;
-			$newQuestionModel->var_name = $request->input('var_name');
-			$newQuestionModel->save();
-
-		});
-
-        $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters')
-          ->find($questionId);
+        $returnQuestion =  $questionService->createQuestion(
+            $request->input('translated_text'),
+            $request->input('locale_id'),
+            $request->input('question_type_id'),
+            $questionGroupId,
+            $request->input('var_name')
+        );
 
 		if ($returnQuestion === null) {
 			return response()->json([

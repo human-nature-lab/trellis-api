@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use app\Library\TranslationHelper;
+use App\Http\Controllers\SectionController;
 use App\Models\Choice;
+use App\Models\Form;
 use App\Models\FormSection;
 use App\Models\Parameter;
 use App\Models\Question;
@@ -13,17 +15,26 @@ use App\Models\QuestionGroup;
 use App\Models\QuestionParameter;
 use App\Models\Section;
 use App\Models\SectionQuestionGroup;
+use App\Models\Study;
+use App\Models\StudyForm;
+use App\Models\Translation;
+use App\Models\TranslationText;
+use App\Services\FormService;
+use App\Services\SectionService;
+use App\Services\QuestionGroupService;
+use App\Services\QuestionService;
+use App\Services\QuestionChoiceService;
+use App\Services\QuestionTypeService;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
-use App\Models\Form;
-use App\Models\Study;
-use App\Models\StudyForm;
-use App\Models\Translation;
-use App\Models\TranslationText;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Adapter\Local;
+use League\Csv\Reader;
+use Illuminate\Support\Facades\Log;
 
 class FormController extends Controller
 {
@@ -55,6 +66,136 @@ class FormController extends Controller
 			'form' => $formModel
 		], Response::HTTP_OK);
 	}
+
+    public function importForm(Request $request, $studyId, FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService) {
+        $validator = Validator::make($request->all(), [
+            'form_import_form_name' => 'required|string',
+            'form_import_section_name' => 'required|string'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        // Create the form
+        $newForm = $formService->createForm($request->input('form_import_form_name'), $studyId, '');
+
+        // Create the section
+        $newSection = $sectionService->createSection($newForm->id, $request->input('form_import_section_name'), 0, '', 0);
+
+        // TODO: remove this hard-coded file system location
+        $adapter = new Local('/var/www/trellis-api/storage/form-import');
+        $filesystem = new Filesystem($adapter);
+
+        $hasQuestionFile = $request->hasFile('questionFile');
+        $hasChoiceFile = $request->hasFile('choiceFile');
+        if($hasQuestionFile and $hasChoiceFile) {
+            // Detect Line Endings
+            if (!ini_get("auto_detect_line_endings")) {
+                ini_set("auto_detect_line_endings", '1');
+            }
+
+            $questionFile = $request->file('questionFile');
+            $questionStream = fopen($questionFile->getRealPath(), 'r+');
+            $questionExtension = $questionFile->getClientOriginalExtension();
+            $questionName = Uuid::uuid4();
+            $questionFileName = $questionName . '.' . $questionExtension;
+            $filesystem->writeStream($questionFileName, $questionStream);
+            fclose($questionStream);
+
+            $questionMap = array();
+            $questionCsv = Reader::createFromPath('/var/www/trellis-api/storage/form-import/' . $questionFileName);
+            //$questionCsv->setDelimiter("\t");
+            $questionHeaderMap = array();
+            $questionHeaders = $questionCsv->fetchOne();
+            $localeIndexArray = Array();
+
+            foreach($questionHeaders as $i=>$questionHeader) {
+                if (strncmp($questionHeader, "question_text_", 14) == 0) {
+                    $localeIndexArray[substr($questionHeader, 14)] = $i;
+                }
+                $questionHeaderMap[$questionHeader] = $i;
+            }
+
+            Log::info('$questionHeaderMap: ' . implode(" ", array_keys($questionHeaderMap)));
+            // Skip past header-row
+            $questionCsv->setOffset(1);
+            $questionCsv->each(function ($row) use ($questionGroupService, $questionService, $questionTypeService, $newSection, &$questionMap, $localeIndexArray, $questionHeaderMap) {
+                // Create a question group
+                $newQuestionGroup = $questionGroupService->createQuestionGroup($newSection->id);
+                $textLocaleArray = array();
+                foreach($localeIndexArray as $localeTag=>$i) {
+                    $textLocaleArray[$localeTag] = $row[$i];
+                }
+                // Create a question
+                $questionType = $row[$questionHeaderMap['question_type']];
+                $questionTypeId = $questionTypeService->getIdByName($questionType);
+                $questionVarName = $row[$questionHeaderMap['question_var_name']];
+
+                Log::info('$textLocaleArray: ' . implode(" ", $textLocaleArray));
+                $newQuestion = $questionService->createQuestionLocalized($textLocaleArray, $questionTypeId, $newQuestionGroup->id, $questionVarName);
+                //Log::info('$questionVarName: ' . $questionVarName);
+                //Log::info('$newQuestion->id ' . $newQuestion->id);
+                $questionMap[$questionVarName] = $newQuestion->id;
+                return true;
+            });
+
+            //Log::info('$questionMap: ' . implode(" ", $questionMap));
+
+            $choiceFile = $request->file('choiceFile');
+            $choiceStream = fopen($choiceFile->getRealPath(), 'r+');
+            $choiceExtension = $choiceFile->getClientOriginalExtension();
+            $choiceName = Uuid::uuid4();
+            $choiceFileName = $choiceName . '.' . $choiceExtension;
+            $filesystem->writeStream($choiceFileName, $choiceStream);
+            fclose($choiceStream);
+
+            $choiceCsv = Reader::createFromPath('/var/www/trellis-api/storage/form-import/' . $choiceFileName);
+            //$choiceCsv->setDelimiter("\t");
+            $choiceHeaderMap = array();
+            $choiceHeaders = $choiceCsv->fetchOne();
+            $localeIndexArray = Array();
+            foreach($choiceHeaders as $i=>$choiceHeader) {
+                if (strncmp($choiceHeader, "choice_text_", 12) == 0) {
+                    $localeIndexArray[substr($choiceHeader, 12)] = $i;
+                }
+                $choiceHeaderMap[$choiceHeader] = $i;
+            }
+            // Skip past header-row
+            $choiceCsv->setOffset(1);
+            $choiceCsv->each(function ($row) use ($localeIndexArray, $questionChoiceService, $choiceHeaderMap, $questionMap) {
+                // Create a question group
+                $textLocaleArray = array();
+                foreach($localeIndexArray as $localeTag=>$i) {
+                    $textLocaleArray[$localeTag] = $row[$i];
+                }
+
+                // Create a QuestionChoice
+                $val = $row[$choiceHeaderMap['choice_val']];
+                $sortOrder = $row[$choiceHeaderMap['choice_sort_order']];
+                $questionVarName =  $row[$choiceHeaderMap['question_var_name']];
+                $questionId = $questionMap[$questionVarName];
+                $newQuestionChoice = $questionChoiceService->createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId);
+                return true;
+            });
+
+            return response()->json(
+                [
+                    'formImportFormName' => $request->input('form_import_form_name'),
+                    'formImportSectionName' => $request->input('form_import_section_name')
+                ],
+                Response::HTTP_OK
+            );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a CSV file for questions and choices'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
 
 	public function getAllForms(Request $request) {
 
@@ -158,7 +299,8 @@ class FormController extends Controller
 		]);
 	}
 
-	public function createForm(Request $request) {
+
+	public function createForm(Request $request, FormService $formService) {
 
 		$validator = Validator::make($request->all(), [
 			'translated_text' => 'required|string|min:1',
@@ -173,66 +315,11 @@ class FormController extends Controller
 			], $validator->statusCode());
 		}
 
-		$studyModel = Study::find($request->input('study_id'));
-
-		$newFormModel = new Form;
-
-		DB::transaction(function() use ($request, $newFormModel, $studyModel) {
-
-			$translationId = Uuid::uuid4();
-			$translationTextId = Uuid::uuid4();
-			$formId = Uuid::uuid4();
-			$studyFormId = Uuid::uuid4();
-
-			// Create new Translation.
-			$newTranslationModel = new Translation;
-			$newTranslationModel->id = $translationId;
-			$newTranslationModel->save();
-
-			// Create new TranslationText.
-			$newTranslationTextModel = new TranslationText;
-			$newTranslationTextModel->id = $translationTextId;
-			$newTranslationTextModel->translation_id = $translationId;
-			$newTranslationTextModel->locale_id = $studyModel->default_locale_id;
-			$newTranslationTextModel->translated_text = $request->input('translated_text');
-			$newTranslationTextModel->save();
-
-			// Set FormMasterId.
-			if (empty($request->input('form_master_id'))) {
-				$formMasterId = $formId;
-			} else {
-				$formMasterId = $request->input('form_master_id');
-			}
-
-			// Set Version.
-			$version = Form::where('form_master_id', '=', $formMasterId)
-					->max('version');
-
-			if ($version !== null) {
-				$version++;
-				$formVersion = $version;
-			} else {
-				$formVersion = 1;
-			}
-
-			// Create new Form.
-			$newFormModel->id = $formId;
-			$newFormModel->form_master_id = $formMasterId;
-			$newFormModel->name_translation_id = $translationId;
-			$newFormModel->version = $formVersion;
-			$newFormModel->save();
-
-			$newFormModel->translated_text = $request->input('translated_text');
-
-			// Create new StudyForm.
-			$newStudyFormModel = new StudyForm;
-			$newStudyFormModel->id = $studyFormId;
-			$newStudyFormModel->study_id = $request->input('study_id');
-			$newStudyFormModel->form_master_id = $formMasterId;
-			$newStudyFormModel->sort_order = 0;
-			$newStudyFormModel->save();
-
-		});
+		$newFormModel = $formService->createForm(
+		    $request->input('translated_text'),
+            $request->input('study_id'),
+            $request->input('form_master_id')
+		);
 
 		if ($newFormModel === null) {
 			return response()->json([

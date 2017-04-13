@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Form;
 use App\Models\StudyForm;
+use App\Models\Study;
 use App\Models\TranslationText;
 use App\Models\Translation;
 use Ramsey\Uuid\Uuid;
@@ -40,6 +41,71 @@ class FormService
             ->paginate($perPage);
 
         return $forms;
+    }
+
+    public function createForm($formName, $studyId, $formMasterId) {
+
+        $studyModel = Study::find($studyId);
+
+        $newFormModel = new Form;
+
+        DB::transaction(function() use ($formName, $formMasterId, $newFormModel, $studyModel, $studyId) {
+
+            $translationId = Uuid::uuid4();
+            $translationTextId = Uuid::uuid4();
+            $formId = Uuid::uuid4();
+            $studyFormId = Uuid::uuid4();
+
+            // Create new Translation.
+            $newTranslationModel = new Translation;
+            $newTranslationModel->id = $translationId;
+            $newTranslationModel->save();
+
+            // Create new TranslationText.
+            $newTranslationTextModel = new TranslationText;
+            $newTranslationTextModel->id = $translationTextId;
+            $newTranslationTextModel->translation_id = $translationId;
+            $newTranslationTextModel->locale_id = $studyModel->default_locale_id;
+            $newTranslationTextModel->translated_text = $formName;
+            $newTranslationTextModel->save();
+
+            // Set FormMasterId.
+            if (empty($formMasterId)) {
+                $formMasterId = $formId;
+            } else {
+                $formMasterId = $formMasterId;
+            }
+
+            // Set Version.
+            $version = Form::where('form_master_id', '=', $formMasterId)
+                ->max('version');
+
+            if ($version !== null) {
+                $version++;
+                $formVersion = $version;
+            } else {
+                $formVersion = 1;
+            }
+
+            // Create new Form.
+            $newFormModel->id = $formId;
+            $newFormModel->form_master_id = $formMasterId;
+            $newFormModel->name_translation_id = $translationId;
+            $newFormModel->version = $formVersion;
+            $newFormModel->save();
+
+            $newFormModel->translated_text = $formName;
+
+            // Create new StudyForm.
+            $newStudyFormModel = new StudyForm;
+            $newStudyFormModel->id = $studyFormId;
+            $newStudyFormModel->study_id = $studyId;
+            $newStudyFormModel->form_master_id = $formMasterId;
+            $newStudyFormModel->sort_order = 0;
+            $newStudyFormModel->save();
+        });
+
+        return $newFormModel;
     }
 
     public static function createNewForm($request, $studyId, $translationId = null)

@@ -15,6 +15,8 @@ use App\Models\FormSection;
 use App\Models\Study;
 use App\Models\Translation;
 use App\Models\TranslationText;
+use App\Services\SectionService;
+
 
 class SectionController extends Controller
 {
@@ -95,7 +97,7 @@ class SectionController extends Controller
 			], $validator->statusCode());
 		}
 
-		$sectionModel = Section::find($id);
+		$sectionModel = Section::find($sectionId);
 
 		if ($sectionModel === null) {
 			return response()->json([
@@ -191,7 +193,8 @@ class SectionController extends Controller
 		]);
 	}
 
-	public function createSection(Request $request, $formId) {
+
+	public function createSection(Request $request, $formId, SectionService $sectionService) {
 
 		$validator = Validator::make(array_merge($request->all(), [
 			'form_id' => $formId]), [
@@ -207,70 +210,13 @@ class SectionController extends Controller
 			], $validator->statusCode());
 		}
 
-		$studyModel = Study::select('study.*')
-					->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
-					->join('form AS f', 'f.id', '=', 'sf.form_master_id')
-					->where('f.id', $formId)
-					->first();
-
-		$studyLocaleId = $studyModel->default_locale_id;
-
-		$newSectionModel = new Section;
-
-		$translationId = Uuid::uuid4();
-		$translationTextId = Uuid::uuid4();
-		$sectionId = Uuid::uuid4();
-		$formSectionId = Uuid::uuid4();
-		$repeatPromptSet = $request->input('repeat_prompt_translation_text');
-		$repeatPromptTranslationId = $repeatPromptSet = null ? null : Uuid::uuid4();
-		$repeatPromptTranslationTextId = $repeatPromptSet = null ? null : Uuid::uuid4();
-
-		DB::transaction(function() use($request, $studyLocaleId, $newSectionModel, $translationId, $translationTextId, $repeatPromptTranslationTextId, $repeatPromptTranslationId, $sectionId, $formSectionId, $formId) {
-
-			$newTranslationModel = new Translation;
-			$newTranslationModel->id = $translationId;
-			$newTranslationModel->save();
-
-			$newTranslationTextModel = new TranslationText;
-			$newTranslationTextModel->id = $translationTextId;
-			$newTranslationTextModel->translation_id = $translationId;
-			$newTranslationTextModel->locale_id = $studyLocaleId;
-			$newTranslationTextModel->translated_text = $request->input('translated_text');
-			$newTranslationTextModel->save();
-
-			if ($request->input('repeat_prompt_translation_text') != null) {
-				$newRepeatPromptTranslationModel = new Translation;
-				$newRepeatPromptTranslationModel->id = $repeatPromptTranslationId;
-				$newRepeatPromptTranslationModel->save();
-
-				$newRepeatPromptTranslationTextModel = new TranslationText;
-				$newRepeatPromptTranslationTextModel->id = $repeatPromptTranslationTextId;
-				$newRepeatPromptTranslationTextModel->translation_id = $repeatPromptTranslationId;
-				$newRepeatPromptTranslationTextModel->locale_id = $studyLocaleId;
-				$newRepeatPromptTranslationTextModel->translated_text = $request->input('repeat_prompt_translation_text');
-				$newRepeatPromptTranslationTextModel->save();
-			}
-
-			$newSectionModel->id = $sectionId;
-			$newSectionModel->name_translation_id = $translationId;
-			$newSectionModel->save();
-
-			$newFormSectionModel = new FormSection;
-			$newFormSectionModel->id = $formSectionId;
-			$newFormSectionModel->form_id = $formId;
-			$newFormSectionModel->section_id = $sectionId;
-			$newFormSectionModel->sort_order = $request->input('sort_order');
-			$newFormSectionModel->max_repetitions = $request->input('max_repetitions');
-			$newFormSectionModel->repeat_prompt_translation_id = $request->input('repeat_prompt_');
-			$newFormSectionModel->save();
-
-			//$newSectionModel->translated_text = $request->input('translated_text');
-			//$newSectionModel->sort_order = $request->input('sort_order');
-		});
-
-        $returnSection = Form::find($formId)
-            ->sections()
-            ->find($sectionId);
+        $returnSection = $sectionService->createSection(
+            $formId,
+            $request->input('translated_text'),
+            $request->input('max_repetitions'),
+            $request->input('repeat_prompt_translation_text'),
+            $request->input('sort_order')
+        );
 
 		return response()->json([
 			'section' => $returnSection

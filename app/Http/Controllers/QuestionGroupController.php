@@ -10,6 +10,7 @@ use Validator;
 use App\Models\Section;
 use App\Models\QuestionGroup;
 use App\Models\SectionQuestionGroup;
+use App\Services\QuestionGroupService;
 use DB;
 class QuestionGroupController extends Controller
 {
@@ -100,7 +101,7 @@ class QuestionGroupController extends Controller
 		]);
 	}
 
-	public function createQuestionGroup(Request $request, $sectionId) {
+	public function createQuestionGroup(Request $request, $sectionId, QuestionGroupService $questionGroupService) {
 
 		$validator = Validator::make(array_merge($request->all(), [
 				'section_id' => $sectionId]), [
@@ -114,34 +115,7 @@ class QuestionGroupController extends Controller
 			], $validator->statusCode());
 		}
 
-		$questionGroupId = Uuid::uuid4();
-		$sectionQuestionGroupId = Uuid::uuid4();
-
-		$questionGroupModel = new QuestionGroup;
-
-		DB::transaction(function() use($request, $questionGroupId, $sectionQuestionGroupId, $questionGroupModel, $sectionId) {
-
-			$questionGroupModel->id = $questionGroupId;
-			$questionGroupModel->save();
-			$questionGroupModel->section_id = $sectionId;
-
-			$sectionQuestionGroupModel = new SectionQuestionGroup;
-			$sectionQuestionGroupModel->id = $sectionQuestionGroupId;
-			$sectionQuestionGroupModel->section_id = $sectionId;
-			$sectionQuestionGroupModel->question_group_id = $questionGroupId;
-            $maxQuestionGroupOrder = DB::table('section_question_group')
-                ->where('section_id', '=', $sectionId)
-                ->whereNull('deleted_at')
-                ->max('question_group_order');
-
-			//$sectionQuestionGroupModel->question_group_order = 1;
-            $sectionQuestionGroupModel->question_group_order = $maxQuestionGroupOrder + 1;
-			$sectionQuestionGroupModel->save();
-		});
-
-        $returnQuestionGroup = Section::find($sectionId)
-            ->questionGroups()
-            ->find($questionGroupId);
+        $returnQuestionGroup = $questionGroupService->createQuestionGroup($sectionId);
 
 		return response()->json([
 			'questionGroup' => $returnQuestionGroup
