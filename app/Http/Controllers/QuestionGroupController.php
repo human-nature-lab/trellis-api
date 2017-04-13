@@ -101,7 +101,7 @@ class QuestionGroupController extends Controller
 		]);
 	}
 
-	public function createQuestionGroup(Request $request, $sectionId, QuestionGroupService $questionGroupService) {
+	public function createQuestionGroup(Request $request, QuestionGroupService $questionGroupService, $sectionId) {
 
 		$validator = Validator::make(array_merge($request->all(), [
 				'section_id' => $sectionId]), [

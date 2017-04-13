@@ -49,13 +49,13 @@ class QuestionService
 
     public function createQuestion($questionText, $localeId, $questionTypeId, $questionGroupId, $varName) {
         // TODO: handle error when locale tag is not found.
-        $localeTag = DB::table('locale')->where('id', '=', $localeId)->locale_tag;
+        $localeTag = DB::table('locale')->where('id', '=', $localeId)->first()->language_tag;
 
         $textLocaleArray = Array(
             $localeTag => $questionText
         );
 
-        $returnQuestion = createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName);
+        $returnQuestion = QuestionService::createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName);
 
         return $returnQuestion;
     }

@@ -374,7 +374,7 @@ class QuestionController extends Controller
 		]);
 	}
 
-	public function createQuestion(Request $request, $questionGroupId, QuestionService $questionService) {
+	public function createQuestion(Request $request, QuestionService $questionService, $questionGroupId) {
 
 		$validator = Validator::make(array_merge($request->all(),[
 				'id' => $questionGroupId
