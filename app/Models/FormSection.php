@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class FormSection extends Model {
 
@@ -30,5 +31,18 @@ class FormSection extends Model {
         return $this
             ->belongsTo('App\Models\Translation', 'repeat_prompt_translation_id')
             ->with('translationText');
+    }
+
+    public function delete() {
+        //Log::info('FormSection->delete()');
+
+        // Delete orphaned Sections
+        $formSectionCount = FormSection::where('section_id', '=', $this->section_id)->whereNull('deleted_at')->count();
+
+        if ($formSectionCount < 2) {
+            Section::where('id', '=', $this->section_id)->first()->delete();
+        }
+
+        return parent::delete();
     }
 }

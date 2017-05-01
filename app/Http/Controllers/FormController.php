@@ -272,6 +272,7 @@ class FormController extends Controller
 
 	public function removeForm(Request $request, $id) {
 
+        Log::info('removeForm');
 		$validator = Validator::make(
 			['id' => $id],
 			['id' => 'required|string|min:36']

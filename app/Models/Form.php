@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Form extends Model {
 
@@ -36,6 +37,16 @@ class Form extends Model {
             ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id')
             ->withTimestamps()
             ->with('questionGroups', 'nameTranslation');
+    }
+
+    public function delete() {
+        //Log::info("Form->delete()");
+        $childFormSections = FormSection::where('form_id', '=', $this->id)->get();
+        foreach ($childFormSections as $childFormSection) {
+            $childFormSection->delete();
+        }
+
+        return parent::delete();
     }
 
 }

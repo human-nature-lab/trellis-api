@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 class Question extends Model {
 
@@ -52,6 +52,7 @@ class Question extends Model {
     }
 
     public function delete() {
+        //Log::info('Question->delete()');
         QuestionChoice::where('question_id', $this->id)
             ->delete();
 
