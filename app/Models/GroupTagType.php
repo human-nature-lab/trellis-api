@@ -20,4 +20,13 @@ class GroupTagType extends Model {
         'deleted_at',
         'name'
     ];
+
+    public function delete() {
+        $childGroupTags = GroupTag::where('group_tag_type_id', '=', $this->id)->get();
+        foreach ($childGroupTags as $childGroupTag) {
+            $childGroupTag->delete();
+        }
+
+        return parent::delete();
+    }
 }

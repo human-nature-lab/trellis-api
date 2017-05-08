@@ -208,6 +208,25 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'LocaleController@createLocale'
 	);
 
+    //************************************//
+    //* Group Tag Type Controller Routes *//
+    //************************************//
+
+    $app->delete(
+        'group_tag_type/{id}',
+        'GroupTagTypeController@removeGroupTagType'
+    );
+
+    $app->get(
+        'group_tag_type',
+        'GroupTagTypeController@getAllGroupTagTypes'
+    );
+
+    $app->put(
+        'group_tag_type',
+        'GroupTagTypeController@createGroupTagType'
+    );
+
 	//****************************//
 	//* Device Controller Routes *//
 	//****************************//
