@@ -34,12 +34,10 @@ class Section extends Model
             ->whereNull('section_question_group.deleted_at')
             ->withPivot('section_id', 'question_group_order')
             ->withTimestamps()
-            ->with('questions');
+            ->with('questions', 'skips');
     }
 
     public function delete() {
-        //Log::info('Section->delete()');
-
         $childSectionQuestionGroups = SectionQuestionGroup::where('section_id', '=', $this->id)->get();
         foreach ($childSectionQuestionGroups as $childSectionQuestionGroup) {
             $childSectionQuestionGroup->delete();

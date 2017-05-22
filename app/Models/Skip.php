@@ -22,4 +22,12 @@ class Skip extends Model {
         'any_all',
         'precedence'
     ];
+
+    public function conditionTags() {
+        return $this
+            ->belongsToMany('App\Models\ConditionTag', 'skip_condition_tag')
+            ->whereNull('skip_condition_tag.deleted_at')
+            ->withPivot('skip_id')
+            ->withTimestamps();
+    }
 }

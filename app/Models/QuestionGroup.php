@@ -41,4 +41,13 @@ class QuestionGroup extends Model
             ->with('choices', 'questionTranslation', 'questionType', 'questionParameters');
     }
 
+    public function skips() {
+        return $this
+            ->belongsToMany('App\Models\Skip', 'question_group_skip')
+            ->whereNull('question_group_skip.deleted_at')
+            ->withPivot('question_group_id')
+            ->withTimestamps()
+            ->with('conditionTags');
+    }
+
 }
