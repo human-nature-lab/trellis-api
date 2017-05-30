@@ -35,6 +35,9 @@ class Skip extends Model {
         SkipConditionTag::where('skip_id', $this->id)
             ->delete();
 
+        QuestionGroupSkip::where('skip_id', $this->id)
+            ->delete();
+
         return parent::delete();
     }
 }
