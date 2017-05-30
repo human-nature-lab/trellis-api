@@ -51,6 +51,15 @@ class Question extends Model {
             ->with('choiceTranslation');
     }
 
+    public function assignConditionTags() {
+        return $this
+            ->belongsToMany('App\Models\AssignConditionTag', 'question_assign_condition_tag')
+            ->withPivot('question_id')
+            ->whereNull('question_assign_condition_tag.deleted_at')
+            ->withTimestamps()
+            ->with('condition');
+    }
+
     public function delete() {
         //Log::info('Question->delete()');
         QuestionChoice::where('question_id', $this->id)

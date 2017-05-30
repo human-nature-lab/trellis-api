@@ -22,4 +22,10 @@ class AssignConditionTag extends Model {
         'logic',
         'scope'
     ];
+
+
+    public function condition() {
+        return $this
+            ->belongsTo('App\Models\ConditionTag', 'condition_tag_id');
+    }
 }

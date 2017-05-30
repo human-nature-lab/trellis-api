@@ -23,7 +23,7 @@ class Skip extends Model {
         'precedence'
     ];
 
-    public function conditionTags() {
+    public function conditions() {
         return $this
             ->belongsToMany('App\Models\ConditionTag', 'skip_condition_tag')
             ->whereNull('skip_condition_tag.deleted_at')

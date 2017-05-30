@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AssignSkipTag;
 use App\Models\ConditionTag;
+use App\Models\QuestionGroup;
 use App\Models\QuestionGroupSkip;
 use App\Models\Skip;
 use App\Models\SkipConditionTag;
@@ -15,9 +16,112 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
+use Illuminate\Support\Facades\Log;
 
 class SkipController extends Controller
 {
+    public function deleteQuestionGroupSkip(Request $request, $id) {
+
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $id
+        ]), [
+            'id' => 'required|string|min:36|exists:skip'
+        ]);
+
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+
+        $skipModel = Skip::find($id);
+
+        if ($skipModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $skipModel->delete();
+
+        return response()->json([
+
+        ]);
+    }
+
+    public function updateQuestionGroupSkip(Request $request, $id) {
+
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $id
+        ]), [
+            'id' => 'required|string|min:36|exists:skip',
+            'show_hide' => 'required|boolean',
+            'any_all' => 'required|boolean',
+            'precedence' => 'required|integer',
+            'conditions.*.id' => 'string|min:36|exists:condition_tag,id'
+        ]);
+
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+
+        $skipModel = Skip::find($id)->with('conditions')->first();
+
+        DB::transaction(function() use ($request, $skipModel) {
+            $skipModel->show_hide = $request->input('show_hide');
+            $skipModel->any_all = $request->input('any_all');
+            $skipModel->precedence = $request->input('precedence');
+            $skipModel->save();
+
+            $conditions = $request->input('conditions');
+            foreach($conditions as $newCondition) {
+                $exists = false;
+                foreach ($skipModel->conditions as $existingCondition) {
+                    if ($newCondition['id'] == $existingCondition->id) {
+                        $exists = true;
+                    }
+                }
+                if (! $exists) {
+                    // Add new condition
+                    $newSkipConditionTag = new SkipConditionTag;
+
+                    $newSkipConditionTag->id = Uuid::uuid4();
+                    $newSkipConditionTag->skip_id = $skipModel->id;
+                    $newSkipConditionTag->condition_tag_id = $newCondition['id'];
+                    $newSkipConditionTag->save();
+                }
+            }
+
+            foreach($skipModel->conditions as $existingCondition) {
+                $exists = false;
+                foreach ($conditions as $newCondition) {
+                    if ($newCondition['id'] == $existingCondition->id) {
+                        $exists = true;
+                    }
+                }
+
+                if (! $exists) {
+                    // Remove deleted conditions
+                    SkipConditionTag::where('skip_id', $skipModel->id)
+                        ->where('condition_tag_id', $existingCondition->id)
+                        ->delete();
+                }
+            }
+        });
+
+        return response()->json([
+            'skip' => $skipModel
+        ], Response::HTTP_OK);
+
+    }
 
 	public function createQuestionGroupSkip(Request $request) {
 
@@ -40,10 +144,11 @@ class SkipController extends Controller
 //		$skipPrecedenceModel = Skip::select('skip.precedence');
 
 		$newSkipModel = new Skip;
+        $newSkipModelId = Uuid::uuid4();
+        $questionGroupId = $request->input('question_group_id');
 
-		DB::transaction(function() use ($request, $newSkipModel) {
+		DB::transaction(function() use ($request, $newSkipModel, $newSkipModelId, $questionGroupId) {
 
-			$newSkipModelId = Uuid::uuid4();
 
 			$newSkipModel->id = $newSkipModelId;
 			$newSkipModel->show_hide = $request->input('show_hide');
@@ -54,7 +159,7 @@ class SkipController extends Controller
 			$newQuestionGroupSkip = new QuestionGroupSkip;
 
 			$newQuestionGroupSkip->id = Uuid::uuid4();
-			$newQuestionGroupSkip->question_group_id = $request->input('question_group_id');
+			$newQuestionGroupSkip->question_group_id = $questionGroupId;
 			$newQuestionGroupSkip->skip_id = $newSkipModelId;
 			$newQuestionGroupSkip->save();
 
@@ -75,8 +180,11 @@ class SkipController extends Controller
 			], Response::HTTP_INTERNAL_SERVER_ERROR);
 		};
 
+		//$returnSkipModel = Skip::find($newSkipModelId)->with('conditions')->get();
+        $returnSkipsModel = QuestionGroup::find($questionGroupId)->skips()->get();
+
 		return response()->json([
-			'skip' => $newSkipModel
+			'skips' => $returnSkipsModel
 		], Response::HTTP_OK);
 	}
 

@@ -11,9 +11,78 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
+use Illuminate\Support\Facades\Log;
 
 class ConditionController extends Controller
 {
+
+    public function deleteAssignConditionTag(Request $request, $id) {
+
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36|exists:assign_condition_tag']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        Log::info('deleteAssignConditionTag, id: ' . $id);
+
+        $assignConditionTagModel = AssignConditionTag::find($id);
+
+        Log::info('deleteAssignConditionTag, assignConditionTagModel: ' . $assignConditionTagModel);
+
+        if ($assignConditionTagModel === null) {
+            return response()->json([
+                'msg' => 'Invalid assign_condition_tag id.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        };
+
+        $assignConditionTagModel->delete();
+
+        return response()->json([
+            'msg' => 'OK'
+        ], Response::HTTP_OK);
+    }
+
+    public function editConditionLogic(Request $request) {
+        $validator = Validator::make(array_merge($request->all(), [
+        ]), [
+            'logic' => 'required|string|min:1',
+            'id' => 'string|min:36|exists:assign_condition_tag,id'
+        ]);
+
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        $assignConditionTagModel = AssignConditionTag::find($request->input('id'));
+
+        if ($assignConditionTagModel === null) {
+            return response()->json([
+                'msg' => 'Invalid assign_condition_tag id.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        };
+
+        DB::transaction(function() use ($request, $assignConditionTagModel) {
+            $logic = $request->input('logic');
+
+            $assignConditionTagModel->logic = $logic;
+            $assignConditionTagModel->save();
+        });
+
+        return response()->json([
+            'assign_condition_tag' => $assignConditionTagModel
+        ], Response::HTTP_OK);
+    }
 
 	public function createCondition(Request $request) {
 
@@ -86,6 +155,26 @@ class ConditionController extends Controller
 			'conditions' => $conditionTagModel
 		], Response::HTTP_OK);
 	}
+
+    public function searchAllConditions(Request $request) {
+
+        $validator = Validator::make(array_merge($request->all(), [
+        ]), [
+            'search' => 'required|string|min:1'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        $searchTerm = $request->input('search');
+        $conditionTagModel = ConditionTag::where('name', 'LIKE', '%' . $searchTerm . '%')->get();
+
+        return response()->json($conditionTagModel, Response::HTTP_OK);
+    }
 
 	public function getAllUniqueConditions(Request $request) {
 

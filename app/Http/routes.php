@@ -403,6 +403,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 	//* Question Condition Controller Routes *//
 	//****************************************//
 
+    $app->put(
+        'form/section/group/question/condition/logic',
+        'ConditionController@editConditionLogic'
+    );
+
 	$app->put(
 		'form/section/group/question/condition/tag',
 		'ConditionController@createCondition'
@@ -418,6 +423,16 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'ConditionController@getAllUniqueConditions'
 	);
 
+    $app->put(
+        'form/section/group/question/condition/tag/search',
+        'ConditionController@searchAllConditions'
+    );
+
+    $app->delete(
+        'form/section/group/question/condition/{id}',
+        'ConditionController@deleteAssignConditionTag'
+    );
+
 	//**************************//
 	//* Skip Controller Routes *//
 	//**************************//
@@ -426,6 +441,16 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'form/section/group/skip/',
 		'SkipController@createQuestionGroupSkip'
 	);
+
+    $app->post(
+        'form/section/group/skip/{id}',
+        'SkipController@updateQuestionGroupSkip'
+    );
+
+    $app->delete(
+        'form/section/group/skip/{id}',
+        'SkipController@deleteQuestionGroupSkip'
+    );
 
 	$app->get(
 		'form/section/group/skip/',

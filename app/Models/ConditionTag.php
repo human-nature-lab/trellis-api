@@ -20,4 +20,11 @@ class ConditionTag extends Model {
         'deleted_at',
         'name'
     ];
+
+    public function skips() {
+        return $this
+            ->belongsToMany('App\Models\Skip', 'skip_condition_tag')
+            ->whereNull('skip_condition_tag.deleted_at')
+            ->withTimestamps();
+    }
 }

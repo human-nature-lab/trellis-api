@@ -38,7 +38,7 @@ class QuestionGroup extends Model
     public function questions() {
         return $this
             ->hasMany('App\Models\Question')
-            ->with('choices', 'questionTranslation', 'questionType', 'questionParameters');
+            ->with('choices', 'questionTranslation', 'questionType', 'questionParameters', 'assignConditionTags');
     }
 
     public function skips() {
@@ -47,7 +47,7 @@ class QuestionGroup extends Model
             ->whereNull('question_group_skip.deleted_at')
             ->withPivot('question_group_id')
             ->withTimestamps()
-            ->with('conditionTags');
+            ->with('conditions');
     }
 
 }
