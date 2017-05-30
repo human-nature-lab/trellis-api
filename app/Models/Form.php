@@ -46,6 +46,11 @@ class Form extends Model {
             $childFormSection->delete();
         }
 
+        $childSurveys = Survey::where('form_id', '=', $this->id)->get();
+        foreach ($childSurveys as $childSurvey) {
+            $childSurvey->delete();
+        }
+
         return parent::delete();
     }
 
