@@ -30,4 +30,11 @@ class Skip extends Model {
             ->withPivot('skip_id')
             ->withTimestamps();
     }
+
+    public function delete() {
+        SkipConditionTag::where('skip_id', $this->id)
+            ->delete();
+
+        return parent::delete();
+    }
 }
