@@ -591,6 +591,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'GeoController@getAllGeos'
 	);
 
+    $app->get(
+        'study/{study_id}/geo',
+        'GeoController@getAllGeosByStudyId'
+    );
+
 	$app->get(
 		'geo/id/{geo_id}',
 		'GeoController@getGeo'
@@ -624,6 +629,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'geo/type',
 		'GeoTypeController@getAllGeoTypes'
 	);
+
+    $app->get(
+        'study/{study_id}/geo/type',
+        'GeoTypeController@getAllGeoTypesByStudyId'
+    );
+
 
 	$app->get(
 		'geo/type/{parent_geo_id}/parent',

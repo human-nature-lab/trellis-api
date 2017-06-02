@@ -25,4 +25,21 @@ class Geo extends Model {
 		'altitude',
 		'name_translation_id'
 	];
+
+    public function nameTranslation() {
+        return $this
+            ->belongsTo('App\Models\Translation', 'name_translation_id')
+            ->with('translationText');
+    }
+
+    public function geoType() {
+        return $this
+            ->belongsTo('App\Models\GeoType', 'geo_type_id');
+    }
+
+    public function parent() {
+        return $this
+            ->belongsTo('App\Models\Geo', 'parent_id')
+            ->with('nameTranslation', 'geoType', 'parent');
+    }
 }

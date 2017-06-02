@@ -102,6 +102,7 @@ class SyncController extends Controller
             $values = '?' . str_repeat(',?', count($row) - 1);
             $insertQuery = 'insert ignore into ' . $request->input('table') . ' (' . $fields . ') values (' . $values . ')';
             Log::debug($insertQuery);
+            Log::debug(implode(", ", array_values($row)));
             DB::insert($insertQuery, array_values($row));
         }
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');

@@ -10,6 +10,7 @@ use App\Models\Geo;
 use App\Library\TranslationHelper;
 use Ramsey\Uuid\Uuid;
 use DB;
+use Illuminate\Support\Facades\Log;
 
 class GeoController extends Controller
 {
@@ -66,6 +67,37 @@ class GeoController extends Controller
 			Response::HTTP_OK
 		);
 	}
+
+    public function getAllGeosByStudyId($studyId) {
+
+        $validator = Validator::make(
+            ['study_id' => $studyId],
+            ['study_id' => 'required|string|min:36|exists:study,id']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        //$geoModel = DB::table('geo')
+        $geoModel = Geo::with('nameTranslation', 'geoType', 'parent')
+            ->whereRaw('geo_type_id in (select id from geo_type where study_id = ?)')
+            ->setBindings([$studyId])
+            ->get();
+            //->toSql();
+
+        //$geoModel->load('nameTranslation');
+
+        //Log::info('Query: ' . $geoModel);
+
+        return response()->json(
+            ['geos' => $geoModel],
+            Response::HTTP_OK
+        );
+    }
 
 	public function updateGeo(Request $request, $id) {
 
@@ -155,9 +187,9 @@ class GeoController extends Controller
 		}
 
 		$newGeoModel = new Geo;
+        $geoId = Uuid::uuid4();
 
-		DB::transaction(function() use($request, $newGeoModel, $localeId) {
-			$geoId = Uuid::uuid4();
+		DB::transaction(function() use($request, $newGeoModel, $localeId, $geoId) {
 
 			$geoTypeId = $request->input('geo_type_id');
 			$parentId = $request->input('parent_id');
@@ -177,8 +209,10 @@ class GeoController extends Controller
 
 		});
 
+		$returnGeo = Geo::with('parent', 'nameTranslation', 'geoType')->find($geoId);
+
 		return response()->json([
-			'geo' => $newGeoModel
+			'geo' => $returnGeo
 		], Response::HTTP_OK);
 	}
 }

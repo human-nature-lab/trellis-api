@@ -39,6 +39,30 @@ class GeoTypeController extends Controller
 		], Response::HTTP_OK);
 	}
 
+    public function getAllGeoTypesByStudyId($studyId) {
+
+        $validator = Validator::make(
+            ['study_id' => $studyId],
+            ['study_id' => 'required|string|min:36|exists:study,id']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $geoTypeModel = GeoType::where('study_id', $studyId)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json(
+            ['geoTypes' => $geoTypeModel],
+            Response::HTTP_OK
+        );
+    }
+
 	public function getAllGeoTypes(Request $request) {
 
 		$geoTypeModel = GeoType::orderBy('name', 'asc')
