@@ -210,11 +210,9 @@ class FormController extends Controller
 	public function getAllStudyForms(Request $request, $studyId, $localeId) {
 
 		$validator = Validator::make(array_merge($request->all(), [
-			'studyId' => $studyId,
-			'localeId' => $localeId
+			'studyId' => $studyId
 		]), [
-			'studyId' => 'required|string|min:36|exists:study,id',
-			'localeId' => 'required|string|min:36|exists:locale,id'
+			'studyId' => 'required|string|min:36|exists:study,id'
 		]);
 
 		if ($validator->fails() === true) {
@@ -224,15 +222,25 @@ class FormController extends Controller
 			], $validator->statusCode());
 		}
 
+
+		$studyModel = Study::find($studyId);
+		$formModel = $studyModel->forms()->get();
+
+		// TODO: master form and versions
+		$censusFormModel = Form::where('id', $studyModel->census_form_master_id)->get();
+
+		/*
 		$formModel = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
 			->join('translation_text AS tt', 'tt.translation_id', '=', 'form.name_translation_id')
 			->join('study_form AS sf', 'sf.form_master_id', '=', 'form.form_master_id')
 			->where('sf.study_id', $studyId)
 			->where('tt.locale_id', $localeId)
 			->get();
+		*/
 
 		return response()->json(
-			['forms' => $formModel],
+			['forms' => $formModel,
+             'census_form' => $censusFormModel],
 			Response::HTTP_OK
 		);
 	}
@@ -332,6 +340,36 @@ class FormController extends Controller
 			'form' => $newFormModel
 		], Response::HTTP_OK);
 	}
+
+    public function createCensusForm(Request $request) {
+
+        $validator = Validator::make($request->all(), [
+            'study_id' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $newFormModel = $formService->createForm(
+            $request->input('translated_text'),
+            $request->input('study_id'),
+            $request->input('form_master_id')
+        );
+
+        if ($newFormModel === null) {
+            return response()->json([
+                'msg' => 'Form creation failed.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        return response()->json([
+            'form' => $newFormModel
+        ], Response::HTTP_OK);
+    }
 
 	public function editFormPrep(Request $request, $studyId, $formId, $formMasterId) {
 

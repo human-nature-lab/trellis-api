@@ -43,4 +43,12 @@ class Study extends Model
         ->whereNull('study_locale.deleted_at')
         ->withTimestamps();
     }
+
+    public function forms() {
+	    return $this
+        ->belongsToMany('App\Models\Form', 'study_form', 'study_id', 'form_master_id')
+        ->whereNull('study_form.deleted_at')
+        ->withTimestamps()
+        ->with('nameTranslation');
+    }
 }

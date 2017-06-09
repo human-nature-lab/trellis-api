@@ -82,6 +82,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'FormController@createForm'
 	);
 
+    $app->put(
+        'census_form',
+        'FormController@createCensusForm'
+    );
+
 	$app->get(
 		'study/{studyId}/form/{formId}/master/{formMasterId}/edit',
 		'FormController@editFormPrep'
@@ -406,6 +411,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     $app->put(
         'form/section/group/question/condition/logic',
         'ConditionController@editConditionLogic'
+    );
+
+    $app->put(
+        'form/section/group/question/condition/scope',
+        'ConditionController@editConditionScope'
     );
 
 	$app->put(
