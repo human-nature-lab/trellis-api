@@ -120,7 +120,7 @@ class FormController extends Controller
                 $questionHeaderMap[$questionHeader] = $i;
             }
 
-            Log::info('$questionHeaderMap: ' . implode(" ", array_keys($questionHeaderMap)));
+            // Log::info('$questionHeaderMap: ' . implode(" ", array_keys($questionHeaderMap)));
             // Skip past header-row
             $questionCsv->setOffset(1);
             $questionCsv->each(function ($row) use ($questionGroupService, $questionService, $questionTypeService, $newSection, &$questionMap, $localeIndexArray, $questionHeaderMap) {
@@ -135,7 +135,7 @@ class FormController extends Controller
                 $questionTypeId = $questionTypeService->getIdByName($questionType);
                 $questionVarName = $row[$questionHeaderMap['question_var_name']];
 
-                Log::info('$textLocaleArray: ' . implode(" ", $textLocaleArray));
+                // Log::info('$textLocaleArray: ' . implode(" ", $textLocaleArray));
                 $newQuestion = $questionService->createQuestionLocalized($textLocaleArray, $questionTypeId, $newQuestionGroup->id, $questionVarName);
                 //Log::info('$questionVarName: ' . $questionVarName);
                 //Log::info('$newQuestion->id ' . $newQuestion->id);
@@ -207,7 +207,7 @@ class FormController extends Controller
 		);
 	}
 
-	public function getAllStudyForms(Request $request, $studyId, $localeId) {
+	public function getAllStudyForms(Request $request, $studyId) {
 
 		$validator = Validator::make(array_merge($request->all(), [
 			'studyId' => $studyId
@@ -226,8 +226,7 @@ class FormController extends Controller
 		$studyModel = Study::find($studyId);
 		$formModel = $studyModel->forms()->get();
 
-		// TODO: master form and versions
-		$censusFormModel = Form::where('id', $studyModel->census_form_master_id)->get();
+		$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
 
 		/*
 		$formModel = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
@@ -278,9 +277,36 @@ class FormController extends Controller
 		], Response::HTTP_OK);
 	}
 
-	public function removeForm(Request $request, $id) {
+	public function publishForm(Request $request, $form_master_id) {
+        $validator = Validator::make(array_merge($request->all(),[
+            'form_master_id' => $form_master_id
+        ]), [
+            'form_master_id' => 'string|min:36|exists:form,form_master_id',
+            'published' => 'required|integer|min:0|max:1'
+        ]);
 
-        Log::info('removeForm');
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $published = $request->input('published');
+
+        // DB::enableQueryLog();
+        Form::where('form_master_id', $form_master_id)
+            ->update(['is_published' => $published]);
+
+        // Log::info('publishFormQuery: ' . json_encode(DB::getQueryLog()));
+        // DB::disableQueryLog();
+
+        return response()->json([
+
+        ]);
+    }
+
+	public function removeForm(Request $request, $id) {
 		$validator = Validator::make(
 			['id' => $id],
 			['id' => 'required|string|min:36']
@@ -341,7 +367,7 @@ class FormController extends Controller
 		], Response::HTTP_OK);
 	}
 
-    public function createCensusForm(Request $request) {
+    public function createCensusForm(Request $request, FormService $formService) {
 
         $validator = Validator::make($request->all(), [
             'study_id' => 'required|string|min:36|exists:study,id'
@@ -354,10 +380,12 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        $newFormModel = $formService->createForm(
-            $request->input('translated_text'),
+        $newFormModelId = Uuid::uuid4();
+
+        $newFormModel = $formService->createCensusForm(
+            $request->input('name'),
             $request->input('study_id'),
-            $request->input('form_master_id')
+            $newFormModelId
         );
 
         if ($newFormModel === null) {
@@ -366,8 +394,10 @@ class FormController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
+        $returnForm = Form::with('nameTranslation')->find($newFormModelId);
+
         return response()->json([
-            'form' => $newFormModel
+            'form' => $returnForm
         ], Response::HTTP_OK);
     }
 

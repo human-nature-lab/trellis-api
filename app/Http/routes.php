@@ -67,13 +67,18 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'FormController@updateForm'
 	);
 
+    $app->post(
+        'form/{form_master_id}/publish',
+        'FormController@publishForm'
+    );
+
 	$app->get(
 		'form',
 		'FormController@getAllForms'
 	);
 
 	$app->get(
-		'study/{studyId}/form/locale/{localeId}',
+		'study/{studyId}/form',
 		'FormController@getAllStudyForms'
 	);
 

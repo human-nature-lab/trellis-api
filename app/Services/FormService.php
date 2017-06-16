@@ -43,6 +43,70 @@ class FormService
         return $forms;
     }
 
+    // TODO: refactor createCensusForm, createForm, and createNewForm to factor out common code
+    public function createCensusForm($formName, $studyId, $formMasterId) {
+
+        $studyModel = Study::find($studyId);
+
+        $newFormModel = new Form;
+
+        DB::transaction(function() use ($formName, $formMasterId, $newFormModel, $studyModel, $studyId) {
+
+            $translationId = Uuid::uuid4();
+            $translationTextId = Uuid::uuid4();
+            //$formId = Uuid::uuid4();
+            $studyFormId = Uuid::uuid4();
+
+            // Create new Translation.
+            $newTranslationModel = new Translation;
+            $newTranslationModel->id = $translationId;
+            $newTranslationModel->save();
+
+            // Create new TranslationText.
+            $newTranslationTextModel = new TranslationText;
+            $newTranslationTextModel->id = $translationTextId;
+            $newTranslationTextModel->translation_id = $translationId;
+            $newTranslationTextModel->locale_id = $studyModel->default_locale_id;
+            $newTranslationTextModel->translated_text = $formName;
+            $newTranslationTextModel->save();
+
+            // Set FormMasterId.
+            /*
+            if (empty($formMasterId)) {
+                $formMasterId = $formId;
+            } else {
+                $formMasterId = $formMasterId;
+            }
+            */
+
+            // Set Version.
+            $version = Form::where('form_master_id', '=', $formMasterId)
+                ->max('version');
+
+            if ($version !== null) {
+                $version++;
+                $formVersion = $version;
+            } else {
+                $formVersion = 1;
+            }
+
+            // Create new Form.
+            $newFormModel->id = $formMasterId;
+            $newFormModel->form_master_id = $formMasterId;
+            $newFormModel->name_translation_id = $translationId;
+            $newFormModel->version = $formVersion;
+            $newFormModel->save();
+
+            $newFormModel->translated_text = $formName;
+
+            // Assign census form to study
+            $studyModel->census_form_master_id = $formMasterId;
+            $studyModel->save();
+        });
+
+        return $newFormModel;
+    }
+
     public function createForm($formName, $studyId, $formMasterId) {
 
         $studyModel = Study::find($studyId);
