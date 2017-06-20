@@ -67,10 +67,14 @@ class FormController extends Controller
 		], Response::HTTP_OK);
 	}
 
-    public function importForm(Request $request, $studyId, FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService) {
-        $validator = Validator::make($request->all(), [
-            'form_import_form_name' => 'required|string',
-            'form_import_section_name' => 'required|string'
+    public function importSection(Request $request, $formId, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService) {
+
+        $validator = Validator::make(array_merge($request->all(), [
+            'formId' => $formId
+        ]), [
+            'formId' => 'required|string|min:36|exists:form,id',
+            'form_import_section_name' => 'required|string',
+            'sort_order' => 'required|integer'
         ]);
 
         if ($validator->fails() === true) {
@@ -80,11 +84,8 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        // Create the form
-        $newForm = $formService->createForm($request->input('form_import_form_name'), $studyId, '');
-
         // Create the section
-        $newSection = $sectionService->createSection($newForm->id, $request->input('form_import_section_name'), 0, '', 0);
+        $newSection = $sectionService->createSection($formId, $request->input('form_import_section_name'), 0, '', $request->input('sort_order'));
 
         // TODO: remove this hard-coded file system location
         $adapter = new Local('/var/www/trellis-api/storage/form-import');
@@ -182,11 +183,11 @@ class FormController extends Controller
                 return true;
             });
 
+            $returnSection = Form::find($formId)
+                ->sections()
+                ->find($newSection->id);
             return response()->json(
-                [
-                    'formImportFormName' => $request->input('form_import_form_name'),
-                    'formImportSectionName' => $request->input('form_import_section_name')
-                ],
+                [ 'section' => $returnSection ],
                 Response::HTTP_OK
             );
         } else {
