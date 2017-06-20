@@ -362,8 +362,10 @@ class FormController extends Controller
 			], Response::HTTP_INTERNAL_SERVER_ERROR);
 		}
 
+        $returnForm = Form::with('nameTranslation')->find($newFormModel->id);
+
 		return response()->json([
-			'form' => $newFormModel
+			'form' => $returnForm
 		], Response::HTTP_OK);
 	}
 
