@@ -43,6 +43,11 @@ class Section extends Model
             $childSectionQuestionGroup->delete();
         }
 
+        $formSections = FormSection::where('section_id', '=', $this->id)->get();
+        foreach ($formSections as $formSection) {
+            $formSection->delete();
+        }
+
         return parent::delete();
     }
 }
