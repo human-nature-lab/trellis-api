@@ -169,6 +169,7 @@ class SectionController extends Controller
 			], $validator->statusCode());
 		};
 
+		/*
 		$sectionQuestionGroupModel = SectionQuestionGroup::where('section_id', $id)
 				->first();
 
@@ -177,6 +178,7 @@ class SectionController extends Controller
 				'msg' => 'Unable to delete Section. Please delete all child Question Groups before proceeding.'
 			], Response::HTTP_CONFLICT);
 		}
+		*/
 
 		$sectionModel = Section::find($id);
 
