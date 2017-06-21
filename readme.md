@@ -255,6 +255,7 @@ git clone https://github.com/human-nature-lab/trellis-api.git
 cd Homestead-5
 vagrant ssh
 cd Code/trellis-api
+chmod -R 775 storage
 mkdir storage/framework
 chmod -R 775 storage/framework
 mkdir storage/framework/sessions
