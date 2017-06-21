@@ -88,7 +88,7 @@ class FormController extends Controller
         $newSection = $sectionService->createSection($formId, $request->input('form_import_section_name'), 0, '', $request->input('sort_order'));
 
         // TODO: remove this hard-coded file system location
-        $adapter = new Local('/var/www/trellis-api/storage/form-import');
+        $adapter = new Local(storage_path() . '/form-import');
         $filesystem = new Filesystem($adapter);
 
         $hasQuestionFile = $request->hasFile('questionFile');
@@ -108,7 +108,7 @@ class FormController extends Controller
             fclose($questionStream);
 
             $questionMap = array();
-            $questionCsv = Reader::createFromPath('/var/www/trellis-api/storage/form-import/' . $questionFileName);
+            $questionCsv = Reader::createFromPath(storage_path() . '/form-import/' . $questionFileName);
             //$questionCsv->setDelimiter("\t");
             $questionHeaderMap = array();
             $questionHeaders = $questionCsv->fetchOne();
@@ -154,7 +154,7 @@ class FormController extends Controller
             $filesystem->writeStream($choiceFileName, $choiceStream);
             fclose($choiceStream);
 
-            $choiceCsv = Reader::createFromPath('/var/www/trellis-api/storage/form-import/' . $choiceFileName);
+            $choiceCsv = Reader::createFromPath(storage_path() . '/form-import/' . $choiceFileName);
             //$choiceCsv->setDelimiter("\t");
             $choiceHeaderMap = array();
             $choiceHeaders = $choiceCsv->fetchOne();

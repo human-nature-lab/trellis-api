@@ -127,7 +127,7 @@ class SyncController extends Controller
         };
 
         $returnArray = array();
-        $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+        $adapter = new Local(storage_path() . '/respondent-photos');
         $filesystem = new Filesystem($adapter);
 
         $contents = $filesystem->listContents();
@@ -162,12 +162,12 @@ class SyncController extends Controller
 
         if ($request->input('action') == 'up') {
             // TODO: replace hard-coded directory with config / env variable
-            $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+            $adapter = new Local(storage_path() . '/respondent-photos');
             $filesystem = new Filesystem($adapter);
             $data = base64_decode($request->input('base64'));
             $filesystem->put($request->input('fileName'), $data);
         } else {
-            $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+            $adapter = new Local(storage_path() . '/respondent-photos');
             $filesystem = new Filesystem($adapter);
             $exists = $filesystem->has($request->input('fileName'));
             if ($exists) {

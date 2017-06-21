@@ -78,7 +78,7 @@ class RespondentController extends Controller {
             ], $validator->statusCode());
         }
 
-        $adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+        $adapter = new Local(storage_path() . '/respondent-photos');
         $filesystem = new Filesystem($adapter);
 
         $respondent = Respondent::find($respondentId);
