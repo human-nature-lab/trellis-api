@@ -14,7 +14,7 @@ class PhotoController extends Controller
 
 		$photoModel = Photo::find($id);
 		if ($photoModel != null) {
-			$adapter = new Local('/var/www/trellis-api/storage/respondent-photos');
+			$adapter = new Local(storage_path() . '/respondent-photos');
 			$filesystem = new Filesystem($adapter);
 			$exists = $filesystem->has($photoModel->file_name);
 			if ($exists) {
