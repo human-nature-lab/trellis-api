@@ -27,4 +27,13 @@ class Choice extends Model {
             ->belongsTo('App\Models\Translation', 'choice_translation_id')
             ->with('translationText');
     }
+
+    public function delete() {
+        $childDatumChoices = DatumChoice::where('choice_id', '=', $this->id)->get();
+        foreach ($childDatumChoices as $childDatumChoice) {
+            $childDatumChoice->delete();
+        }
+
+        return parent::delete();
+    }
 }

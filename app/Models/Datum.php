@@ -26,4 +26,13 @@ class Datum extends Model {
         'parent_datum_id',
         'datum_type_id'
     ];
+
+    public function delete() {
+        $childDatumChoices = DatumChoice::where('datum_id', '=', $this->id)->get();
+        foreach ($childDatumChoices as $childDatumChoice) {
+            $childDatumChoice->delete();
+        }
+
+        return parent::delete();
+    }
 }
