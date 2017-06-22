@@ -227,7 +227,7 @@ class FormController extends Controller
 		$studyModel = Study::find($studyId);
 		$formModel = $studyModel->forms()->get();
 
-		$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
+		//$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
 
 		/*
 		$formModel = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
@@ -239,8 +239,7 @@ class FormController extends Controller
 		*/
 
 		return response()->json(
-			['forms' => $formModel,
-             'census_form' => $censusFormModel],
+			['forms' => $formModel],
 			Response::HTTP_OK
 		);
 	}
@@ -335,13 +334,12 @@ class FormController extends Controller
 		]);
 	}
 
-
 	public function createForm(Request $request, FormService $formService) {
 
 		$validator = Validator::make($request->all(), [
-			'translated_text' => 'required|string|min:1',
+			'name' => 'nullable|string',
 			'study_id' => 'required|string|min:36|exists:study,id',
-			'form_master_id' => 'string|min:36|exists:form,id'
+            'form_type' => 'integer|min:0|max:255'
 		]);
 
 		if ($validator->fails() === true) {
@@ -351,10 +349,13 @@ class FormController extends Controller
 			], $validator->statusCode());
 		}
 
+		$formName = ($request->input('name') == null) ? "" : $request->input('name');
+		$studyId = $request->input('study_id');
+
 		$newFormModel = $formService->createForm(
-		    $request->input('translated_text'),
-            $request->input('study_id'),
-            $request->input('form_master_id')
+		    $formName,
+            $studyId,
+            $request->input('form_type')
 		);
 
 		if ($newFormModel === null) {
@@ -363,13 +364,15 @@ class FormController extends Controller
 			], Response::HTTP_INTERNAL_SERVER_ERROR);
 		}
 
-        $returnForm = Form::with('nameTranslation')->find($newFormModel->id);
+        //$returnForm = Form::with('nameTranslation')->find($newFormModel->id);
+        $returnForm = Study::find($studyId)->forms()->find($newFormModel->id);
 
 		return response()->json([
 			'form' => $returnForm
 		], Response::HTTP_OK);
 	}
 
+	/*
     public function createCensusForm(Request $request, FormService $formService) {
 
         $validator = Validator::make($request->all(), [
@@ -403,6 +406,7 @@ class FormController extends Controller
             'form' => $returnForm
         ], Response::HTTP_OK);
     }
+	*/
 
 	public function editFormPrep(Request $request, $studyId, $formId, $formMasterId) {
 

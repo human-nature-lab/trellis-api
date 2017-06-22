@@ -87,10 +87,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'FormController@createForm'
 	);
 
+	/*
     $app->put(
         'census_form',
         'FormController@createCensusForm'
     );
+	*/
 
 	$app->get(
 		'study/{studyId}/form/{formId}/master/{formMasterId}/edit',

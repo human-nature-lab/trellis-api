@@ -15,11 +15,12 @@ class StudyForm extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'study_id',
         'form_master_id',
-        'sort_order'
+        'sort_order',
+        'form_type',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

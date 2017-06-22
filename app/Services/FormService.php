@@ -43,7 +43,7 @@ class FormService
         return $forms;
     }
 
-    // TODO: refactor createCensusForm, createForm, and createNewForm to factor out common code
+    /*
     public function createCensusForm($formName, $studyId, $formMasterId) {
 
         $studyModel = Study::find($studyId);
@@ -71,13 +71,11 @@ class FormService
             $newTranslationTextModel->save();
 
             // Set FormMasterId.
-            /*
-            if (empty($formMasterId)) {
-                $formMasterId = $formId;
-            } else {
-                $formMasterId = $formMasterId;
-            }
-            */
+            //if (empty($formMasterId)) {
+            //    $formMasterId = $formId;
+            //} else {
+            //    $formMasterId = $formMasterId;
+            //}
 
             // Set Version.
             $version = Form::where('form_master_id', '=', $formMasterId)
@@ -106,14 +104,15 @@ class FormService
 
         return $newFormModel;
     }
+    */
 
-    public function createForm($formName, $studyId, $formMasterId) {
+    public function createForm($formName, $studyId, $formType) {
 
         $studyModel = Study::find($studyId);
 
         $newFormModel = new Form;
 
-        DB::transaction(function() use ($formName, $formMasterId, $newFormModel, $studyModel, $studyId) {
+        DB::transaction(function() use ($formName, $newFormModel, $studyModel, $studyId, $formType) {
 
             $translationId = Uuid::uuid4();
             $translationTextId = Uuid::uuid4();
@@ -133,12 +132,16 @@ class FormService
             $newTranslationTextModel->translated_text = $formName;
             $newTranslationTextModel->save();
 
-            // Set FormMasterId.
+            // TODO: Form versioning, set FormMasterId.
+            /*
             if (empty($formMasterId)) {
                 $formMasterId = $formId;
             } else {
                 $formMasterId = $formMasterId;
             }
+            */
+
+            $formMasterId = $formId;
 
             // Set Version.
             $version = Form::where('form_master_id', '=', $formMasterId)
@@ -165,13 +168,16 @@ class FormService
             $newStudyFormModel->id = $studyFormId;
             $newStudyFormModel->study_id = $studyId;
             $newStudyFormModel->form_master_id = $formMasterId;
+            // TODO: Pass in and set sort_order
             $newStudyFormModel->sort_order = 0;
+            $newStudyFormModel->form_type = $formType;
             $newStudyFormModel->save();
         });
 
         return $newFormModel;
     }
 
+    /*
     public static function createNewForm($request, $studyId, $translationId = null)
     {
         // Check for existing translation record.
@@ -218,4 +224,5 @@ class FormService
 
         return $form;
     }
+    */
 }
