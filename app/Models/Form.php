@@ -51,6 +51,11 @@ class Form extends Model {
             $childSurvey->delete();
         }
 
+        $studyForms = StudyForm::where('form_master_id', '=', $this->form_master_id)->get();
+        foreach ($studyForms as $studyForm) {
+            $studyForm->delete();
+        }
+
         return parent::delete();
     }
 

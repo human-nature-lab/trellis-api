@@ -51,4 +51,10 @@ class Study extends Model
         ->withTimestamps()
         ->with('nameTranslation');
     }
+
+    public function delete() {
+        // TODO: Soft delete all child elements
+        return parent::delete();
+    }
+
 }
