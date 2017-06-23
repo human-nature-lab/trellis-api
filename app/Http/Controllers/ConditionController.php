@@ -207,9 +207,13 @@ class ConditionController extends Controller
         };
 
         $searchTerm = $request->input('search');
-        $conditionTagModel = ConditionTag::where('name', 'LIKE', '%' . $searchTerm . '%')->get();
+        $conditionNames = ConditionTag::where('name', 'LIKE', '%' . $searchTerm . '%')
+            ->select('name as condition_tag_name')
+            ->groupBy('name')
+            ->get()
+            ->toArray();
 
-        return response()->json($conditionTagModel, Response::HTTP_OK);
+        return response()->json($conditionNames, Response::HTTP_OK);
     }
 
 	public function getAllUniqueConditions(Request $request) {
