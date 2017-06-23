@@ -16,7 +16,6 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
-use Illuminate\Support\Facades\Log;
 
 class SkipController extends Controller
 {
@@ -52,16 +51,16 @@ class SkipController extends Controller
         ]);
     }
 
-    public function updateQuestionGroupSkip(Request $request, $id) {
+    public function updateQuestionGroupSkip(Request $request, $skipId) {
 
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'id' => $skipId
         ]), [
             'id' => 'required|string|min:36|exists:skip',
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'precedence' => 'required|integer',
-            'conditions.*.id' => 'string|min:36|exists:condition_tag,id'
+            'conditions.*.condition_tag_name' => 'string|min:1'
         ]);
 
 
@@ -73,9 +72,9 @@ class SkipController extends Controller
         };
 
 
-        $skipModel = Skip::find($id)->with('conditions')->first();
+        $skipModel = Skip::find($skipId);
 
-        DB::transaction(function() use ($request, $skipModel) {
+        DB::transaction(function() use ($request, $skipModel, $skipId) {
             $skipModel->show_hide = $request->input('show_hide');
             $skipModel->any_all = $request->input('any_all');
             $skipModel->precedence = $request->input('precedence');
@@ -85,7 +84,7 @@ class SkipController extends Controller
             foreach($conditions as $newCondition) {
                 $exists = false;
                 foreach ($skipModel->conditions as $existingCondition) {
-                    if ($newCondition['id'] == $existingCondition->id) {
+                    if ($newCondition['condition_tag_name'] == $existingCondition->condition_tag_name) {
                         $exists = true;
                     }
                 }
@@ -94,8 +93,8 @@ class SkipController extends Controller
                     $newSkipConditionTag = new SkipConditionTag;
 
                     $newSkipConditionTag->id = Uuid::uuid4();
-                    $newSkipConditionTag->skip_id = $skipModel->id;
-                    $newSkipConditionTag->condition_tag_id = $newCondition['id'];
+                    $newSkipConditionTag->skip_id = $skipId;
+                    $newSkipConditionTag->condition_tag_name = $newCondition['condition_tag_name'];
                     $newSkipConditionTag->save();
                 }
             }
@@ -103,22 +102,24 @@ class SkipController extends Controller
             foreach($skipModel->conditions as $existingCondition) {
                 $exists = false;
                 foreach ($conditions as $newCondition) {
-                    if ($newCondition['id'] == $existingCondition->id) {
+                    if ($newCondition['condition_tag_name'] == $existingCondition->condition_tag_name) {
                         $exists = true;
                     }
                 }
 
                 if (! $exists) {
                     // Remove deleted conditions
-                    SkipConditionTag::where('skip_id', $skipModel->id)
-                        ->where('condition_tag_id', $existingCondition->id)
+                    SkipConditionTag::where('skip_id', $skipId)
+                        ->where('condition_tag_name', $existingCondition->condition_tag_name)
                         ->delete();
                 }
             }
         });
 
+        $returnSkipModel = Skip::with('conditions')->find($skipId);
+
         return response()->json([
-            'skip' => $skipModel
+            'skip' => $returnSkipModel
         ], Response::HTTP_OK);
 
     }

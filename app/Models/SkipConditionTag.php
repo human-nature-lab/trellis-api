@@ -19,6 +19,6 @@ class SkipConditionTag extends Model {
         'updated_at',
         'deleted_at',
         'skip_id',
-        'condition_tag_id'
+        'condition_tag_name'
     ];
 }

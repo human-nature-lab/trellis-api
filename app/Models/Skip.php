@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Skip extends Model {
 
@@ -25,10 +26,20 @@ class Skip extends Model {
 
     public function conditions() {
         return $this
+            ->hasMany('App\Models\SkipConditionTag', 'skip_id');
+        /*
+        return DB::table('skip_condition_tag')
+            ->select('condition_tag_name as name')
+            ->where('skip_id', '=', $this->id)
+            ->get();
+        */
+        /*
+        return $this
             ->belongsToMany('App\Models\ConditionTag', 'skip_condition_tag')
             ->whereNull('skip_condition_tag.deleted_at')
             ->withPivot('skip_id')
             ->withTimestamps();
+        */
     }
 
     public function delete() {
