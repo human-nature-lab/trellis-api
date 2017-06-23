@@ -131,7 +131,7 @@ class SkipController extends Controller
 			'show_hide' => 'required|boolean',
 			'any_all' => 'required|boolean',
 			'question_group_id' => 'required|string|min:36|exists:question_group,id',
-			'conditions.*.id' => 'string|min:36|exists:condition_tag,id'
+			'conditions.*.condition_tag_name' => 'string|min:1'
 		]);
 
 
@@ -170,7 +170,7 @@ class SkipController extends Controller
 
 				$newSkipConditionTag->id = Uuid::uuid4();
 				$newSkipConditionTag->skip_id = $newSkipModelId;
-				$newSkipConditionTag->condition_tag_id = $condition['id'];
+				$newSkipConditionTag->condition_tag_name = $condition['condition_tag_name'];
 				$newSkipConditionTag->save();
 			}
 		});
