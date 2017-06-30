@@ -90,7 +90,11 @@ class FillMySQL extends Command
                     return $this->dataForType($attributes['type']);//, $attributes['field']);
                 }, $columnAttributes);
 
-                DB::table($independentTable)->insert($data);
+                try {
+                    DB::table($independentTable)->insert($data);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // ignore duplicate keys for now and just try again on next pass
+                }
             }
 
             // populate any tables that contain foreign keys to other tables
