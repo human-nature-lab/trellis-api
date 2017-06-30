@@ -102,7 +102,7 @@ class QuestionService
 
         });
 
-        $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters')
+        $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters', 'assignConditionTags')
             ->find($questionId);
 
         return $returnQuestion;

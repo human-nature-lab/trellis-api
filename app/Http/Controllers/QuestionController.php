@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AssignConditionTag;
 use App\Models\Choice;
 use App\Models\Parameter;
 use App\Models\Question;
+use App\Models\QuestionAssignConditionTag;
 use App\Models\QuestionParameter;
 use App\Models\TranslationText;
 use App\Models\Translation;
+use App\Services\ConditionTagService;
 use App\Services\QuestionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -410,4 +413,97 @@ class QuestionController extends Controller
 			'question' => $returnQuestion
 		], Response::HTTP_OK);
 	}
+
+    public function createAssignConditionTag(Request $request, ConditionTagService $conditionTagService, $questionId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'question_id' => $questionId
+        ]), [
+            'question_id' => 'required|string|min:36|exists:question,id',
+            'logic' => 'string',
+            'scope' => 'required|string|in:respondent,form,section',
+            'condition' => 'required',
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ]);
+        }
+
+        $act = new AssignConditionTag;
+        $assignConditionTagId = Uuid::uuid4();
+        $act->id = $assignConditionTagId;
+        $act->logic = $request->input('logic');
+        $act->scope = $request->input('scope');
+        $condition = $request->input('condition');
+        $newConditionTag = $conditionTagService->createConditionTag($condition['name']);
+        $act->condition_tag_id = $newConditionTag->id;
+        $act->save();
+
+        $qact = new QuestionAssignConditionTag;
+        $questionAssignConditionTagId = Uuid::uuid4();
+        $qact->id = $questionAssignConditionTagId;
+        $qact->assign_condition_tag_id = $assignConditionTagId;
+        $qact->question_id = $questionId;
+        $qact->save();
+
+        $returnAct = AssignConditionTag::with('condition')->find($assignConditionTagId);
+
+        return response()->json([
+            'assign_condition_tag' => $returnAct
+        ], Response::HTTP_OK);
+
+    }
+
+    public function updateAssignConditionTag(Request $request, ConditionTagService $conditionTagService, $questionId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'question_id' => $questionId
+        ]), [
+            'id' => 'required|string|min:36|exists:assign_condition_tag,id',
+            'question_id' => 'required|string|min:36|exists:question,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ]);
+        }
+
+        $act = AssignConditionTag::with('condition')->find($request->input('id'));
+
+        if ($act === null) {
+            return response()->json([
+                'msg' => 'Assign condition tag not found.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        if ($request->has('logic')) {
+            $act->logic = $request->input('logic');
+        }
+
+        if ($request->has('scope')) {
+            $act->scope = $request->input('scope');
+        }
+
+        if ($request->has('condition')) {
+            $condition = $request->input('condition');
+            if (array_key_exists('id', $condition)) {
+                // existing condition
+                $act->condition_tag_id = $condition['id'];
+            } else {
+                // new condition
+                $newConditionTag = $conditionTagService->createConditionTag($condition['name']);
+                $act->condition_tag_id = $newConditionTag->id;
+            }
+        }
+
+        $act->save();
+
+        return response()->json([
+            'assign_condition_tag' => $act
+        ], Response::HTTP_OK);
+
+    }
 }
