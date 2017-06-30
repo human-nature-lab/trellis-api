@@ -445,9 +445,19 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 		'ConditionController@getAllUniqueConditions'
 	);
 
-    $app->put(
+    $app->post(
         'form/section/group/question/condition/tag/search',
         'ConditionController@searchAllConditions'
+    );
+
+    $app->put(
+        'question/{question_id}/assign_condition_tag',
+        'QuestionController@createAssignConditionTag'
+    );
+
+    $app->post(
+        'question/{question_id}/assign_condition_tag',
+        'QuestionController@updateAssignConditionTag'
     );
 
     $app->delete(
