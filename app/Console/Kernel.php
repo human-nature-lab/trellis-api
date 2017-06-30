@@ -13,8 +13,9 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        \App\Console\Commands\ImportSQLite::class,
+        \App\Console\Commands\CheckMySQL::class,
         \App\Console\Commands\FillMySQL::class,
+        \App\Console\Commands\ImportSQLite::class,
     ];
 
     /**
