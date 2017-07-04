@@ -14,6 +14,9 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\CheckMySQL::class,
+        \App\Console\Commands\ExportMySQL::class,
+        \App\Console\Commands\ExportSnapshot::class,
+        \App\Console\Commands\ExportSQLite::class,
         \App\Console\Commands\FillMySQL::class,
         \App\Console\Commands\ImportSQLite::class,
     ];
