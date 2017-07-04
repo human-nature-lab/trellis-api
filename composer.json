@@ -11,7 +11,8 @@
 		"ramsey/uuid": "^3.0",
 		"barryvdh/laravel-cors": "^0.7.3",
 	    "league/flysystem": "~1.0",
-		"league/csv": "^8.2"
+		"league/csv": "^8.2",
+		"illuminated/console-mutex": "^1.4"
 
 	},
 	"require-dev": {
