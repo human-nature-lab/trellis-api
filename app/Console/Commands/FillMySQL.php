@@ -51,13 +51,13 @@ class FillMySQL extends Command
         if (!env('APP_DEBUG') || env('APP_ENV') != 'dev') {
             echo 'Can only run `php artisan ' . $this->signature . '` in local dev environment.' . PHP_EOL;
 
-            return -1;
+            return 1;
         }
 
         if (config('database.default') != 'mysql') {
             echo 'Currently `php artisan ' . $this->signature . '` only works with MySQL.' . PHP_EOL;
 
-            return -1;
+            return 1;
         }
 
         DB::setFetchMode(PDO::FETCH_ASSOC);

@@ -58,7 +58,7 @@ class ExportSnapshot extends Command
                 if ($now - $newestTimestamp < config('snapshot.seconds.min')) {
                     echo "Not enough time has passed since last snapshot, please try again in about " . config('snapshot.seconds.min') . " seconds" . PHP_EOL;
 
-                    return -1;
+                    return 1;
                 }
             }
         }
