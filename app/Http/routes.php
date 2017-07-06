@@ -38,6 +38,16 @@ $app->post(
     'SyncController@download'
 );
 
+$app->post(
+    'device/{device_id}/upload',
+    'SyncController@uploadSync'
+);
+
+$app->get(
+    'device/{device_id}/download',
+    'SyncController@downloadSync'
+);
+
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 
     //**************************//

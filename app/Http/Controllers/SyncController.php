@@ -2,9 +2,14 @@
 
 namespace app\Http\Controllers;
 
+use App\Library\DatabaseHelper;
+use App\Library\FileHelper;
+use App\Models\Epoch;
+use App\Models\Device;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
 use Validator;
 use League\Flysystem\Filesystem;
@@ -174,5 +179,106 @@ class SyncController extends Controller
                     Response::HTTP_OK);
             }
         }
+    }
+
+    public function uploadSync(Request $request, $deviceId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        DB::transaction(function () use ($request) {
+            DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+
+            $data = $request->json()->all();  // returns array of nested key-values
+
+            foreach ($data['tables'] as $table => $value) {
+                foreach ($value['rows'] as $row) {
+                    $table = DatabaseHelper::escape($table);
+                    $fields = implode(',', array_map(DatabaseHelper::class . '::escape', array_keys($row)));
+                    $values = implode(',', array_fill(0, count($row), '?'));
+                    $insertQuery = <<<EOT
+insert ignore into $table (
+    $fields
+) values (
+    $values
+);
+EOT
+;    // use INSERT IGNORE to prevent duplicate inserts (this is generally safe since id is a UUID)   //TODO update this to use INSERT ... ON DUPLICATE KEY UPDATE with most recent wins strategy and logging previous values
+
+                    // Log::debug($insertQuery);
+                    // Log::debug(implode(", ", array_values($row)));
+
+                    DB::insert($insertQuery, array_values($row));
+                }
+            }
+
+            DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+
+            ob_start();
+
+            Artisan::call('trellis:check:mysql');
+
+            $result = json_decode(ob_get_clean(), true);
+
+            if (count($result)) {
+                throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($result)));
+            }
+        });
+
+        $epoch = Epoch::inc();
+
+        Device::where('device_id', $deviceId)->update([
+            'epoch' => $epoch
+        ]); // update device's epoch.  <epoch>.sqlite.sql.zip must exist in order to download
+
+        return response()->json([], Response::HTTP_OK);
+    }
+
+    public function downloadSync(Request $request, $deviceId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        Artisan::call('trellis:export:snapshot');
+
+        app()->configure('snapshot');   // save overhead by only loading config when needed
+
+        $snapshotPath = FileHelper::storagePath(config('snapshot.directory'));
+        $files = glob("$snapshotPath/*");
+
+        if (count($files)) {
+            $files = array_combine($files, array_map("filemtime", $files));
+            $newestFilePath = array_keys($files, max($files))[0];
+            $newestFileName = basename($newestFilePath);
+            $hex = explode('.', $newestFileName)[0];
+            $snapshotEpoch = Epoch::dec($hex)*1;
+            $deviceEpoch = Device::where('device_id', $deviceId)->first()->epoch;
+
+            if ($snapshotEpoch >= $deviceEpoch) {
+                return response()->download($newestFilePath);   // if snapshot epoch >= than device's epoch, then return binary file download
+            }
+        }
+
+        return response()->json([], Response::HTTP_ACCEPTED);   // if no snapshot epoch >= than device's epoch, then return 202 Accepted to make client retry later
     }
 }
