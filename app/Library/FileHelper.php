@@ -2,6 +2,20 @@
 
 namespace App\Library;
 
+// define STDIN, STDOUT and STDERR if not defined (due to not running in CLI)
+
+if (!defined('STDIN')) {
+    define('STDIN', fopen('php://stdin', 'r'));
+}
+
+if (!defined('STDOUT')) {
+    define('STDOUT', fopen('php://stdout', 'w'));
+}
+
+if (!defined('STDERR')) {
+    define('STDERR', fopen('php://stderr', 'w'));
+}
+
 class FileHelper
 {
     /**

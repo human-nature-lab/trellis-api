@@ -34,7 +34,7 @@ class ExportSQLite extends Command
      */
     public function handle()
     {
-        $mysql2sqlite = self::MYSQL_2_SQLITE;
+        $mysql2sqlite = base_path() . '/' . self::MYSQL_2_SQLITE;
 
         if (!is_executable($mysql2sqlite)) {
             $this->error("Please run `chmod 0770 $mysql2sqlite` to make the script executable");
