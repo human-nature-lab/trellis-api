@@ -40,7 +40,7 @@ class CheckMySQL extends Command
     public function handle()
     {
         if (config('database.default') != 'mysql') {
-            echo 'Currently `php artisan ' . $this->signature . '` only works with MySQL.' . PHP_EOL;
+            $this->error('Currently `php artisan ' . $this->signature . '` only works with MySQL.');
 
             return 1;
         }

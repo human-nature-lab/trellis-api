@@ -49,13 +49,13 @@ class FillMySQL extends Command
         // $this->guesser = new Faker\Guesser\Name($this->faker);
 
         if (!env('APP_DEBUG') || env('APP_ENV') != 'dev') {
-            echo 'Can only run `php artisan ' . $this->signature . '` in local dev environment.' . PHP_EOL;
+            $this->error('Can only run `php artisan ' . $this->signature . '` in local dev environment.');
 
             return 1;
         }
 
         if (config('database.default') != 'mysql') {
-            echo 'Currently `php artisan ' . $this->signature . '` only works with MySQL.' . PHP_EOL;
+            $this->error('Currently `php artisan ' . $this->signature . '` only works with MySQL.');
 
             return 1;
         }
@@ -127,10 +127,10 @@ class FillMySQL extends Command
                 }
             }
 
-            echo $sizeInBytes . PHP_EOL;
+            $this->info($sizeInBytes);
         }
 
-        echo 'Filled MySQL database with fake data.  Total size = ' . $sizeInBytes . ' bytes.' . PHP_EOL;
+        $this->info('Filled MySQL database with fake data.  Total size = ' . $sizeInBytes . ' bytes.');
     }
 
     /**

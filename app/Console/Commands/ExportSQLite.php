@@ -37,7 +37,7 @@ class ExportSQLite extends Command
         $mysql2sqlite = self::MYSQL_2_SQLITE;
 
         if (!is_executable($mysql2sqlite)) {
-            echo "Please run `chmod 0770 $mysql2sqlite` to make the script executable" . PHP_EOL;
+            $this->error("Please run `chmod 0770 $mysql2sqlite` to make the script executable");
 
             return 1;
         }
