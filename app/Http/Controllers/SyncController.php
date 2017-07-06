@@ -40,8 +40,7 @@ class SyncController extends Controller
             'id' => $deviceId
         ]), [
             'id' => 'required|string|min:14|exists:device,device_id',
-            'table' => 'required|string|min:1',
-            'continuationToken' => 'string|min:1'
+            'table' => 'required|string|min:1'
         ]);
 
         if ($validator->fails() === true) {
@@ -55,7 +54,6 @@ class SyncController extends Controller
 
         $response["deviceId"] = $deviceId;
         $response["table"] = $request->input('table');
-        $response["continuationToken"] = null;
 
         $tableClass = str_replace(' ', '', ucwords(str_replace('_', ' ', $request->input('table'))));
         $className = "\\App\\Models\\$tableClass";
@@ -74,8 +72,7 @@ class SyncController extends Controller
             'id' => $deviceId
         ]), [
             'id' => 'required|string|min:14|exists:device,device_id',
-            'table' => 'required|string|min:1',
-            'continuationToken' => 'string|min:1'
+            'table' => 'required|string|min:1'
         ]);
 
         if ($validator->fails() === true) {
