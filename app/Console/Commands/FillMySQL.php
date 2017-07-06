@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Library\DatabaseHelper;
 use DB;
 use Faker;
 use Illuminate\Console\Command;
@@ -134,14 +135,6 @@ class FillMySQL extends Command
     }
 
     /**
-     * Returns the escaped form of an arbitrary string for safe usage directly in a SQL query (don't use this unless absolutely necessary).
-    */
-    public function escape($string)
-    {
-        return preg_replace('/[^0-9a-zA-Z_\.]/', '', $string);
-    }
-
-    /**
      * Returns an array of all of the tables in the current database.
     */
     public function tables()
@@ -166,10 +159,10 @@ class FillMySQL extends Command
      */
     public function columns($table)
     {
-        $escapedTable = $this->escape($table);  // must escape table name in order to pass it directly to the MySQL "show columns" query
+        $escapedTable = DatabaseHelper::escape($table);  // must escape table name in order to pass it directly to the MySQL "show columns" query
 
         return collect(array_map('array_change_key_case', DB::select("
-            show columns from `$escapedTable`;
+            show columns from $escapedTable;
         ")))->groupBy('field')->map(function ($value) {
             return $value[0];
         })->toArray();
