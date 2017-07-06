@@ -31,17 +31,17 @@ class CorsMiddleware
 
         if ($request->isMethod('OPTIONS')) {
             $response = new Response('', Response::HTTP_NO_CONTENT);
-            $response->header('Access-Control-Allow-Methods', $allowedMethods);
-            $response->header('Access-Control-Allow-Headers', $allowedHeaders);
-            $response->header('Access-Control-Allow-Origin', '*');
-            $response->header('Vary', 'Origin');
+            $response->headers->set('Access-Control-Allow-Methods', $allowedMethods);
+            $response->headers->set('Access-Control-Allow-Headers', $allowedHeaders);
+            $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Vary', 'Origin');
             return $response;
         }
 
         $response = $next($request);
-        $response->header('Access-Control-Expose-Headers', $allowedHeaders);
-        $response->header('Access-Control-Allow-Origin', '*');
-        $response->header('Vary', 'Origin');
+        $response->headers->set('Access-Control-Expose-Headers', $allowedHeaders);
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Vary', 'Origin');
         return $response;
     }
 }
