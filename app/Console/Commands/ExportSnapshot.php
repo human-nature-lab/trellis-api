@@ -56,7 +56,7 @@ class ExportSnapshot extends Command
                 $newestTimestamp = $files[$newestFilename];
 
                 if ($now - $newestTimestamp < config('snapshot.seconds.min')) {
-                    echo "Not enough time has passed since last snapshot, please try again in about " . config('snapshot.seconds.min') . " seconds" . PHP_EOL;
+                    $this->error("Not enough time has passed since last snapshot, please try again in about " . config('snapshot.seconds.min') . " seconds");
 
                     return 1;
                 }
