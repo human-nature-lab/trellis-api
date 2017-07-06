@@ -42,7 +42,7 @@ class CheckMySQL extends Command
         if (config('database.default') != 'mysql') {
             echo 'Currently `php artisan ' . $this->signature . '` only works with MySQL.' . PHP_EOL;
 
-            return -1;
+            return 1;
         }
 
         DB::setFetchMode(PDO::FETCH_ASSOC);

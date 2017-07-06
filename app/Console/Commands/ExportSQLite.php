@@ -39,7 +39,7 @@ class ExportSQLite extends Command
         if (!is_executable($mysql2sqlite)) {
             echo "Please run `chmod 0770 $mysql2sqlite` to make the script executable" . PHP_EOL;
 
-            return -1;
+            return 1;
         }
 
         app()->configure('temp');   // save overhead by only loading config when needed
