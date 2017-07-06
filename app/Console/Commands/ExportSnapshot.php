@@ -86,7 +86,9 @@ class ExportSnapshot extends Command
 
         ///// dump sqlite /////
 
-        $identifier = sha1(microtime() . random_bytes(16));
+        Epoch::inc();
+
+        $identifier = Epoch::hex(Epoch::get());
 
         $sqliteDumpPrefix = $dumpPrefix . 'sqlite_';
         $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';

@@ -19,6 +19,7 @@ class Device extends Model
         'updated_at',
         'deleted_at',
         'device_id',
-        'name'
+        'name',
+        // 'epoch'
     ];
 }
