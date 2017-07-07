@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Library\DatabaseHelper;
 use DB;
 use Faker;
 use Illuminate\Console\Command;
@@ -47,8 +48,8 @@ class CheckMySQL extends Command
 
         DB::setFetchMode(PDO::FETCH_ASSOC);
 
-        $tables = $this->tables();
-        $foreignKeys = $this->foreignKeys();
+        $tables = DatabaseHelper::tables();
+        $foreignKeys = DatabaseHelper::foreignKeys();
         $tableColumnForeignKeys = array_merge(array_combine($tables, array_fill(0, count($tables), [])), collect($foreignKeys)->groupBy('table_name')->map(function ($attributes) {
             return collect($attributes)->keyBy('column_name')->toArray();
         })->toArray()); // keys contain every table but some values are an empty array if no columns are foreign keys
@@ -73,55 +74,5 @@ class CheckMySQL extends Command
         echo json_encode($missingForeignKeys, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
 
         return 0;
-    }
-
-    /**
-     * Returns an array of all of the tables in the current database.
-    */
-    public function tables()
-    {
-        return array_flatten(DB::select("
-            show tables;
-        "));
-    }
-
-    /**
-     * Returns array of the form:
-     *
-     * [
-     *   0 => [
-     *     "table_name" => "table_name",
-     *     "column_name" => "column_name",
-     *     "referenced_table_name" => "referenced_table_name",
-     *     "referenced_column_name" => "referenced_column_name",
-     *     "update_rule" => "NO ACTION",
-     *     "delete_rule" => "NO ACTION",
-     *     "constraint_name" => "fk__constraint_name",
-     *   ],
-     * ]
-     */
-    public function foreignKeys()
-    {
-        return DB::select("
-            select
-                information_schema.key_column_usage.table_name,
-                information_schema.key_column_usage.column_name,
-                information_schema.key_column_usage.referenced_table_name,
-                information_schema.key_column_usage.referenced_column_name,
-                information_schema.referential_constraints.update_rule,
-                information_schema.referential_constraints.delete_rule,
-                information_schema.key_column_usage.constraint_name
-            from
-                information_schema.key_column_usage
-            join
-                information_schema.referential_constraints
-            on
-                information_schema.key_column_usage.constraint_name = information_schema.referential_constraints.constraint_name
-            where
-                referenced_table_schema = ?
-            order by
-                table_name,
-                column_name;
-        ", [config('database.connections.mysql.database')]);
     }
 }
