@@ -12,8 +12,8 @@
 		"barryvdh/laravel-cors": "^0.7.3",
 	    "league/flysystem": "~1.0",
 		"league/csv": "^8.2",
-		"illuminated/console-mutex": "^1.4"
-
+		"illuminated/console-mutex": "^1.4",
+		"phpmyadmin/sql-parser": "^4.1"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "~4.0",
