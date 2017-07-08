@@ -199,7 +199,8 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        $parser = new Parser($request->getContent());
+        $content = gzdecode($request->getContent());//file_get_contents('php://input'));	//TODO investigate inflating gzip (which is single-file, zip is file/folder) directly from php://input
+        $parser = new Parser($content);
 
         // recursive method to get all inserts (even within other statements like transactions), "use (&$getInserts)" allows recursion
         $getInserts = function ($statements) use (&$getInserts) {
