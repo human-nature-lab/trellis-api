@@ -4,17 +4,20 @@ namespace app\Http\Controllers;
 
 use App\Library\DatabaseHelper;
 use App\Library\FileHelper;
-use App\Models\Epoch;
+use App\Library\TimeHelper;
 use App\Models\Device;
+use App\Models\Epoch;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
-use Validator;
-use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
+use League\Flysystem\Filesystem;
 use Log;
+use PhpMyAdmin\SqlParser\Parser;
+use PhpMyAdmin\SqlParser\Statements\InsertStatement;
+use Validator;
 
 class SyncController extends Controller
 {
@@ -196,18 +199,97 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        DB::transaction(function () use ($request) {
+        $parser = new Parser($request->getContent());
+
+        // recursive method to get all inserts (even within other statements like transactions), "use (&$getInserts)" allows recursion
+        $getInserts = function ($statements) use (&$getInserts) {
+            $inserts = [];
+
+            foreach ($statements as $statement) {
+                if (get_class($statement) == InsertStatement::class) {
+                    $inserts []= $statement;
+                }
+
+                if (isset($statement->statements)) {
+                    $insertStatements = $getInserts($statement->statements);
+
+                    if (count($insertStatements)) {
+                        array_push($inserts, ...$insertStatements); // splat operator appends array to array
+                    }
+                }
+            }
+
+            return $inserts;
+        };
+
+        $inserts = $getInserts($parser->statements);
+
+        $data = [];
+
+        foreach ($inserts as $insert) {
+            $table = $insert->into->dest->table;
+
+            if (!$table || !count($insert->into->columns)) {
+                continue;   // require "insert into `table` (`field`) values ('value')" syntax where fields are specified
+            }
+
+            if (!isset($data[$table])) {
+                $data[$table] = [];
+            }
+
+            $fields = $insert->into->columns;
+            $values = $insert->values[0]->values;
+
+            foreach ($insert->values[0]->raw as $key => $raw) {
+                if (strtolower($raw) == 'null') {
+                    $values[$key] = null;   // fix issue where null is parsed as "null" instead of null
+                }
+            }
+
+            $data[$table] []= array_combine($fields, $values);
+        }
+
+        // $insert = (new Parser("insert into `table` (`field`) values ('value')"))->statements[0];
+        //
+        // $insert = new \PhpMyAdmin\SqlParser\Statements\InsertStatement;
+        // $insert->into = new \PhpMyAdmin\SqlParser\Components\IntoKeyword;
+        // $insert->into->dest = new \PhpMyAdmin\SqlParser\Components\Expression;
+        // $insert->into->dest->table = 'table';
+        // $insert->into->columns = ['field1', 'field2'];
+        // $insert->values = [new \PhpMyAdmin\SqlParser\Components\ArrayObj];
+        // $insert->values[0]->values = ['value 1', 'value 2'];
+        // dd($insert->build());   // doesn't quite work because values aren't quoted
+
+        // $data = $request->json()->all();  // returns array of nested key-values [table: [field: value, ...], ...]
+
+        $tableColumnTypes = collect(DatabaseHelper::tables())->flip()->map(function ($index, $table) {
+            return array_map(function ($attributes) {
+                return $attributes['type'];
+            }, DatabaseHelper::columns($table));
+        });
+
+        DB::transaction(function () use ($request, $data, $tableColumnTypes) {
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
-            $data = $request->json()->all();  // returns array of nested key-values
+            foreach ($data as $table => $rows) {
+                foreach ($rows as $row) {
+                    if (!isset($tableColumnTypes[$table])) {
+                        continue;   // skip unknown tables  //TODO make this a whitelist
+                    }
 
-            foreach ($data['tables'] as $table => $value) {
-                foreach ($value['rows'] as $row) {
-                    $table = DatabaseHelper::escape($table);
+                    foreach ($row as $field => $value) {
+                        if (!is_null($value)) {
+                            if (in_array(array_get($tableColumnTypes[$table], $field), ['date', 'datetime', 'time', 'timestamp', 'year'])) {
+                                $row[$field] = TimeHelper::utc($value); // ensure that timestamp/datetime is formatted properly for insertion
+                            }
+                        }
+                    }
+
+                    $tableEscaped = DatabaseHelper::escape($table);
                     $fields = implode(',', array_map(DatabaseHelper::class . '::escape', array_keys($row)));
                     $values = implode(',', array_fill(0, count($row), '?'));
                     $insertQuery = <<<EOT
-insert ignore into $table (
+insert ignore into $tableEscaped (
     $fields
 ) values (
     $values
@@ -218,7 +300,13 @@ EOT
                     // Log::debug($insertQuery);
                     // Log::debug(implode(", ", array_values($row)));
 
-                    DB::insert($insertQuery, array_values($row));
+                    try {
+                        DB::insert($insertQuery, array_values($row));
+                    } catch (\Illuminate\Database\QueryException $e) {
+                        if ($e->getCode() != "42S02") {
+                            throw $e;
+                        }   // ignore table doesn't exist, but throw all other errors
+                    }
                 }
             }
 
