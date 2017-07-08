@@ -225,6 +225,9 @@ class SyncController extends Controller
 
         $inserts = $getInserts($parser->statements);
 
+        app()->configure('snapshot');   // save overhead by only loading config when needed
+
+        $substitutions = config('snapshot.substitutions.upload');
         $data = [];
 
         foreach ($inserts as $insert) {
@@ -247,7 +250,24 @@ class SyncController extends Controller
                 }
             }
 
-            $data[$table] []= array_combine($fields, $values);
+            $fieldValues = array_combine($fields, $values);
+
+            // skip any blacklisted fields
+            foreach (array_get($substitutions, $table, []) as $field => $substitution) {
+                if ($field == '*') {
+                    $fieldValues = array_fill_keys(array_keys($fieldValues), $substitution);  // if wildcard, substitute all fields
+                } else {
+                    $fieldValues[$field] = $substitution;
+                }
+            }
+
+            $fieldValues = array_filter($fieldValues, function ($value) {
+                return isset($value);
+            }); // array_filter($fieldValues, 'isset');
+
+            if (count($fieldValues)) {
+                $data[$table] []= $fieldValues;
+            }
         }
 
         // $insert = (new Parser("insert into `table` (`field`) values ('value')"))->statements[0];
