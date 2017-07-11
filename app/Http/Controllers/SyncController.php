@@ -363,7 +363,7 @@ class SyncController extends Controller
             $deviceEpoch = Device::where('device_id', $deviceId)->first()->epoch;
 
             if ($snapshotEpoch >= $deviceEpoch) {
-                return response()->download($newestFilePath);   // if snapshot epoch >= than device's epoch, then return binary file download
+                return response()->download($newestFilePath, $newestFileName);   // if snapshot epoch >= than device's epoch, then return binary file download
             }
         }
 
