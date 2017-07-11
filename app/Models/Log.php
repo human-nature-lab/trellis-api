@@ -47,11 +47,12 @@ class Log extends Model
                 return; // don't log writes involving log table
             }
 
-            $userId = UserService::getCurrentUserId();
-
-            if (!$userId) {
-                return; //TODO decide how to handle database updates when no authorized user (should never happen)
-            }
+            $userId = User::where('username', 'admin')->first()->id;    //TODO for now assign admin user id as actor_id until we have device_user or require login for upload sync
+            // $userId = UserService::getCurrentUserId();
+            //
+            // if (!$userId) {
+            //     return; //TODO decide how to handle database updates when no authorized user (should never happen)
+            // }
 
             $operation = null;
             $previousRow = (array) DB::table($table)->where('id', $row['id'])->first();
