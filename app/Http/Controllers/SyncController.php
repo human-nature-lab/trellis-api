@@ -7,6 +7,7 @@ use App\Library\FileHelper;
 use App\Library\TimeHelper;
 use App\Models\Device;
 use App\Models\Epoch;
+use App\Models\Log;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -14,7 +15,6 @@ use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
-use Log;
 use PhpMyAdmin\SqlParser\Parser;
 use PhpMyAdmin\SqlParser\Statements\InsertStatement;
 use Validator;
@@ -100,8 +100,8 @@ class SyncController extends Controller
             $fields = implode(',', array_keys($row));
             $values = '?' . str_repeat(',?', count($row) - 1);
             $insertQuery = 'insert ignore into ' . $request->input('table') . ' (' . $fields . ') values (' . $values . ')';
-            Log::debug($insertQuery);
-            Log::debug(implode(", ", array_values($row)));
+            \Log::debug($insertQuery);
+            \Log::debug(implode(", ", array_values($row)));
             DB::insert($insertQuery, array_values($row));
         }
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
@@ -306,28 +306,7 @@ class SyncController extends Controller
                         }
                     }
 
-                    $tableEscaped = DatabaseHelper::escape($table);
-                    $fields = implode(',', array_map(DatabaseHelper::class . '::escape', array_keys($row)));
-                    $values = implode(',', array_fill(0, count($row), '?'));
-                    $insertQuery = <<<EOT
-insert ignore into $tableEscaped (
-    $fields
-) values (
-    $values
-);
-EOT
-;    // use INSERT IGNORE to prevent duplicate inserts (this is generally safe since id is a UUID)   //TODO update this to use INSERT ... ON DUPLICATE KEY UPDATE with most recent wins strategy and logging previous values
-
-                    // Log::debug($insertQuery);
-                    // Log::debug(implode(", ", array_values($row)));
-
-                    try {
-                        DB::insert($insertQuery, array_values($row));
-                    } catch (\Illuminate\Database\QueryException $e) {
-                        if ($e->getCode() != "42S02") {
-                            throw $e;
-                        }   // ignore table doesn't exist, but throw all other errors
-                    }
+                    Log::writeRow($row, $table);
                 }
             }
 

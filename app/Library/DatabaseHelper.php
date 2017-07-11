@@ -2,6 +2,7 @@
 
 namespace App\Library;
 
+use Carbon\Carbon;
 use DB;
 use PDO;
 
@@ -174,5 +175,19 @@ class DatabaseHelper
     public static function typeLength($type)
     {
         return ((int) trim(strstr($type, '('), '()')) ?: null;
+    }
+
+    /**
+     * Returns the floating point UTC unix timestamp for when the row was updated.
+     *
+     * $row can be an associative array or object.
+    */
+    public static function modifiedAt($row)
+    {
+        return max(array_map(function ($field) use ($row) {
+            $dateTime = data_get($row, $field);
+
+            return $dateTime ? (new Carbon($dateTime, 'UTC'))->format('U.u')*1 : 0;
+        }, ['created_at', 'updated_at', 'deleted_at']));
     }
 }

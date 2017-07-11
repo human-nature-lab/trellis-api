@@ -80,7 +80,7 @@ $app->singleton(
 
  $app->register(App\Providers\AppServiceProvider::class);
 // $app->register(Barryvdh\Cors\LumenServiceProvider::class);
-// $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\EventServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------
