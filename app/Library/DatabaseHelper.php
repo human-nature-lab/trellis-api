@@ -190,4 +190,18 @@ class DatabaseHelper
             return $dateTime ? (new Carbon($dateTime, 'UTC'))->format('U.u')*1 : 0;
         }, ['created_at', 'updated_at', 'deleted_at']));
     }
+
+    /**
+     * Returns the floating point UTC unix timestamp for when the database was updated.
+    */
+    public static function databaseModifiedAt($database = null)
+    {
+        if (!isset($database)) {
+            $database = config('database.connections')[config('database.default')]['database'];
+        }
+
+        $dateTime = DB::table('information_schema.tables')->where('table_schema', $database)->max('update_time');
+
+        return (new Carbon($dateTime, 'UTC'))->format('U.u')*1;
+    }
 }
