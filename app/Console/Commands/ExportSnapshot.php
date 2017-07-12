@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Library\DatabaseHelper;
 use App\Library\FileHelper;
 use App\Models\Epoch;
 use Illuminate\Console\Command;
@@ -42,6 +43,25 @@ class ExportSnapshot extends Command
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
         $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory'));
+
+        ///// check if dump for current epoch and database timestamp already exists /////
+
+        if (!$this->option('force')) {
+            $identifier = Epoch::hex(Epoch::get());
+            $snapshotName = $identifier . '.sqlite.sql';
+            $snapshotPath = $snapshotDirPath . '/' . $snapshotName . '.gz';
+
+            if (file_exists($snapshotPath)) {
+                $databaseTimestamp = DatabaseHelper::databaseModifiedAt();
+                $snapshotTimestamp = filemtime($snapshotPath);
+
+                if ($databaseTimestamp == $snapshotTimestamp) {
+                    $this->error("Snapshot for current epoch already exists");
+
+                    return 1;   //NOTE this is the only place that compares file and database timestamps (could also set the filename to timestamp for better consistency)
+                }
+            }
+        }
 
         ///// throttle script /////
 
@@ -86,13 +106,11 @@ class ExportSnapshot extends Command
 
         ///// dump sqlite /////
 
-        Epoch::inc();
-
-        $identifier = Epoch::hex(Epoch::get());
-
+        $identifier = Epoch::hex(Epoch::inc());
         $sqliteDumpPrefix = $dumpPrefix . 'sqlite_';
         $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';
         $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
+        $databaseTimestamp = DatabaseHelper::databaseModifiedAt();    // get database timestamp just before dump begins (any later updates will be detected by comparing database and dump file timestamps)
 
         $this->call('trellis:export:sqlite', [
             'storage_path' => config('temp.directory') . "/$sqliteDumpName", // pass argument as local path inside storage path
@@ -115,12 +133,15 @@ EOT
             throw new ProcessFailedException($process);
         }
 
+        $zipPath = $sqliteDumpPath . '.gz';
+
+        touch($zipPath, $databaseTimestamp); // set file timestamp to database timestamp to optimize checking if snapshot already exists during future snapshot creations
+
         ///// move zip file to destination atomically /////
 
-        $sourcePath = $sqliteDumpPath . '.gz';
         $snapshotName = $identifier . '.sqlite.sql';
-        $destPath = $snapshotDirPath . '/' . $snapshotName . '.gz';
+        $snapshotPath = $snapshotDirPath . '/' . $snapshotName . '.gz';
 
-        return rename($sourcePath, $destPath);
+        return rename($zipPath, $snapshotPath);
     }
 }
