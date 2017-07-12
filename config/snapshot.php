@@ -13,6 +13,9 @@ return [
             'device' => [
                 '*' => null,
             ],
+            'epoch' => [
+                '*' => null,
+            ],
             'user' => [
                 '*' => null,
             ],
