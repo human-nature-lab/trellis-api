@@ -44,15 +44,15 @@ class ExportSQLite extends Command
 
         app()->configure('temp');   // save overhead by only loading config when needed
 
-        $tempPath = FileHelper::storagePath(config('temp.directory'));
+        $tempDirPath = FileHelper::storagePath(config('temp.directory'));
 
-        FileHelper::mkdir($tempPath);
+        FileHelper::mkdir($tempDirPath);
 
         ///// remove old temporary files /////
 
         $dumpPrefix = self::DUMP_PREFIX;
 
-        $files = glob("$tempPath/$dumpPrefix*");
+        $files = glob("$tempDirPath/$dumpPrefix*");
         $files = array_combine($files, array_map("filemtime", $files));
         $now = time();
 
@@ -68,7 +68,7 @@ class ExportSQLite extends Command
 
         $mysqlDumpPrefix = $dumpPrefix . 'mysql_';
         $mysqlDumpName = $mysqlDumpPrefix . $identifier . '.sql';
-        $mysqlDumpPath = "$tempPath/$mysqlDumpName";
+        $mysqlDumpPath = "$tempDirPath/$mysqlDumpName";
 
         $this->call('trellis:export:mysql', [
             'storage_path' => config('temp.directory') . "/$mysqlDumpName", // pass argument as local path inside storage path
