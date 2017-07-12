@@ -41,14 +41,14 @@ class ExportSnapshot extends Command
     {
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
-        $snapshotPath = FileHelper::storagePath(config('snapshot.directory'));
+        $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory'));
 
         ///// throttle script /////
 
         $now = time();
 
         if (!$this->option('force')) {
-            $files = glob("$snapshotPath/*");
+            $files = glob("$snapshotDirPath/*");
 
             if (count($files)) {
                 $files = array_combine($files, array_map("filemtime", $files));
@@ -63,19 +63,19 @@ class ExportSnapshot extends Command
             }
         }
 
-        FileHelper::mkdir($snapshotPath);
+        FileHelper::mkdir($snapshotDirPath);
 
         ///// remove old temporary files /////
 
         app()->configure('temp');   // save overhead by only loading config when needed
 
-        $tempPath = FileHelper::storagePath(config('temp.directory'));
+        $tempDirPath = FileHelper::storagePath(config('temp.directory'));
 
-        FileHelper::mkdir($tempPath);
+        FileHelper::mkdir($tempDirPath);
 
         $dumpPrefix = self::DUMP_PREFIX;
 
-        $files = glob("$tempPath/$dumpPrefix*");
+        $files = glob("$tempDirPath/$dumpPrefix*");
         $files = array_combine($files, array_map("filemtime", $files));
 
         foreach ($files as $file => $timestamp) {
@@ -92,7 +92,7 @@ class ExportSnapshot extends Command
 
         $sqliteDumpPrefix = $dumpPrefix . 'sqlite_';
         $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';
-        $sqliteDumpPath = "$tempPath/$sqliteDumpName";
+        $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
 
         $this->call('trellis:export:sqlite', [
             'storage_path' => config('temp.directory') . "/$sqliteDumpName", // pass argument as local path inside storage path
@@ -119,7 +119,7 @@ EOT
 
         $sourcePath = $sqliteDumpPath . '.gz';
         $snapshotName = $identifier . '.sqlite.sql';
-        $destPath = $snapshotPath . '/' . $snapshotName . '.gz';
+        $destPath = $snapshotDirPath . '/' . $snapshotName . '.gz';
 
         return rename($sourcePath, $destPath);
     }
