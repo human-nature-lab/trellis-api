@@ -42,7 +42,7 @@ class Epoch extends Model
      */
     public static function get()
     {
-        return static::first()->epoch;
+        return static::orderBy('epoch', 'desc')->first()->epoch;
     }
 
     /**
@@ -63,6 +63,6 @@ class Epoch extends Model
         //     on duplicate key update epoch = last_insert_id(epoch + 1);
         // '); // atomically increment epoch, inserting row with epoch = 0 if no rows exist
 
-        return DB::getPdo()->lastInsertId();    // retrieve the last value inserted without executing another query (can use DB::listen() to verify)
+        return DB::getPdo()->lastInsertId()*1;    // retrieve the last value inserted without executing another query (can use DB::listen() to verify)
     }
 }
