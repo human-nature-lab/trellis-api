@@ -38,7 +38,7 @@ class Log extends Model
      * @var array $row Key-value pairs representing database row to update/delete
      * @var array $table Database table to use
      * @var function $callback Callback of the form "function callback($row, $table, $operation) {}" (where $operation is 'create', 'update' or 'delete') for overriding database write, pass null to write row automatically
-     * @return string|null One of 'create', 'update', 'delete' (meaning row was newer than previous row), or null if it was logged
+     * @return string|false|null One of the truthy values: 'create', 'update' or 'delete' (meaning row was newer than previous row), or one of the falsy values: false (if row was logged), or null (if row already had a log entry so database wasn't updated)
      */
     public static function writeRow($row, $table, $callback = null)
     {
@@ -77,6 +77,8 @@ class Log extends Model
                     ];
 
                     if (!static::where($log)->first()) {
+                        $operation = false;
+
                         $log['id'] = Uuid::uuid4();
 
                         static::create($log);    // insert log entry if it's not already present
@@ -93,14 +95,12 @@ class Log extends Model
                     if ($operation == 'create') {
                         DB::table($table)->insert($row);
                     } else {
-                        DB::table($table)->where('id', $row['id'])->update($row);
+                        DB::table($table)->where('id', $row['id'])->update($row);   // can act as a delete since rows use soft deletes (deleted_at)
                     }
                 }
-
-                return $operation;
             }
 
-            return null;
+            return $operation;
         });
     }
 
