@@ -288,6 +288,7 @@ class SyncController extends Controller
                 return $attributes['type'];
             }, DatabaseHelper::columns($table));
         });
+        $totalWrites = 0;
 
         DB::transaction(function () use ($request, $data, $tableColumnTypes) {
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
@@ -306,7 +307,9 @@ class SyncController extends Controller
                         }
                     }
 
-                    Log::writeRow($row, $table);
+                    if (!is_null(Log::writeRow($row, $table))) {
+                        $totalWrites++;
+                    }
                 }
             }
 
@@ -323,13 +326,16 @@ class SyncController extends Controller
             }
         });
 
-        $epoch = Epoch::inc();
+        if ($totalWrites > 0) {
+            $epoch = Epoch::inc();    // increment epoch if any rows were written or logged
 
-        Device::where('device_id', $deviceId)->update([
-            'epoch' => $epoch
-        ]); // update device's epoch.  <epoch>.sqlite.sql.zip must exist in order to download
+            Device::where('device_id', $deviceId)
+                ->update([
+                    'epoch' => $epoch
+                ]);
+        }
 
-        return response()->json([], Response::HTTP_OK);
+        return response()->json([], Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
     }
 
     public function downloadSync(Request $request, $deviceId)
