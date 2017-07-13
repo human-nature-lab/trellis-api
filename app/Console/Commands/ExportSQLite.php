@@ -44,7 +44,7 @@ class ExportSQLite extends Command
 
         app()->configure('temp');   // save overhead by only loading config when needed
 
-        $tempDirPath = FileHelper::storagePath(config('temp.directory'));
+        $tempDirPath = FileHelper::storagePath(config('temp.directory.path'));
 
         FileHelper::mkdir($tempDirPath);
 
@@ -57,8 +57,8 @@ class ExportSQLite extends Command
         $now = time();
 
         foreach ($files as $file => $timestamp) {
-            if ($now - $timestamp > config('temp.seconds')) {
-                unlink($file);  // remove any previous dumps older than TEMP_SECONDS (possibly left behind by script crashing, etc)
+            if ($now - $timestamp > config('temp.seconds.max')) {
+                unlink($file);  // remove any previous dumps older than TEMP_SECONDS_MAX (possibly left behind by script crashing, etc)
             }
         }
 
@@ -71,7 +71,7 @@ class ExportSQLite extends Command
         $mysqlDumpPath = "$tempDirPath/$mysqlDumpName";
 
         $this->call('trellis:export:mysql', [
-            'storage_path' => config('temp.directory') . "/$mysqlDumpName", // pass argument as local path inside storage path
+            'storage_path' => config('temp.directory.path') . "/$mysqlDumpName", // pass argument as local path inside storage path
         ]);
 
         ///// dump sqlite /////

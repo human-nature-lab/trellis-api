@@ -42,7 +42,7 @@ class ExportSnapshot extends Command
     {
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
-        $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory'));
+        $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory.path'));
 
         ///// check if dump for current epoch and database timestamp already exists /////
 
@@ -83,37 +83,25 @@ class ExportSnapshot extends Command
             }
         }
 
-        FileHelper::mkdir($snapshotDirPath);
-
         ///// remove old temporary files /////
 
         app()->configure('temp');   // save overhead by only loading config when needed
 
-        $tempDirPath = FileHelper::storagePath(config('temp.directory'));
+        $tempDirPath = FileHelper::storagePath(config('temp.directory.path'));
 
         FileHelper::mkdir($tempDirPath);
-
-        $dumpPrefix = self::DUMP_PREFIX;
-
-        $files = glob("$tempDirPath/$dumpPrefix*");
-        $files = array_combine($files, array_map("filemtime", $files));
-
-        foreach ($files as $file => $timestamp) {
-            if ($now - $timestamp > config('temp.seconds')) {
-                unlink($file);  // remove any previous dumps older than TEMP_SECONDS (possibly left behind by script crashing, etc)
-            }
-        }
+        FileHelper::cleanDirectory($tempDirPath, config('temp.directory.size.max'));
 
         ///// dump sqlite /////
 
         $identifier = Epoch::hex(Epoch::inc());
-        $sqliteDumpPrefix = $dumpPrefix . 'sqlite_';
+        $sqliteDumpPrefix = self::DUMP_PREFIX . 'sqlite_';
         $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';
         $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
         $databaseTimestamp = DatabaseHelper::databaseModifiedAt();    // get database timestamp just before dump begins (any later updates will be detected by comparing database and dump file timestamps)
 
         $this->call('trellis:export:sqlite', [
-            'storage_path' => config('temp.directory') . "/$sqliteDumpName", // pass argument as local path inside storage path
+            'storage_path' => config('temp.directory.path') . "/$sqliteDumpName", // pass argument as local path inside storage path
         ]);
 
         ///// zip sqlite /////
@@ -136,6 +124,11 @@ EOT
         $zipPath = $sqliteDumpPath . '.gz';
 
         touch($zipPath, $databaseTimestamp); // set file timestamp to database timestamp to optimize checking if snapshot already exists during future snapshot creations
+
+        ///// remove old storage files /////
+
+        FileHelper::mkdir($snapshotDirPath);
+        FileHelper::cleanDirectory($snapshotDirPath, config('snapshot.directory.size.max') - filesize($zipPath), 'getBasename');    // reserve room for new snapshot by subtracting its size
 
         ///// move zip file to destination atomically /////
 
