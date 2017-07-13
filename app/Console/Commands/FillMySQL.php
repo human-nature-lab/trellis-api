@@ -132,6 +132,8 @@ class FillMySQL extends Command
         }
 
         $this->info('Filled MySQL database with fake data.  Total size = ' . $sizeInBytes . ' bytes.');
+
+        return 0;
     }
 
     /**
