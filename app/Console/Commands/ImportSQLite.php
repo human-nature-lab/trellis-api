@@ -46,5 +46,7 @@ class ImportSQLite extends Command
         $sqlite->setFetchMode(PDO::FETCH_CLASS);
 
         dump($rows);
+
+        return 1;    //TODO decide whether to implement this command (see SyncController::uploadSync() for example).  for now return 1 to indicate failure
     }
 }

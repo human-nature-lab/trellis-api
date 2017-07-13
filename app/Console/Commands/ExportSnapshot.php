@@ -56,9 +56,9 @@ class ExportSnapshot extends Command
                 $snapshotTimestamp = filemtime($snapshotPath);
 
                 if ($databaseTimestamp == $snapshotTimestamp) {
-                    $this->error("Snapshot for current epoch already exists");
+                    $this->info("Snapshot for current epoch already exists");
 
-                    return 1;   //NOTE this is the only place that compares file and database timestamps (could also set the filename to timestamp for better consistency)
+                    return 0;   //NOTE this is the only place that compares file and database timestamps (could also set the filename to timestamp for better consistency)
                 }
             }
         }
@@ -76,9 +76,9 @@ class ExportSnapshot extends Command
                 $newestTimestamp = $files[$newestFilename];
 
                 if ($now - $newestTimestamp < config('snapshot.seconds.min')) {
-                    $this->error("Not enough time has passed since last snapshot, please try again in about " . config('snapshot.seconds.min') . " seconds");
+                    $this->info("Not enough time has passed since last snapshot, please try again in about " . config('snapshot.seconds.min') . " seconds");
 
-                    return 1;
+                    return 0;   //TODO decide whether to return a nonzero value here to indicate retry
                 }
             }
         }
@@ -135,6 +135,6 @@ EOT
         $snapshotName = $identifier . '.sqlite.sql';
         $snapshotPath = $snapshotDirPath . '/' . $snapshotName . '.gz';
 
-        return rename($zipPath, $snapshotPath);
+        return (rename($zipPath, $snapshotPath) != true)*1; // return 0 for success, 1 for failure
     }
 }
