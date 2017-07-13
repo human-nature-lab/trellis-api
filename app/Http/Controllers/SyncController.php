@@ -360,7 +360,7 @@ class SyncController extends Controller
 
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
-        $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory'));
+        $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory.path'));
         $files = glob("$snapshotDirPath/*");
 
         if (count($files)) {
