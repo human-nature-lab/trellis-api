@@ -288,9 +288,10 @@ class SyncController extends Controller
                 return $attributes['type'];
             }, DatabaseHelper::columns($table));
         });
-        $totalWrites = 0;
 
-        DB::transaction(function () use ($request, $data, $tableColumnTypes) {
+        $totalWrites = DB::transaction(function () use ($request, $data, $tableColumnTypes) {
+            $totalWrites = 0;
+
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
             foreach ($data as $table => $rows) {
@@ -324,6 +325,8 @@ class SyncController extends Controller
             if (count($result)) {
                 throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($result)));
             }
+
+            return $totalWrites;
         });
 
         if ($totalWrites > 0) {
