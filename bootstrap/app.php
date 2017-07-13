@@ -4,6 +4,10 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 Dotenv::load(__DIR__.'/../');
 
+if (env('MAX_EXECUTION_TIME')) {
+    ini_set('max_execution_time', env('MAX_EXECUTION_TIME'));
+}
+
 /*
 |--------------------------------------------------------------------------
 | Create The Application
