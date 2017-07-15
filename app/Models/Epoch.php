@@ -52,9 +52,13 @@ class Epoch extends Model
      */
     public static function inc()
     {
+        // if (($count = static::count()) > 1) {
+        //     dd('Wrong row count before epoch increment: ' . $count . ', ' . (new \Exception)->getTraceAsString());
+        // }
+
         // atomically increment epoch (expects row to exist)
-        if (static::orderBy('epoch', 'desc')->limit(1)->update(['epoch' => DB::raw('last_insert_id(epoch + 1)')]) < 1) {
-            throw new \Exception('The table "epoch" must have 1 row.');
+        if (static::orderBy('epoch', 'desc')->limit(1)->update(['epoch' => DB::raw('last_insert_id(epoch + 1)')]) != 1) {
+            throw new \Exception('Table `epoch` must have exactly 1 row');
         }
 
         // DB::insert('
@@ -62,6 +66,10 @@ class Epoch extends Model
         //     set epoch = (select epoch from (select * from epoch limit 1) as epoch)
         //     on duplicate key update epoch = last_insert_id(epoch + 1);
         // '); // atomically increment epoch, inserting row with epoch = 0 if no rows exist
+
+        // if (($count = static::count()) > 1) {
+        //     dd('Wrong row count after epoch increment: ' . $count . ', ' . (new \Exception)->getTraceAsString());
+        // }
 
         return DB::getPdo()->lastInsertId()*1;    // retrieve the last value inserted without executing another query (can use DB::listen() to verify)
     }
