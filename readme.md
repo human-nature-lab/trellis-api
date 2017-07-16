@@ -1,33 +1,36 @@
-Installation
-===
+[TOC]
 
-* [Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)](#install-virtualboxhttpswwwvirtualboxorgwikidownloads)
-* [Install [Vagrant](https://www.vagrantup.com/downloads.html)](#install-vagranthttpswwwvagrantupcomdownloadshtml)
-* [Install Homestead 5](#install-homestead-5)
-* [(Optional) Install Homestead 7](#optional-install-homestead-7)
-* [(Optional) Install the Laravel Homestead example](#optional-install-the-laravel-homestead-example)
-* [Install trellis-api](#install-trellis-api)
-* [Install trellis-app](#install-trellis-app)
+------
+
+# Trellis API
+
+------
+
+## Installation
 
 **Trellis** currently requires php 5.6.  It's recommended that you run a legacy php 5.6 Homestead or Vagrant box in order to prevent introducing php 7 code which might not be compatible.  The following repositories are required:
 
-* [https://github.com/human-nature-lab/trellis-api](https://github.com/human-nature-lab/trellis-api)
-* [https://github.com/human-nature-lab/trellis-app](https://github.com/human-nature-lab/trellis-app)
-* [https://github.com/human-nature-lab/trellis-vagrant](https://github.com/human-nature-lab/trellis-vagrant)
+- [https://github.com/human-nature-lab/trellis-api](https://github.com/human-nature-lab/trellis-api)
+- [https://github.com/human-nature-lab/trellis-app](https://github.com/human-nature-lab/trellis-app)
+- [https://github.com/human-nature-lab/trellis-vagrant](https://github.com/human-nature-lab/trellis-vagrant)
 
 You may either use the following instructions to add **trellis-app** and **trellis-api** to Laravel Homestead (which allows running multiple projects within one virtual machine), or use the trellis-vagrant instructions above to set up a standalone Vagrant box.
 
-* Homestead with php 5.6 instructions: [https://laravel.com/docs/5.0/homestead](https://laravel.com/docs/5.0/homestead)
-* Homestead with php 7+ instructions: [https://laravel.com/docs/5.4/homestead](https://laravel.com/docs/5.4/homestead)
-* Dual php 5.6 and php 7+ boxes: [https://medium.com/@mikeeeeeeey/multiple-laravel-homestead-boxes-side-by-side-487c4caeb29d](https://medium.com/@mikeeeeeeey/multiple-laravel-homestead-boxes-side-by-side-487c4caeb29d)
+- Homestead with php 5.6 instructions: [https://laravel.com/docs/5.0/homestead](https://laravel.com/docs/5.0/homestead)
+- Homestead with php 7+ instructions: [https://laravel.com/docs/5.4/homestead](https://laravel.com/docs/5.4/homestead)
+- Dual php 5.6 and php 7+ boxes: [https://medium.com/@mikeeeeeeey/multiple-laravel-homestead-boxes-side-by-side-487c4caeb29d](https://medium.com/@mikeeeeeeey/multiple-laravel-homestead-boxes-side-by-side-487c4caeb29d)
 
-## Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+------
 
-## Install [Vagrant](https://www.vagrantup.com/downloads.html)
+### Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+
+------
+
+### Install [Vagrant](https://www.vagrantup.com/downloads.html)
 
 ***
 
-## Install Homestead 5
+### Install Homestead 5
 ```
 cd ~
 git clone -b 2.0 https://github.com/laravel/homestead.git Homestead-5
@@ -67,7 +70,7 @@ vagrant halt
 
 ***
 
-## (Optional) Install Homestead 7
+### (Optional) Install Homestead 7
 
 ```
 cd ~
@@ -113,7 +116,7 @@ vagrant halt
 
 ***
 
-## (Optional) Install the Laravel Homestead example
+### (Optional) Install the Laravel Homestead example
 
 #### Verify that the Homestead example is listed in Homestead.yaml
 ```
@@ -180,7 +183,9 @@ php artisan key:generate
 #### Visit the Laravel Homestead example in the browser: [http://homestead.app](http://homestead.app)
 *You should see "Laravel" in large letters*
 
-## Install trellis-api
+------
+
+### Install trellis-api
 
 #### Add trellis-api to Homestead.yaml
 
@@ -266,7 +271,9 @@ composer install
 #### Visit trellis-api in the browser: [http://api.trellislocaldev.net/](http://api.trellislocaldev.net/)
 *You should see {"msg":"Unauthorized"}*
 
-## Install trellis-app
+------
+
+### Install trellis-app
 
 #### Add trellis-app to Homestead.yaml
 
@@ -322,3 +329,146 @@ Enter:
 `***REMOVED***`
 
 Press the `Login` button to log into Trellis.
+
+------
+
+## REST API
+
+**Trellis-api** is powered by [Lumen](https://lumen.laravel.com/) 5.1 and [MySQL](https://www.mysql.com/).  Request and response bodies are usually JSON.  The following HTTP request headers are required:
+
+- `X-Key` (currently `***REMOVED***`) must be included by all clients
+- `X-Token` a temporary token provided to the user after successful login
+  - The token lifetime is set by the TOKEN_EXPIRE variable in the .env file
+- `Content-Type` the request body content type (typically `application/json;charset=UTF-8`
+- `Accept` the desired response body content type (typically `application/json, text/plain, */*`)
+
+------
+
+### (Optional) Install [Postman](https://chrome.google.com/webstore/detail/postman/fhbjgbiflinjbdggehcddcbncdddomop?hl=en)
+
+------
+
+### Perform HTTP Request
+
+- #### Via Postman
+
+  1. Enter the URL http://api.trellislocaldev.net/heartbeat
+
+  2. Click on the Headers tab and enter the following headers:
+
+     -  `X-Key` `***REMOVED***`
+
+  3. Click `Send`
+
+     *You should see a JSON response containing `[]` indicating that the API is running*
+
+- #### Via CURL
+
+  1. ```
+     curl --request GET \
+       --url http://api.trellislocaldev.net/heartbeat \
+       --header 'x-key: ***REMOVED***'
+     ```
+
+     *You should see a JSON response containing `[]` indicating that the API is running*
+
+### Perform Log in
+
+- #### Via Postman
+
+  1. Enter the URL http://api.trellislocaldev.net/token
+
+  2. Click on the `Headers` tab and enter the following headers:
+
+     -  `X-Key` `***REMOVED***`
+     - `Content-Type` `application/json;charset=UTF-8`
+     - `Accept` `application/json, text/plain, */*`
+
+  3. Click on the `Body` tab and enter the following text:
+
+     -  `{"username":"admin","pass":"***REMOVED***"}`
+
+  4. Click `Send`
+
+     *You should see a JSON response containing the `X-Token` for subsequent requests in the `token.hash` field*:
+
+     ```
+     {
+         "user": {
+             "id": "c1f277ab-e181-11e5-84c9-a45e60f0e921",
+             "name": "Test Admin"
+         },
+         "token": {
+             "hash": "{x-token}",
+             "exp": "60",
+             "id": "0dd6d391-0f2b-49cb-b40d-7c50bd8c040f"
+         }
+     }
+     ```
+
+- #### Via CURL
+
+  1. ```
+     curl --request POST \
+       --url 'http://api.trellislocaldev.net/token' \
+       --header 'X-Key: ***REMOVED***' \
+       --header 'Content-Type: application/json;charset=UTF-8' \
+       --header 'Accept: application/json, text/plain, */*' \
+       --data-binary '{"username":"admin","pass":"***REMOVED***"}' \
+       --silent 2>&1 | python -c "import json,sys;obj=json.load(sys.stdin);print obj['token']['hash'];"
+     ```
+
+     *You should see a 128 character response representing the `X-Token` for subsequent requests (note that Python was used in the last line to extract the `token.hash` field for convenience)*
+
+------
+
+### Perform Synchronization
+
+Synchronization is performed by client apps uploading and downloading gzipped SQLite dumps to and from the server.  The `{device-id}` of the device running the app and the `{x-token}` obtained from login are required.
+
+#### Upload
+
+As the user works, rows on the device are inserted, updated and deleted.  All newly created table row ids should be `UUID` to prevent conflicts.  In the case of upload sync merge conflicts, the row with the newest `created_at`, `updated_at` or `deleted_at` timestamp is favored.  The old row is appended to the `log` table if it has not already been logged in a previous merge.  Any rows that were merged in a previous upload sync are ignored.
+
+The client app should export any SQLite database rows that have been modified since the last sync as a series of SQL INSERT statements of the form:
+
+```
+INSERT INTO `table` (`field1`, `field2`, ...) VALUES ('value1', 'value2', ...);
+INSERT INTO `table` (`field1`, `field2`, ...) VALUES ('value1', 'value2', ...);
+...
+```
+
+Note that the server accepts most time formats such as UTC strings like `2000-12-28T23:59:59.123456Z` (the fractional portion is optional), UNIX timestamps like `1500000000`, SQLite millisecond timestamps like `1500000000123` and microsecond timestamps like `1500000000123456` for DATETIME, TIMESTAMP and other time fields.
+
+The resulting dump should be gzipped and the raw bytes should be sent as the body of the HTTP request.  Here is a `curl` example for uploading data to the server (in this case a gzipped SQL dump named `trellis.sqlite.sql.gz`):
+
+```
+curl --request POST \
+  --url http://api.trellislocaldev.net/device/{device-id}/upload \
+  --header 'x-key: ***REMOVED***' \
+  --header 'x-token: {x-token}' \
+  --data-binary '@trellis.sqlite.sql.gz'
+```
+
+*You should see a JSON response containing `[]` indicating that the API request was successful*
+
+After the client app has performed an upload sync, it should set a flag of some kind in its local storage indicating that the data has been uploaded.  **If the user performs any changes, the flag should be cleared to indicate that another upload is necessary.**
+
+#### Download
+
+The client app should check the status of its local storage upload flag to ensure that the user has not made any edits since the last upload (the download sync will overwrite any of these unsynced edits).
+
+If no edits have been made since the last upload sync, the client app should periodically request a snapshot of the server database.  The snapshot is a gzipped SQLite dump containing a series of CREATE TABLE, INSERT and other statements that allow the client database to be created from scratch.  Here is a `curl` example for downloading data from the server:
+
+```
+curl --request GET \
+  --url http://api.trellislocaldev.net/device/{device-id}/download \
+  --header 'x-key: ***REMOVED***' \
+  --header 'x-token: {x-token}' \
+  --remote-name --remote-header-name
+```
+
+*You should see a newly-created file like `0000000000000001.sqlite.sql.gz` indicating that the API request was successful*
+
+The client app should unzip and read in bytes from the dump (either to a fresh database to replace the old database, or by dumping and recreating its existing database).  Each statement is separated by `";\n"` (`\n` is the linefeed character having ASCII code 10).  Any linefeeds in the fields of the dump are guaranteed to be escaped as the literal characters `\n`, so will never be mistaken for the ";\n" semicolon linefeed sequence.
+
