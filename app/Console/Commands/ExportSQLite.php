@@ -15,14 +15,14 @@ class ExportSQLite extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:export:sqlite {storage_path}';
+    protected $signature = 'trellis:export:sqlite {--exclude=*} {storage_path}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Export SQLite database';
+    protected $description = 'Export SQLite database to storage_path. --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
 
     const DUMP_PREFIX = 'dump_';
     const MYSQL_2_SQLITE = 'app/Console/Scripts/mysql2sqlite/mysql2sqlite';
@@ -71,6 +71,7 @@ class ExportSQLite extends Command
         $mysqlDumpPath = "$tempDirPath/$mysqlDumpName";
 
         $this->call('trellis:export:mysql', [
+            '--exclude' => $this->option('exclude'),
             'storage_path' => config('temp.directory.path') . "/$mysqlDumpName", // pass argument as local path inside storage path
         ]);
 

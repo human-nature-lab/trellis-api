@@ -99,8 +99,14 @@ class ExportSnapshot extends Command
         $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';
         $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
         $databaseTimestamp = DatabaseHelper::databaseModifiedAt();    // get database timestamp just before dump begins (any later updates will be detected by comparing database and dump file timestamps)
+        $exludeTables = array_keys(array_filter(config('snapshot.substitutions.download'), function ($fields) {
+            return $fields == [
+                '*' => null,
+            ];    // for now, can only exclude entire tables with wildcard
+        }));
 
         $this->call('trellis:export:sqlite', [
+            '--exclude' => $exludeTables,
             'storage_path' => config('temp.directory.path') . "/$sqliteDumpName", // pass argument as local path inside storage path
         ]);
 
