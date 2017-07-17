@@ -28,7 +28,7 @@
       - [Open the ~/Code/trellis-api directory in your local editor (Atom, PHPStorm, etc)](#open-the-codetrellis-api-directory-in-your-local-editor-atom-phpstorm-etc)
       - [Download initial database seed data](#download-initial-database-seed-data)
       - [Create database within Homestead and seed it](#create-database-within-homestead-and-seed-it)
-      - [Set "admin" user password to "***REMOVED***" (without quotes), to allow login at http://trellislocaldev.net/#/login](#set-admin-user-password-to-***REMOVED***-without-quotes-to-allow-login-at-httptrellislocaldevnet%23login)
+      - [Set "admin" user password to "***REMOVED***" (without quotes), to allow login at http://trellislocaldev.net/#/login](#set-admin-user-password-to-***REMOVED***-without-quotes-to-allow-login-at-httptrellislocaldevnetlogin)
       - [Install trellis-api](#install-trellis-api-1)
       - [Visit trellis-api in the browser: http://api.trellislocaldev.net/](#visit-trellis-api-in-the-browser-httpapitrellislocaldevnet)
     + [Install trellis-app](#install-trellis-app)
