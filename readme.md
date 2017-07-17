@@ -1,4 +1,58 @@
-[TOC]
+- ### [Trellis API](#trellis-api)
+
+  * #### [Installation](#installation)
+
+    + ##### [Install VirtualBox](#install-virtualbox)
+    + ##### [Install Vagrant](#install-vagrant)
+    + ##### [Install Homestead 5](#install-homestead-5)
+
+      - [(Optional) Create a symlink from ~/.homestead/Homestead.yaml to ~/Homestead-5/Homestead.yaml for convenience](#optional-create-a-symlink-from-homesteadhomesteadyaml-to-homestead-5homesteadyaml-for-convenience)
+      - [Start Homestead](#start-homestead)
+      - [Log in to Homestead](#log-in-to-homestead)
+      - [Verify php version](#verify-php-version)
+      - [Stop Homestead](#stop-homestead)
+    + ##### [(Optional) Install Homestead 7](#optional-install-homestead-7)
+
+      - [(Optional) Create a symlink so that Homestead-5 uses the same Homestead.yaml as Homestead-7](#optional-create-a-symlink-so-that-homestead-5-uses-the-same-homesteadyaml-as-homestead-7)
+      - [Start Homestead (enter password if requested, to run NFS for faster networking)](#start-homestead-enter-password-if-requested-to-run-nfs-for-faster-networking)
+      - [Log in to Homestead](#log-in-to-homestead-1)
+      - [Verify php version](#verify-php-version-1)
+      - [Stop Homestead](#stop-homestead-1)
+    + ##### [(Optional) Install the Laravel Homestead example](#optional-install-the-laravel-homestead-example)
+
+      - [Verify that the Homestead example is listed in Homestead.yaml](#verify-that-the-homestead-example-is-listed-in-homesteadyaml)
+      - [Add the Homestead example to your hosts file](#add-the-homestead-example-to-your-hosts-file)
+      - [Provision Homestead](#provision-homestead)
+      - [Log in to Homestead](#log-in-to-homestead-2)
+      - [Install the Laravel Homestead example within Homestead](#install-the-laravel-homestead-example-within-homestead)
+      - [Visit the Laravel Homestead example in the browser: http://homestead.app](#visit-the-laravel-homestead-example-in-the-browser-httphomesteadapp)
+    + ##### [Install trellis-api](#install-trellis-api)
+
+      - [Add trellis-api to Homestead.yaml](#add-trellis-api-to-homesteadyaml)
+      - [Add trellis-api to your hosts file](#add-trellis-api-to-your-hosts-file)
+      - [Provision Homestead](#provision-homestead-1)
+      - [Open the ~/Code/trellis-api directory in your local editor (Atom, PHPStorm, etc)](#open-the-codetrellis-api-directory-in-your-local-editor-atom-phpstorm-etc)
+      - [Download initial database seed data](#download-initial-database-seed-data)
+      - [Create database within Homestead and seed it](#create-database-within-homestead-and-seed-it)
+      - [Install trellis-api](#install-trellis-api-1)
+      - [Visit trellis-api in the browser: http://api.trellislocaldev.net/](#visit-trellis-api-in-the-browser-httpapitrellislocaldevnet)
+    + ##### [Install trellis-app](#install-trellis-app)
+
+      - [Add trellis-app to Homestead.yaml](#add-trellis-app-to-homesteadyaml)
+      - [Add trellis-app to your hosts file](#add-trellis-app-to-your-hosts-file)
+      - [Provision Homestead](#provision-homestead-2)
+      - [Download app config](#download-app-config)
+      - [Install trellis-app](#install-trellis-app-1)
+      - [Visit trellis-api in the browser: http://trellislocaldev.net/](#visit-trellis-api-in-the-browser-httptrellislocaldevnet)
+  * #### [REST API](#rest-api)
+
+    + ##### [(Optional) Install Postman](#optional-install-postman)
+    + ##### [Perform HTTP Request](#perform-http-request)
+    + ##### [Perform Log in](#perform-log-in)
+    + ##### [Perform Synchronization](#perform-synchronization)
+
+      - [Upload](#upload)
+      - [Download](#download)
 
 ------
 
@@ -356,7 +410,7 @@ Press the `Login` button to log into Trellis.
 
   2. Click on the Headers tab and enter the following headers:
 
-     -  `X-Key` `rXghvr7C1Q8dRmhX2Lyl3wC62TyoAr95`
+     - `X-Key` `rXghvr7C1Q8dRmhX2Lyl3wC62TyoAr95`
 
   3. Click `Send`
 
@@ -380,13 +434,13 @@ Press the `Login` button to log into Trellis.
 
   2. Click on the `Headers` tab and enter the following headers:
 
-     -  `X-Key` `rXghvr7C1Q8dRmhX2Lyl3wC62TyoAr95`
+     - `X-Key` `rXghvr7C1Q8dRmhX2Lyl3wC62TyoAr95`
      - `Content-Type` `application/json;charset=UTF-8`
      - `Accept` `application/json, text/plain, */*`
 
   3. Click on the `Body` tab and enter the following text:
 
-     -  `{"username":"admin","pass":"trellispass"}`
+     - `{"username":"admin","pass":"trellispass"}`
 
   4. Click `Send`
 
