@@ -47,7 +47,7 @@ class StudyController extends Controller
 //		$studyModel = Study::select('study.id', 'study.name', 'study.photo_quality', 'l.language_name', 'study.default_locale_id')
 //			->join('locale AS l', 'l.id', '=', 'default_locale_id')
 //			->get();
-        $studyModel = Study::with('locales')->get();
+        $studyModel = Study::with('locales', 'defaultLocale')->get();
 
 		return response()->json(
 			['studies' => $studyModel],
@@ -63,7 +63,6 @@ class StudyController extends Controller
 			'id' => 'required|string|min:36|exists:study,id',
 			'name' => 'string|min:1',
 			'photo_quality' => 'required|integer|between:1,100',
-			'census_form_master_id' => 'string|min:1',
 			'default_locale_id' => 'required|string|min:36|exists:locale,id'
 		]);
 
@@ -124,7 +123,6 @@ class StudyController extends Controller
 		$validator = Validator::make($request->all(), [
 			'name' => 'required|string|min:1',
 			'photo_quality' => 'required|integer|between:1,100',
-			'census_form_master_id' => 'string|min:1',
 			'default_locale_id' => 'required|string|min:1'
 		]);
 
@@ -137,19 +135,20 @@ class StudyController extends Controller
 
 		$studyName = $request->input('name');
 		$studyPhotoQuality = $request->input('photo_quality');
-		$studyCensusFormMasterId = $request->input('census_form_master_id');
 		$studyDefaultLocaleId = $request->input('default_locale_id');
 
 		$newStudyModel = new Study;
-		$newStudyModel->id = Uuid::uuid4();
+		$studyId = Uuid::uuid4();
+		$newStudyModel->id = $studyId;
 		$newStudyModel->name = $studyName;
 		$newStudyModel->photo_quality = $studyPhotoQuality;
-		$newStudyModel->census_form_master_id = $studyCensusFormMasterId;
 		$newStudyModel->default_locale_id = $studyDefaultLocaleId;
 		$newStudyModel->save();
 
+		$returnStudy = Study::with('defaultLocale', 'locales')->find($studyId);
+
 		return response()->json([
-			'study' => $newStudyModel
+			'study' => $returnStudy
 		], Response::HTTP_OK);
 	}
 

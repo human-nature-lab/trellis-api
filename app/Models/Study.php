@@ -44,6 +44,11 @@ class Study extends Model
         ->withTimestamps();
     }
 
+    public function defaultLocale() {
+	    return $this
+            ->hasOne('App\Models\Locale', 'id', 'default_locale_id');
+    }
+
     public function forms() {
 	    return $this
         ->belongsToMany('App\Models\Form', 'study_form', 'study_id', 'form_master_id')
