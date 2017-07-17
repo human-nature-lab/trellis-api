@@ -30,6 +30,13 @@ return [
             // 'device' => [
             //     'device_id' => null,
             // ],
+            'key' => [
+                '*' => null,
+            ],
+            'token' => [
+                '*' => null,
+            ],
+            //TODO
             // 'user' => [
             //     'password' => '',
             // ],
