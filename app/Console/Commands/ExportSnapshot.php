@@ -92,32 +92,28 @@ class ExportSnapshot extends Command
         FileHelper::mkdir($tempDirPath);
         FileHelper::cleanDirectory($tempDirPath, config('temp.directory.size.max'));
 
-        ///// dump sqlite /////
+        ///// dump sqlite and gzip output /////
 
-        $identifier = Epoch::hex(Epoch::inc());
-        $sqliteDumpPrefix = self::DUMP_PREFIX . 'sqlite_';
-        $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';
-        $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
-        $databaseTimestamp = DatabaseHelper::databaseModifiedAt();    // get database timestamp just before dump begins (any later updates will be detected by comparing database and dump file timestamps)
-        $exludeTables = array_keys(array_filter(config('snapshot.substitutions.download'), function ($fields) {
+        $excludeTables = array_keys(array_filter(config('snapshot.substitutions.download'), function ($fields) {
             return $fields == [
                 '*' => null,
             ];    // for now, can only exclude entire tables with wildcard
         }));
-
-        $this->call('trellis:export:sqlite', [
-            '--exclude' => $exludeTables,
-            'storage_path' => config('temp.directory.path') . "/$sqliteDumpName", // pass argument as local path inside storage path
-        ]);
-
-        ///// zip sqlite /////
-
-        $sqliteDumpPathEscaped = escapeshellarg($sqliteDumpPath);
+        $excludeTablesString = implode(' ', array_map(function ($table) {
+            return "--exclude=" . escapeshellarg($table);
+        }, $excludeTables));
+        $identifier = Epoch::hex(Epoch::inc());
+        $sqliteDumpPrefix = self::DUMP_PREFIX . 'sqlite_';
+        $sqliteDumpName = $sqliteDumpPrefix . $identifier . '.sql';
+        $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
+        $zipPath = $sqliteDumpPath . '.gz';
+        $zipPathString = '> ' . escapeshellarg($zipPath);
+        $databaseTimestamp = DatabaseHelper::databaseModifiedAt();    // get database timestamp just before dump begins (any later updates will be detected by comparing database and dump file timestamps)
 
         $process = new Process(<<<EOT
-gzip --best $sqliteDumpPathEscaped
+php artisan trellis:export:sqlite $excludeTablesString | gzip --best $zipPathString
 EOT
-);
+, base_path());
 
         $process->setTimeout(null)->run(function ($type, $buffer) {
             fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
@@ -126,8 +122,6 @@ EOT
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
-
-        $zipPath = $sqliteDumpPath . '.gz';
 
         touch($zipPath, $databaseTimestamp); // set file timestamp to database timestamp to optimize checking if snapshot already exists during future snapshot creations
 
