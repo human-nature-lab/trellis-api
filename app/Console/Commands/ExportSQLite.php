@@ -15,16 +15,15 @@ class ExportSQLite extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:export:sqlite {--exclude=*} {storage_path}';
+    protected $signature = 'trellis:export:sqlite {--exclude=*} {storage_path?}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Export SQLite database to storage_path. --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
+    protected $description = 'Export SQLite database to storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
 
-    const DUMP_PREFIX = 'dump_';
     const MYSQL_2_SQLITE = 'app/Console/Scripts/mysql2sqlite/mysql2sqlite';
 
     /**
@@ -42,58 +41,30 @@ class ExportSQLite extends Command
             return 1;
         }
 
-        app()->configure('temp');   // save overhead by only loading config when needed
-
-        $tempDirPath = FileHelper::storagePath(config('temp.directory.path'));
-
-        FileHelper::mkdir($tempDirPath);
-
-        ///// remove old temporary files /////
-
-        $dumpPrefix = self::DUMP_PREFIX;
-
-        $files = glob("$tempDirPath/$dumpPrefix*");
-        $files = array_combine($files, array_map("filemtime", $files));
-        $now = time();
-
-        foreach ($files as $file => $timestamp) {
-            if ($now - $timestamp > config('temp.seconds.max')) {
-                unlink($file);  // remove any previous dumps older than TEMP_SECONDS_MAX (possibly left behind by script crashing, etc)
-            }
-        }
-
-        ///// dump mysql /////
-
-        $identifier = sha1(microtime() . random_bytes(16));
-
-        $mysqlDumpPrefix = $dumpPrefix . 'mysql_';
-        $mysqlDumpName = $mysqlDumpPrefix . $identifier . '.sql';
-        $mysqlDumpPath = "$tempDirPath/$mysqlDumpName";
-
-        $this->call('trellis:export:mysql', [
-            '--exclude' => $this->option('exclude'),
-            'storage_path' => config('temp.directory.path') . "/$mysqlDumpName", // pass argument as local path inside storage path
-        ]);
-
         ///// dump sqlite /////
 
-        $sqliteDumpPath = FileHelper::storagePath($this->argument('storage_path'));
+        $excludeTablesString = implode(' ', array_map(function ($table) {
+            return "--exclude=" . escapeshellarg($table);
+        }, $this->option('exclude')));
 
-        FileHelper::mkdir(dirname($sqliteDumpPath));
+        if (!is_null($this->argument('storage_path'))) {
+            $dumpPath = FileHelper::storagePath($this->argument('storage_path'));
 
-        $mysqlDumpPathEscaped = escapeshellarg($mysqlDumpPath);
-        $sqliteDumpPathEscaped = escapeshellarg($sqliteDumpPath);
+            FileHelper::mkdir(dirname($dumpPath));
+
+            $dumpPathString = '> ' . escapeshellarg($dumpPath);
+        } else {
+            $dumpPathString = '';
+        }
 
         $process = new Process(<<<EOT
-$mysql2sqlite $mysqlDumpPathEscaped > $sqliteDumpPathEscaped
+php artisan trellis:export:mysql $excludeTablesString | $mysql2sqlite - $dumpPathString
 EOT
-);
+, base_path());
 
         $process->setTimeout(null)->run(function ($type, $buffer) {
             fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
         });
-
-        unlink($mysqlDumpPath);
 
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);

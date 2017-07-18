@@ -15,14 +15,14 @@ class ExportMySQL extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:export:mysql {--exclude=*} {storage_path}';
+    protected $signature = 'trellis:export:mysql {--exclude=*} {storage_path?}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Export MySQL database to storage_path. --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
+    protected $description = 'Export MySQL database to storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
 
     /**
      * Execute the console command.
@@ -31,19 +31,24 @@ class ExportMySQL extends Command
      */
     public function handle()
     {
-        $dumpPath = FileHelper::storagePath($this->argument('storage_path'));
-
-        FileHelper::mkdir(dirname($dumpPath));
-
         $db = escapeshellarg(config('database.connections.mysql.database'));
         $dbHost = escapeshellarg(config('database.connections.mysql.host'));
         $dbPort = escapeshellarg(config('database.connections.mysql.port'));
         // $dbUsername = escapeshellarg(config('database.connections.mysql.username'));
         // $dbPassword = escapeshellarg(config('database.connections.mysql.password'));
-        $dumpPath = escapeshellarg($dumpPath);
         $ignoreTablesString = implode(' ', array_map(function ($table) use ($db) {
             return "--ignore-table=$db." . escapeshellarg($table);
         }, $this->option('exclude')));
+
+        if (!is_null($this->argument('storage_path'))) {
+            $dumpPath = FileHelper::storagePath($this->argument('storage_path'));
+
+            FileHelper::mkdir(dirname($dumpPath));
+
+            $dumpPathString = '> ' . escapeshellarg($dumpPath);
+        } else {
+            $dumpPathString = '';
+        }
 
         // # to save encrypted password in ~/.mylogin.cnf run:
         // mysql_config_editor set --login-path=client --host=localhost --user=homestead --password
@@ -52,9 +57,9 @@ class ExportMySQL extends Command
         // # to run mysql utilities with config:
         // mysqldump --login-path=client --host $dbHost --port $dbPort --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
         $process = new Process(<<<EOT
-mysqldump --host $dbHost --port $dbPort --single-transaction --skip-extended-insert --compact $ignoreTablesString $db > $dumpPath
+mysqldump --host $dbHost --port $dbPort --single-transaction --skip-extended-insert --compact $ignoreTablesString $db $dumpPathString
 EOT
-);
+, base_path());
 
         $process->setTimeout(null)->run(function ($type, $buffer) {
             fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
