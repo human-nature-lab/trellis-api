@@ -59,7 +59,18 @@ class Study extends Model
     }
 
     public function delete() {
-        // TODO: Soft delete all child elements
+        StudyForm::where('study_id', $this->id)
+            ->delete();
+
+        StudyLocale::where('study_id', $this->id)
+            ->delete();
+
+        StudyRespondent::where('study_id', $this->id)
+            ->delete();
+
+        UserStudy::where('study_id', $this->id)
+            ->delete();
+
         return parent::delete();
     }
 

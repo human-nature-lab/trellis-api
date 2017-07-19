@@ -38,6 +38,7 @@ class Section extends Model
     }
 
     public function delete() {
+        Log::Debug("Got here.");
         $childSectionQuestionGroups = SectionQuestionGroup::where('section_id', '=', $this->id)->get();
         foreach ($childSectionQuestionGroups as $childSectionQuestionGroup) {
             $childSectionQuestionGroup->delete();
