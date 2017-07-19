@@ -37,11 +37,12 @@ class FormSection extends Model {
         //Log::info('FormSection->delete()');
 
         // Delete orphaned Sections
-        $formSectionCount = FormSection::where('section_id', '=', $this->section_id)->whereNull('deleted_at')->count();
+        // This causes an infinite loop
+        //$formSectionCount = FormSection::where('section_id', '=', $this->section_id)->whereNull('deleted_at')->count();
 
-        if ($formSectionCount < 2) {
-            Section::where('id', '=', $this->section_id)->first()->delete();
-        }
+        //if ($formSectionCount < 2) {
+        //    Section::where('id', '=', $this->section_id)->first()->delete();
+        //}
 
         return parent::delete();
     }

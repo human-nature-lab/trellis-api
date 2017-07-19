@@ -155,10 +155,10 @@ class SectionController extends Controller
         ], Response::HTTP_OK);
     }
 
-	public function removeSection(Request $request, $id) {
+	public function removeSection($section_id) {
 
 		$validator = Validator::make(
-			['id' => $id],
+			['id' => $section_id],
 			['id' => 'required|string|min:36|exists:section,id']
 		);
 
@@ -169,18 +169,7 @@ class SectionController extends Controller
 			], $validator->statusCode());
 		};
 
-		/*
-		$sectionQuestionGroupModel = SectionQuestionGroup::where('section_id', $id)
-				->first();
-
-		if ($sectionQuestionGroupModel !== null) {
-			return response()->json([
-				'msg' => 'Unable to delete Section. Please delete all child Question Groups before proceeding.'
-			], Response::HTTP_CONFLICT);
-		}
-		*/
-
-		$sectionModel = Section::find($id);
+		$sectionModel = Section::find($section_id);
 
 		if ($sectionModel === null) {
 			return response()->json([

@@ -23,4 +23,11 @@ class StudyForm extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public function delete() {
+        Form::where('form_id', $this->id)
+            ->delete();
+
+        return parent::delete();
+    }
 }

@@ -21,4 +21,5 @@ class SkipConditionTag extends Model {
         'skip_id',
         'condition_tag_name'
     ];
+
 }

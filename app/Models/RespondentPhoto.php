@@ -23,4 +23,11 @@ class RespondentPhoto extends Model {
         'sort_order',
         'notes'
     ];
+
+    public function delete() {
+        Photo::where('id', $this->photo_id)
+            ->delete();
+
+        return parent::delete();
+    }
 }

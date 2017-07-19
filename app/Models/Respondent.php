@@ -34,4 +34,20 @@ class Respondent extends Model
         ->whereNull('study_respondent.deleted_at')
         ->withTimestamps();
     }
+
+    public function delete() {
+        StudyRespondent::where('respondent_id', $this->id)
+            ->delete();
+
+        RespondentPhoto::where('respondent_id', $this->id)
+            ->delete();
+
+        RespondentConditionTag::where('respondent_id', $this->id)
+            ->delete();
+
+        RespondentGroupTag::where('respondent_id', $this->id)
+            ->delete();
+
+        return parent::delete();
+    }
 }
