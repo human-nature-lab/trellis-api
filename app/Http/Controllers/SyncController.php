@@ -17,6 +17,7 @@ use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
 use PhpMyAdmin\SqlParser\Parser;
 use PhpMyAdmin\SqlParser\Statements\InsertStatement;
+use Symfony\Component\Process\Process;
 use Validator;
 
 class SyncController extends Controller
@@ -285,20 +286,46 @@ class SyncController extends Controller
             return $inserts;
         };
 
-        $content = gzdecode($request->getContent());//file_get_contents('php://input'));	//TODO investigate inflating gzip (which is single-file, zip is file/folder) directly from php://input
-        $statements = explode(";\n", $content);
-        $inserts = [];
-
-        foreach ($statements as $key => $statement) {
-            $parser = new Parser($statement . ";\n");
+        $processStatements = function ($string) use ($getInsertStatements, $insertsToTableRows) {
+            $parser = new Parser($string);
             $insertStatements = $getInsertStatements($parser->statements);
+            $insertsToTableRows($insertStatements);
+        };
 
-            if (count($insertStatements)) {
-                array_push($inserts, ...$insertStatements); // splat operator appends array to array
+        $process = new Process('gunzip');
+
+        $process->setInput(fopen('php://input', 'rb'));
+
+        $delimiter = ";\n";
+        $temp = '';
+        $start = 0;
+
+        $processOutput = function ($output) use ($delimiter, &$temp, &$start, $processStatements) {
+            $temp .= $output;
+
+            $end = strrpos($temp, $delimiter, $start);
+
+            if ($end !== false) {
+                $processStatements(substr($temp, 0, $end + strlen($delimiter)));
+
+                $temp = substr($temp, $end + strlen($delimiter));
+                $start = 0;
+            } else {
+                $start = strlen($temp) - (strlen($delimiter) - 1);
             }
+        };
+
+        $process->setTimeout(null)->run(function ($type, $output) use ($processOutput) {
+            if ($type === Process::OUT) {
+                $processOutput($output);
+            }
+        });
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
         }
 
-        $insertsToTableRows($inserts);
+        $processOutput($delimiter);    // terminate stream with delimiter in case client did not.  final result is in $tableRows
 
         $totalWrites = DB::transaction(function () use ($tableRows) {
             $totalWrites = 0;
