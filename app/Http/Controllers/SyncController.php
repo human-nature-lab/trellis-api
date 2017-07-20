@@ -199,11 +199,73 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        $content = gzdecode($request->getContent());//file_get_contents('php://input'));	//TODO investigate inflating gzip (which is single-file, zip is file/folder) directly from php://input
-        $parser = new Parser($content);
+        $tableColumnTypes = collect(DatabaseHelper::tables())->flip()->map(function ($index, $table) {
+            return array_map(function ($attributes) {
+                return $attributes['type'];
+            }, DatabaseHelper::columns($table));
+        })->toArray();
 
-        // recursive method to get all inserts (even within other statements like transactions), "use (&$getInserts)" allows recursion
-        $getInserts = function ($statements) use (&$getInserts) {
+        app()->configure('snapshot');   // save overhead by only loading config when needed
+
+        $tableRows = [];
+
+        $insertsToTableRows = function ($inserts) use ($tableColumnTypes, &$tableRows) {
+            $substitutions = config('snapshot.substitutions.upload');
+
+            foreach ($inserts as $insert) {
+                $table = $insert->into->dest->table;
+
+                if (!$table || !count($insert->into->columns)) {
+                    continue;   // require "insert into `table` (`field`) values ('value')" syntax where fields are specified
+                }
+
+                if (!isset($tableColumnTypes[$table])) {
+                    continue;   // skip unknown tables  //TODO make this a whitelist
+                }
+
+                if (!isset($tableRows[$table])) {
+                    $tableRows[$table] = [];
+                }
+
+                $fields = $insert->into->columns;
+                $values = $insert->values[0]->values;
+
+                foreach ($insert->values[0]->raw as $key => $raw) {
+                    if (strtolower($raw) == 'null') {
+                        $values[$key] = null;   // fix issue where null is parsed as "null" instead of null
+                    }
+                }
+
+                $fieldValues = array_combine($fields, $values);
+
+                // skip any blacklisted fields
+                foreach (array_get($substitutions, $table, []) as $field => $substitution) {
+                    if ($field == '*') {
+                        $fieldValues = array_fill_keys(array_keys($fieldValues), $substitution);  // if wildcard, substitute all fields
+                    } else {
+                        $fieldValues[$field] = $substitution;
+                    }
+                }
+
+                $fieldValues = array_filter($fieldValues, function ($value) {
+                    return isset($value);
+                }); // array_filter($fieldValues, 'isset');
+
+                foreach ($fieldValues as $field => $value) {
+                    if (!is_null($value)) {
+                        if (in_array(array_get($tableColumnTypes[$table], $field), ['date', 'datetime', 'time', 'timestamp', 'year'])) {
+                            $fieldValues[$field] = TimeHelper::utc($value); // ensure that timestamp/datetime is formatted properly for insertion
+                        }
+                    }
+                }
+
+                if (count($fieldValues)) {
+                    $tableRows[$table] []= $fieldValues;
+                }
+            }
+        };
+
+        $getInsertStatements = function ($statements) use (&$getInsertStatements) {
             $inserts = [];
 
             foreach ($statements as $statement) {
@@ -212,7 +274,7 @@ class SyncController extends Controller
                 }
 
                 if (isset($statement->statements)) {
-                    $insertStatements = $getInserts($statement->statements);
+                    $insertStatements = $getInsertStatements($statement->statements);
 
                     if (count($insertStatements)) {
                         array_push($inserts, ...$insertStatements); // splat operator appends array to array
@@ -223,91 +285,28 @@ class SyncController extends Controller
             return $inserts;
         };
 
-        $inserts = $getInserts($parser->statements);
+        $content = gzdecode($request->getContent());//file_get_contents('php://input'));	//TODO investigate inflating gzip (which is single-file, zip is file/folder) directly from php://input
+        $statements = explode(";\n", $content);
+        $inserts = [];
 
-        app()->configure('snapshot');   // save overhead by only loading config when needed
+        foreach ($statements as $key => $statement) {
+            $parser = new Parser($statement . ";\n");
+            $insertStatements = $getInsertStatements($parser->statements);
 
-        $substitutions = config('snapshot.substitutions.upload');
-        $data = [];
-
-        foreach ($inserts as $insert) {
-            $table = $insert->into->dest->table;
-
-            if (!$table || !count($insert->into->columns)) {
-                continue;   // require "insert into `table` (`field`) values ('value')" syntax where fields are specified
-            }
-
-            if (!isset($data[$table])) {
-                $data[$table] = [];
-            }
-
-            $fields = $insert->into->columns;
-            $values = $insert->values[0]->values;
-
-            foreach ($insert->values[0]->raw as $key => $raw) {
-                if (strtolower($raw) == 'null') {
-                    $values[$key] = null;   // fix issue where null is parsed as "null" instead of null
-                }
-            }
-
-            $fieldValues = array_combine($fields, $values);
-
-            // skip any blacklisted fields
-            foreach (array_get($substitutions, $table, []) as $field => $substitution) {
-                if ($field == '*') {
-                    $fieldValues = array_fill_keys(array_keys($fieldValues), $substitution);  // if wildcard, substitute all fields
-                } else {
-                    $fieldValues[$field] = $substitution;
-                }
-            }
-
-            $fieldValues = array_filter($fieldValues, function ($value) {
-                return isset($value);
-            }); // array_filter($fieldValues, 'isset');
-
-            if (count($fieldValues)) {
-                $data[$table] []= $fieldValues;
+            if (count($insertStatements)) {
+                array_push($inserts, ...$insertStatements); // splat operator appends array to array
             }
         }
 
-        // $insert = (new Parser("insert into `table` (`field`) values ('value')"))->statements[0];
-        //
-        // $insert = new \PhpMyAdmin\SqlParser\Statements\InsertStatement;
-        // $insert->into = new \PhpMyAdmin\SqlParser\Components\IntoKeyword;
-        // $insert->into->dest = new \PhpMyAdmin\SqlParser\Components\Expression;
-        // $insert->into->dest->table = 'table';
-        // $insert->into->columns = ['field1', 'field2'];
-        // $insert->values = [new \PhpMyAdmin\SqlParser\Components\ArrayObj];
-        // $insert->values[0]->values = ['value 1', 'value 2'];
-        // dd($insert->build());   // doesn't quite work because values aren't quoted
+        $insertsToTableRows($inserts);
 
-        // $data = $request->json()->all();  // returns array of nested key-values [table: [field: value, ...], ...]
-
-        $tableColumnTypes = collect(DatabaseHelper::tables())->flip()->map(function ($index, $table) {
-            return array_map(function ($attributes) {
-                return $attributes['type'];
-            }, DatabaseHelper::columns($table));
-        });
-
-        $totalWrites = DB::transaction(function () use ($request, $data, $tableColumnTypes) {
+        $totalWrites = DB::transaction(function () use ($tableRows) {
             $totalWrites = 0;
 
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
-            foreach ($data as $table => $rows) {
+            foreach ($tableRows as $table => $rows) {
                 foreach ($rows as $row) {
-                    if (!isset($tableColumnTypes[$table])) {
-                        continue;   // skip unknown tables  //TODO make this a whitelist
-                    }
-
-                    foreach ($row as $field => $value) {
-                        if (!is_null($value)) {
-                            if (in_array(array_get($tableColumnTypes[$table], $field), ['date', 'datetime', 'time', 'timestamp', 'year'])) {
-                                $row[$field] = TimeHelper::utc($value); // ensure that timestamp/datetime is formatted properly for insertion
-                            }
-                        }
-                    }
-
                     if (!is_null(Log::writeRow($row, $table))) {
                         $totalWrites++;
                     }
