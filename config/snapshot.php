@@ -21,6 +21,15 @@ return [
             'epoch' => [
                 '*' => null,
             ],
+            'key' => [
+                '*' => null,
+            ],
+            'migrations' => [
+                '*' => null,
+            ],
+            'token' => [
+                '*' => null,
+            ],
             'user' => [
                 '*' => null,
             ],
@@ -31,6 +40,9 @@ return [
             //     'device_id' => null,
             // ],
             'key' => [
+                '*' => null,
+            ],
+            'migrations' => [
                 '*' => null,
             ],
             'token' => [
