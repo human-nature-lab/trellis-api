@@ -14,7 +14,7 @@ use DB;
 
 class SectionService
 {
-    public function createSection($formId, $sectionName, $maxRepetitions, $repeatPrompt, $sortOrder) {
+    public function createSection($formId, $sectionName, $sortOrder) {
 
         $studyModel = Study::select('study.*')
             ->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
@@ -30,10 +30,10 @@ class SectionService
         $translationTextId = Uuid::uuid4();
         $sectionId = Uuid::uuid4();
         $formSectionId = Uuid::uuid4();
-        $repeatPromptTranslationId = ($repeatPrompt == null) ? null : Uuid::uuid4();
-        $repeatPromptTranslationTextId = ($repeatPrompt == null) ? null : Uuid::uuid4();
+        //$repeatPromptTranslationId = ($repeatPrompt == null) ? null : Uuid::uuid4();
+        //$repeatPromptTranslationTextId = ($repeatPrompt == null) ? null : Uuid::uuid4();
 
-        DB::transaction(function() use($formId, $sectionName, $maxRepetitions, $repeatPrompt, $sortOrder, $studyLocaleId, $newSectionModel, $translationId, $translationTextId, $repeatPromptTranslationTextId, $repeatPromptTranslationId, $sectionId, $formSectionId) {
+        DB::transaction(function() use($formId, $sectionName, $sortOrder, $studyLocaleId, $newSectionModel, $translationId, $translationTextId, $sectionId, $formSectionId) {
 
             $newTranslationModel = new Translation;
             $newTranslationModel->id = $translationId;
@@ -46,6 +46,7 @@ class SectionService
             $newTranslationTextModel->translated_text = $sectionName;
             $newTranslationTextModel->save();
 
+            /*
             if ($repeatPrompt != null) {
                 $newRepeatPromptTranslationModel = new Translation;
                 $newRepeatPromptTranslationModel->id = $repeatPromptTranslationId;
@@ -58,6 +59,7 @@ class SectionService
                 $newRepeatPromptTranslationTextModel->translated_text = $repeatPrompt;
                 $newRepeatPromptTranslationTextModel->save();
             }
+            */
 
             $newSectionModel->id = $sectionId;
             $newSectionModel->name_translation_id = $translationId;
@@ -68,8 +70,8 @@ class SectionService
             $newFormSectionModel->form_id = $formId;
             $newFormSectionModel->section_id = $sectionId;
             $newFormSectionModel->sort_order = $sortOrder;
-            $newFormSectionModel->max_repetitions = $maxRepetitions;
-            $newFormSectionModel->repeat_prompt_translation_id = $repeatPromptTranslationId;
+            //$newFormSectionModel->max_repetitions = 0;
+            //$newFormSectionModel->repeat_prompt_translation_id = $repeatPromptTranslationId;
             $newFormSectionModel->save();
         });
 

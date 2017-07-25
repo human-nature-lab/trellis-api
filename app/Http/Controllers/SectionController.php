@@ -80,13 +80,11 @@ class SectionController extends Controller
 		);
 	}
 
-	public function updateSection(Request $request, $formId, $sectionId) {
+	public function updateSection(Request $request, $sectionId) {
 
 		$validator = Validator::make(array_merge($request->all(),[
-			'form_id' => $formId,
-			'section_id' => $sectionId,
+			'id' => $sectionId,
 		]), [
-			'form_id' => 'required|string|min:36|exists:form,id',
 			'id' => 'required|string|min:36|exists:section,id'
 		]);
 
@@ -104,16 +102,6 @@ class SectionController extends Controller
 				'msg' => 'URL resource not found'
 			], Response::HTTP_NOT_FOUND);
 		}
-
-		DB::transaction(function() use($request, $sectionModel) {
-			if (!empty($request->input('translated_text')))
-				$translationText = TranslationText::where('id', $sectionModel->name_translation_id)
-						->update(['translated_text' => $request->input('translated_text')]);
-
-
-
-		});
-
 
 		$sectionModel->fill($request->input());
 		$sectionModel->save();
@@ -190,8 +178,7 @@ class SectionController extends Controller
 		$validator = Validator::make(array_merge($request->all(), [
 			'form_id' => $formId]), [
 			'form_id' => 'required|string|min:36',
-			'translated_text' => 'required|string|min:1',
-			'max_repetitions' => 'integer|min:0'
+			'translated_text' => 'required|string|min:1'
 		]);
 
 		if ($validator->fails() === true) {
@@ -204,8 +191,6 @@ class SectionController extends Controller
         $returnSection = $sectionService->createSection(
             $formId,
             $request->input('translated_text'),
-            $request->input('max_repetitions'),
-            $request->input('repeat_prompt_translation_text'),
             $request->input('sort_order')
         );
 

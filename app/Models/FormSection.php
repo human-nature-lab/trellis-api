@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Model;
 
 class FormSection extends Model {
 
@@ -13,6 +12,8 @@ class FormSection extends Model {
 	public $incrementing = false;
 
 	protected $table = 'form_section';
+
+	protected $with = ['repeatPromptTranslation'];
 
 	protected $fillable = [
 		'id',

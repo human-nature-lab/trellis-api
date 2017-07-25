@@ -85,7 +85,7 @@ class FormController extends Controller
         }
 
         // Create the section
-        $newSection = $sectionService->createSection($formId, $request->input('form_import_section_name'), 0, '', $request->input('sort_order'));
+        $newSection = $sectionService->createSection($formId, $request->input('form_import_section_name'), $request->input('sort_order'));
 
         // TODO: remove this hard-coded file system location
         $adapter = new Local(storage_path() . '/form-import');
