@@ -36,7 +36,7 @@ class Form extends Model {
             ->whereNull('form_section.deleted_at')
             ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id')
             ->withTimestamps()
-            ->with('questionGroups', 'nameTranslation');
+            ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
     }
 
     public function delete() {

@@ -416,6 +416,15 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'SectionController@updateSections'
     );
 
+    //*********************************//
+    //* FormSection Controller Routes *//
+    //*********************************//
+
+    $app->post(
+        'form_section/{form_section_id}',
+        'FormSectionController@updateFormSection'
+    );
+
 	//****************************************//
 	//* Question Condition Controller Routes *//
 	//****************************************//

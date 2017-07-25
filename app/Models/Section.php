@@ -28,6 +28,12 @@ class Section extends Model
             ->with('translationText');
     }
 
+    public function formSections() {
+        return $this
+            ->hasMany('App\Models\FormSection');
+
+    }
+
     public function questionGroups() {
         return $this
             ->belongsToMany('App\Models\QuestionGroup', 'section_question_group')
