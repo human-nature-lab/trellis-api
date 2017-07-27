@@ -15,9 +15,41 @@ class DatabaseHelper
      *
      * Note that this is not standardized across SQL databases: https://stackoverflow.com/a/1543309/539149
     */
-    public static function escape($string)
+    public static function escape($string, $quote = true)
     {
-        return '`' . preg_replace('/[^0-9a-zA-Z_\.]/', '', $string) . '`';
+        return ($quote ? '`' : '') . preg_replace('/[^0-9a-zA-Z_\.]/', '', $string) . ($quote ? '`' : '');
+    }
+
+    /**
+     * Return the current database.
+    */
+    public static function database()
+    {
+        return data_get(head(DB::select('select database() from dual')), 'database()');
+    }
+
+    /**
+     * Use the specified database (or current database if empty) until callable finishes, then restore the previous one.
+    */
+    public static function use($database, $callable)
+    {
+        if (!strlen($database)) {
+            return value($callable);
+        }
+
+        $oldDatabase = static::database();
+
+        try {
+            DB::unprepared('use ' . static::escape($database));
+
+            $value = value($callable);
+        } catch (\Exception $e) {
+            throw $e;
+        } finally {
+            DB::unprepared('use ' . static::escape($oldDatabase));
+        }
+
+        return $value;
     }
 
     /**
@@ -27,11 +59,15 @@ class DatabaseHelper
     {
         $oldMode = DB::getFetchMode();
 
-        DB::setFetchMode($mode);
+        try {
+            DB::setFetchMode($mode);
 
-        $value = value($callable);
-
-        DB::setFetchMode($oldMode);
+            $value = value($callable);
+        } catch (\Exception $e) {
+            throw $e;
+        } finally {
+            DB::setFetchMode($oldMode);
+        }
 
         return $value;
     }
@@ -75,6 +111,111 @@ class DatabaseHelper
 
             // return DB::connection(config('database.default'))->getSchemaBuilder()->getColumnListing($table);
         });
+    }
+
+    /**
+     * Given a column from static::columns(), return schema description compatible with https://github.com/mojopollo/laravel-json-schema of the form:
+     *
+     * "type(length):unique|nullable|default(value)|..."
+     *
+     * For example:
+     *
+     * "string"
+     * "integer"
+     * "date"
+     * "string:unique"
+     * "integer:nullable"
+     * "string:default('John Doe')"
+     * "text:nullable"
+     * "string(30):unique"
+     * "integer:nullable:default(18)"
+     *
+     * More info at:
+     *
+     * https://github.com/laracasts/Laravel-5-Generators-Extended/blob/master/src/Migrations/SchemaParser.php
+     */
+    public static function schemaJSON($column)
+    {
+        $typeToSchema = [
+            'bigint' => 'bigInteger',
+            'binary' => 'binary',
+            'bit' => 'boolean',
+            'blob' => 'binary',
+            'bool' => 'boolean',
+            'boolean' => 'boolean',
+            'char' => 'char',
+            'date' => 'date',
+            'datetime' => 'dateTime',
+            'dec' => 'decimal',
+            'decimal' => 'decimal',
+            'double' => 'double',
+            'fixed' => 'decimal',
+            'float' => 'float',
+            'int' => 'integer',
+            'integer' => 'integer',
+            'longtext' => 'longText',
+            'mediumblob' => 'binary',
+            'mediumint' => 'mediumInteger',
+            'mediumtext' => 'mediumText',
+            'numeric' => 'decimal',
+            'real' => 'double',
+            'smallint' => 'integer',
+            'text' => 'text',
+            'time' => 'time',
+            'timestamp' => 'timestamp',
+            'tinyblob' => 'binary',
+            'tinyint' => 'tinyInteger',
+            'tinytext' => 'text',
+            'varbinary' => 'binary',
+            'varchar' => 'string',
+            'year' => 'smallInteger',
+        ];
+        $type = static::unconstrainedType($column['type']);
+        $schema = array_get($typeToSchema, $type, $type);
+
+        if ($column['extra'] == 'auto_increment') {
+            $schema = str_ireplace('integer', 'Increments');
+        }
+
+        $length = static::typeLength($column['type']);
+
+        if (isset($length)) {
+            $schema .= "($length)";
+        }
+
+        if (static::typeUnsigned($column['type'])) {
+            $schema .= ':unsigned';
+        }
+
+        if ($column['null'] == 'YES') {
+            $schema .= ':nullable';
+        }
+
+        switch ($column['key']) {
+            case 'MUL':
+                $schema .= ':index';
+                break;
+
+            case 'PRI':
+                $schema .= ':primary';
+                break;
+
+            case 'UNI':
+                $schema .= ':unique';
+                break;
+        }
+
+        if (isset($column['default'])) {
+            if (is_numeric($column['default'])) {
+                $default = 1.0*$column['default'];
+            } else {
+                $default = "'" . addcslashes($column['default'], "'") . "'";
+            }
+
+            $schema .= ":default($default)";
+        }
+
+        return $schema;
     }
 
     /**
@@ -140,20 +281,31 @@ class DatabaseHelper
      * Returns one of the following, where the length portion (in parentheses) has been stripped:
      *
      * bigint
+     * binary
+     * bit
      * blob
+     * bool
+     * boolean
      * char
+     * data
      * date
      * datetime
+     * dec
      * decimal
      * double
-     * enum
+     * double
+     * fixed
+     * float
      * float
      * int
-     * longblob
+     * integer
+     * longtext
      * longtext
      * mediumblob
      * mediumint
      * mediumtext
+     * numeric
+     * real
      * smallint
      * text
      * time
@@ -161,6 +313,7 @@ class DatabaseHelper
      * tinyblob
      * tinyint
      * tinytext
+     * varbinary
      * varchar
      * year
      */
@@ -175,6 +328,14 @@ class DatabaseHelper
     public static function typeLength($type)
     {
         return ((int) trim(strstr($type, '('), '()')) ?: null;
+    }
+
+    /**
+     * Returns true if MySQL type is unsigned or false otherwise.
+    */
+    public static function typeUnsigned($type)
+    {
+        return strcasecmp(substr($type, -strlen(' unsigned')), ' unsigned') == 0;
     }
 
     /**
