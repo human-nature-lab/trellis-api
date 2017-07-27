@@ -327,15 +327,45 @@ class SyncController extends Controller
 
         $processOutput($delimiter);    // terminate stream with delimiter in case client did not.  final result is in $tableRows
 
-        $totalWrites = DB::transaction(function () use ($tableRows) {
-            $totalWrites = 0;
+        $totalWrites = 0;
+
+        $response = DB::transaction(function () use ($tableRows, &$totalWrites) {
+            // $writes = [
+            //     'created' => 0,
+            //     'updated' => 0,
+            //     'deleted' => 0,
+            //     'logged' => 0,
+            //     'skipped' => 0,
+            // ];
 
             DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
             foreach ($tableRows as $table => $rows) {
                 foreach ($rows as $row) {
-                    if (!is_null(Log::writeRow($row, $table))) {
+                    $result = Log::writeRow($row, $table);
+
+                    if (isset($result)) {
                         $totalWrites++;
+
+                        // switch ($result) {
+                        //     case 'create':
+                        //         $writes['created']++;
+                        //         break;
+                        //
+                        //     case 'update':
+                        //         $writes['updated']++;
+                        //         break;
+                        //
+                        //     case 'delete':
+                        //         $writes['deleted']++;
+                        //         break;
+                        //
+                        //     default:
+                        //         $writes['logged']++;
+                        //         break;
+                        // }
+                    } else {
+                        // $writes['skipped']++;
                     }
                 }
             }
@@ -346,13 +376,15 @@ class SyncController extends Controller
 
             Artisan::call('trellis:check:mysql');
 
-            $result = json_decode(ob_get_clean(), true);
+            $inconsistencies = json_decode(ob_get_clean(), true);
 
-            if (count($result)) {
-                throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($result)));
+            if (count($inconsistencies)) {
+                return response()->json($inconsistencies, Response::HTTP_BAD_REQUEST); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
+                // \App::abort(Response::HTTP_CONFLICT, json_encode($inconsistencies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));    // message doesn't work
+                // throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($inconsistencies)));
             }
 
-            return $totalWrites;
+            return response()->json([]/*$writes*/, Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
         });
 
         if ($totalWrites > 0) {
@@ -364,7 +396,7 @@ class SyncController extends Controller
                 ]);
         }
 
-        return response()->json([], Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
+        return $response;
     }
 
     public function downloadSync(Request $request, $deviceId)
