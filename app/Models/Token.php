@@ -15,7 +15,7 @@ class Token extends Model
     protected $table = 'token';
 
     protected $fillable = [
-        'token_id',
+        'id',
         'created_at',
         'updated_at',
         'deleted_at',

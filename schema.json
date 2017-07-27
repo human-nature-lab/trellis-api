@@ -223,7 +223,7 @@
         "deleted_at": "dateTime:nullable"
     },
     "key": {
-        "id": "string(41):primary:default('')",
+        "id": "string(41):primary",
         "name": "string(128):unique:default('')",
         "hash": "string(32):unique:default('')",
         "created_at": "dateTime",
@@ -475,7 +475,7 @@
         "deleted_at": "dateTime:nullable"
     },
     "token": {
-        "id": "string(41):primary:default('')",
+        "id": "string(41):primary",
         "user_id": "string(41)",
         "token_hash": "string(128):unique",
         "key_id": "bigInteger(20):unsigned",
