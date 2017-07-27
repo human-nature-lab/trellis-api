@@ -19,6 +19,6 @@ class RespondentConditionTag extends Model
         'updated_at',
         'deleted_at',
         'respondent_id',
-        'condition_id'
+        'condition_tag_id'
     ];
 }

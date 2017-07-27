@@ -226,9 +226,9 @@
         "id": "string(41):primary:default('')",
         "name": "string(128):unique:default('')",
         "hash": "string(32):unique:default('')",
-        "created_at": "timestamp:default('CURRENT_TIMESTAMP')",
-        "updated_at": "timestamp:nullable",
-        "deleted_at": "timestamp:nullable"
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
     },
     "locale": {
         "id": "string(41):primary",
@@ -408,17 +408,15 @@
     "skip_condition_tag": {
         "id": "string(41):primary",
         "skip_id": "string(41):index",
-        "condition_tag_id": "string(41):index",
-        "condition_tag_name": "text",
         "created_at": "dateTime",
         "updated_at": "dateTime",
-        "deleted_at": "dateTime:nullable"
+        "deleted_at": "dateTime:nullable",
+        "condition_tag_name": "string(255)"
     },
     "study": {
         "id": "string(41):primary",
         "name": "string(255)",
         "photo_quality": "tinyInteger(3):unsigned:default(60)",
-        "surveyor_census_form_master_id": "string(41):nullable:index",
         "default_locale_id": "string(41):index",
         "created_at": "dateTime",
         "updated_at": "dateTime",
@@ -429,10 +427,10 @@
         "study_id": "string(41):index",
         "form_master_id": "string(41):index",
         "sort_order": "tinyInteger(3):unsigned:default(0)",
-        "form_type": "integer(11)",
         "created_at": "dateTime",
         "updated_at": "dateTime",
-        "deleted_at": "dateTime:nullable"
+        "deleted_at": "dateTime:nullable",
+        "form_type": "tinyInteger(3):unsigned:default(0)"
     },
     "study_locale": {
         "id": "string(41):primary",
@@ -481,8 +479,8 @@
         "user_id": "string(41)",
         "token_hash": "string(128):unique",
         "key_id": "bigInteger(20):unsigned",
-        "updated_at": "dateTime",
         "created_at": "dateTime",
+        "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
     },
     "translation": {
