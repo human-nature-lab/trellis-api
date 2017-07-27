@@ -20,6 +20,6 @@ class Device extends Model
         'deleted_at',
         'device_id',
         'name',
-        // 'epoch'
+        'epoch'
     ];
 }
