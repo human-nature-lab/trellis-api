@@ -57,7 +57,7 @@ class ExportMySQL extends Command
         // # to run mysql utilities with config:
         // mysqldump --login-path=client --host $dbHost --port $dbPort --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
         $process = new Process(<<<EOT
-mysqldump --host $dbHost --port $dbPort --single-transaction --skip-extended-insert --complete-insert --compact $ignoreTablesString $db $dumpPathString
+mysqldump --host $dbHost --port $dbPort --single-transaction --complete-insert --compact --net-buffer-length=10240 $ignoreTablesString $db $dumpPathString
 EOT
 , base_path());
 
