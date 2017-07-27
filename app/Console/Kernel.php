@@ -14,11 +14,19 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\CheckMySQL::class,
+        \App\Console\Commands\CheckMySQLJSON::class,
         \App\Console\Commands\ExportMySQL::class,
         \App\Console\Commands\ExportSnapshot::class,
         \App\Console\Commands\ExportSQLite::class,
         \App\Console\Commands\FillMySQL::class,
         \App\Console\Commands\ImportSQLite::class,
+        \App\Console\Commands\MergeMigrations::class,
+        \App\Console\Commands\ShowMySQLJSON::class,
+        \App\Console\Commands\SimulateMigrate::class,
+        \App\Console\Commands\SimulateMigrateRollback::class,
+
+        // overrides:   //TODO take this out if switched to Laravel
+        \App\Console\Commands\MakeModel::class,
     ];
 
     /**
@@ -30,5 +38,20 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         //
+    }
+
+    /**
+     * @param InputInterface $request
+     * @param int $response
+     */
+    public function terminate($request, $response)
+    {
+        switch ($request->getFirstArgument()) {
+            case 'migrate':
+                $this->getArtisan()->call('trellis:check:mysql:json');
+                break;
+        }
+
+        // parent::terminate($request, $response);  // Laravel-only
     }
 }
