@@ -19,17 +19,19 @@ if (env('MAX_EXECUTION_TIME')) {
 |
 */
 
-class Application extends Laravel\Lumen\Application
-{
-    /**
-     * Get the path to the application configuration files.
-     *
-     * @param string $path Optionally, a path to append to the config path
-     * @return string
-     */
-    public function configPath($path = '')
+if (!class_exists('Application')) {
+    class Application extends Laravel\Lumen\Application
     {
-        return $this->basePath.DIRECTORY_SEPARATOR.'config'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        /**
+         * Get the path to the application configuration files.
+         *
+         * @param string $path Optionally, a path to append to the config path
+         * @return string
+         */
+        public function configPath($path = '')
+        {
+            return $this->basePath.DIRECTORY_SEPARATOR.'config'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        }
     }
 }
 
@@ -59,7 +61,9 @@ if (!function_exists('app_path')) {
     }
 }
 
-class_alias('Illuminate\Support\Facades\Config', 'Config');
+if (!class_exists('Config')) {
+    class_alias('Illuminate\Support\Facades\Config', 'Config');
+}
 
 $app = new Application(
     realpath(__DIR__.'/../')
