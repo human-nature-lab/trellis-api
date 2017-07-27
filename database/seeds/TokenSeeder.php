@@ -9,7 +9,7 @@ class TokenSeeder extends Seeder
     public function run()
     {
         DB::table('token')->insert([
-            'token_id' => random_int(1, 10000),
+            'id' => random_int(1, 10000),
             'user_id'   => 300,
             'token_hash' => hash('sha512', Str::random(60)),
             'key_id' => Str::random(32),

@@ -14,7 +14,7 @@ class CreateTables extends Migration
     public function up()
     {
         Schema::create('assign_condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('condition_tag_id', 41)->index('fk__assign_condition_tag__condition_idx');
             $table->text('logic', 65535);
             $table->string('scope', 64)->nullable()->comment('RESPONDENT / SURVEY');
@@ -26,7 +26,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('choice', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('choice_translation_id', 41)->index('fk__choice__translation_idx');
             $table->string('val');
             $table->dateTime('created_at');
@@ -37,7 +37,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name')->comment('0 = show_if, 1 = hide_if, 2-255 reserved');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -47,7 +47,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum_choice', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('datum_id', 41)->index('FK__datum_choice__datum_idx');
             $table->string('choice_id', 41)->index('FK__datum_choice__choice_idx');
             $table->unsignedTinyInteger('sort_order')->default(0);
@@ -59,7 +59,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum_geo', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('datum_id', 41)->index('FK__datum_geo__datum_idx');
             $table->string('geo_id', 41)->index('FK__datum_geo__geo_idx');
             $table->unsignedTinyInteger('sort_order')->default(0);
@@ -71,7 +71,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum_group_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('datum_id', 41)->index('FK__datum_group_tag__datum_idx');
             $table->string('group_tag_id', 41)->index('FK__datum_group_tag__group_tag_idx');
             $table->unsignedTinyInteger('sort_order')->default(0);
@@ -83,7 +83,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum_photo', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('datum_id', 41)->index('fk__datum_photo__datum_idx');
             $table->string('photo_id', 41)->index('fk__datum_photo__photo_idx');
             $table->unsignedTinyInteger('sort_order')->default(0);
@@ -96,7 +96,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum_roster', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('datum_id', 41)->nullable()->index('fk__datum_roster__datum_idx');
             $table->string('name');
             $table->dateTime('created_at');
@@ -107,7 +107,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->text('val', 65535);
             $table->string('choice_id', 41)->nullable()->index('fk__datum__choice_idx');
@@ -126,7 +126,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('datum_type', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -136,7 +136,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('device', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('device_id', 64)->nullable();
             $table->string('name');
             $table->dateTime('created_at');
@@ -147,7 +147,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('edge_datum', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('edge_id', 41)->index('fk__edge_datum__edge_idx');
             $table->string('datum_id', 41)->index('fk__edge_datum__datum_idx');
             $table->dateTime('created_at');
@@ -158,7 +158,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('edge', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('source_respondent_id', 41)->index('fk__edge_source_respondent_id__respondent_idx');
             $table->string('target_respondent_id', 41)->index('fk__edge_target_respondent_id__respondent_idx');
             $table->dateTime('created_at');
@@ -169,7 +169,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('form_section', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('form_id', 41)->nullable()->index('fk__form_section__form_idx');
             $table->string('section_id', 41)->index('fk__form_section__section_idx');
             $table->unsignedTinyInteger('sort_order')->default(0);
@@ -184,7 +184,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('form_skip', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('form_id', 41)->index('fk__form_skip__form_idx');
             $table->string('skip_id', 41)->index('fk__form_skip__skip_idx');
             $table->dateTime('created_at');
@@ -195,7 +195,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('form', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('form_master_id', 41)->index('idx__form_master_id');
             $table->string('name_translation_id', 41)->index('fk__form_name__translation_idx');
             $table->integer('version')->unsigned()->default(0);
@@ -208,7 +208,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('geo_photo', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('geo_id', 41)->index('fk__geo_photo__geo_idx');
             $table->string('photo_id', 41)->index('fk__geo_photo__photo_idx');
             $table->unsignedTinyInteger('sort_order');
@@ -221,7 +221,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('geo', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('geo_type_id', 41)->index('fk__geo__geo_type_idx');
             $table->string('parent_id', 41)->nullable()->index('fk__geo__parent_geo_idx');
             $table->float('latitude', 10, 0)->nullable();
@@ -236,7 +236,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('geo_type', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('parent_id', 41)->nullable();
             $table->string('study_id', 41)->index('FK__geo_type__study_idx');
             $table->string('name');
@@ -250,7 +250,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('group_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('group_tag_type_id', 41)->index('fk__group__group_type_idx');
             $table->string('name');
             $table->dateTime('created_at');
@@ -261,7 +261,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('group_tag_type', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -271,7 +271,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('interview_question', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('interview_id', 41)->index('fk__interview_question__survey_session_idx');
             $table->string('question_id', 41)->index('fk__interview_question__question_idx');
             $table->dateTime('enter_date')->nullable();
@@ -286,7 +286,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('interview', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('survey_id', 41)->index('fk__survey_session__survey_idx');
             $table->string('user_id', 41)->index('fk__survey_session__user_idx');
             $table->dateTime('start_time');
@@ -302,7 +302,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('key', function (Blueprint $table) {
-            $table->string('id', 41)->default('')->unique('key_id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name', 128)->default('')->unique('key_name_UNIQUE');
             $table->string('hash', 32)->default('')->unique('key_hash_UNIQUE');
             $table->dateTime('created_at');
@@ -313,7 +313,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('locale', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('language_tag')->nullable();
             $table->string('language_name', 64)->nullable()->comment('The English name of the language.');
             $table->string('language_native', 64)->nullable()->comment('The name of the language in the language itself.');
@@ -325,7 +325,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('log', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('actor_id', 41);
             $table->string('row_id', 41);
             $table->string('table_name', 64)->nullable();
@@ -339,7 +339,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('parameter', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -349,7 +349,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('photo', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('file_name');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -359,7 +359,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('photo_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('photo_id', 41)->index('fk__photo_tag__photo_idx');
             $table->string('tag_id', 41)->index('fk__photo_tag__tag_idx');
             $table->dateTime('created_at');
@@ -370,7 +370,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question_assign_condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('question_id', 41)->index('fk__question_assign_condition_tag__question_idx');
             $table->string('assign_condition_tag_id', 41)->index('fk__question_assign_condition_tag__assign_condition_tag_idx');
             $table->dateTime('created_at');
@@ -381,7 +381,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question_choice', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('question_id', 41)->index('fk__question_choice__question_idx');
             $table->string('choice_id', 41)->index('fk__question_choice__choice_idx');
             $table->integer('sort_order')->unsigned()->default(0);
@@ -393,7 +393,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question_group_skip', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('question_group_id', 41)->index('fk__question_group_skip__question_group_idx');
             $table->string('skip_id', 41)->index('fk__form_skip__skip_idx');
             $table->dateTime('created_at');
@@ -404,7 +404,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question_group', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
             // $table->timestamps();
@@ -413,7 +413,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question_parameter', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('question_id', 41)->index('fk__question_parameter__question_idx');
             $table->string('parameter_id', 41)->index('fk__question_parameter__parameter_idx');
             $table->string('val');
@@ -425,7 +425,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('question_type_id', 41)->index('fk__question__question_type_idx');
             $table->string('question_translation_id', 41)->index('fk__question__translation_idx');
             $table->string('question_group_id', 41)->index('fk__question__question_group_idx');
@@ -439,7 +439,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('question_type', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -449,7 +449,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('respondent_condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('respondent_id', 41)->index('fk__respondent_condition__respondent_idx');
             $table->string('condition_id', 41)->index('fk__respondent_condition__condition_idx');
             $table->dateTime('created_at');
@@ -460,7 +460,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('respondent_group_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('respondent_id', 41)->index('fk__respondent_group__respondent_idx');
             $table->string('group_tag_id', 41)->index('fk__respondent_group__group_idx');
             $table->dateTime('created_at');
@@ -471,7 +471,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('respondent_photo', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('respondent_id', 41)->index('fk__respondent_photo__respondent_idx');
             $table->string('photo_id', 41)->index('fk__respondent_photo__photo_idx');
             $table->unsignedTinyInteger('sort_order');
@@ -484,7 +484,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('respondent', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('geo_id', 41)->nullable()->index('fk__respondent__geo_idx');
             $table->text('notes', 65535)->nullable();
             $table->text('geo_notes', 65535)->nullable();
@@ -497,7 +497,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('section_condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('section_id', 41);
             $table->string('condition_id', 41)->index('fk__section_condition__condition_tag_idx');
             $table->string('survey_id', 41);
@@ -510,7 +510,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('section_question_group', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('section_id', 41)->index('fk__form_question__form_idx');
             $table->string('question_group_id', 41)->index('fk__section_question_group__question_group_idx');
             $table->integer('question_group_order')->unsigned()->default(0);
@@ -522,7 +522,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('section', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name_translation_id', 41)->index('fk__section_name__translation_idx');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -532,7 +532,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('skip_condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('skip_id', 41)->index('fk__skip_condition_tag__skip_idx')->comment('0 = show_if, 1 = hide_if, 2-255 reserved');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -543,7 +543,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('skip', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->unsignedTinyInteger('show_hide')->comment('0 = show_if, 1 = hide_if, 2-255 reserved');
             $table->unsignedTinyInteger('any_all')->comment('0 = Any, 1 = All');
             $table->unsignedTinyInteger('precedence')->default(0);
@@ -555,7 +555,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('study_form', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('study_id', 41)->index('fk__study_form__study_idx');
             $table->string('form_master_id', 41)->index('fk__study_form__form_idx');
             $table->unsignedTinyInteger('sort_order')->default(0);
@@ -568,7 +568,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('study_locale', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('study_id', 41)->index('fk__study_locale__study_idx');
             $table->string('locale_id', 41)->index('fk__study_locale__locale_idx');
             $table->dateTime('created_at');
@@ -579,7 +579,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('study_respondent', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('study_id', 41)->index('fk__study_respondent__study_idx');
             $table->string('respondent_id', 41)->index('fk__study_respondent__respondent_idx');
             $table->dateTime('created_at');
@@ -590,7 +590,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('study', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->unsignedTinyInteger('photo_quality')->default(60);
             $table->string('default_locale_id', 41)->index('fk__study__default_locale_idx');
@@ -602,7 +602,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('survey_condition_tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('survey_id', 41)->index('fk__survey_condition_tag__survey_idx');
             $table->string('condition_id', 41)->index('fk__interview_condition__condition_idx');
             $table->dateTime('created_at');
@@ -613,7 +613,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('survey', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('respondent_id', 41)->index('fk__survey__respondent_idx');
             $table->string('form_id', 41)->index('fk__survey__form_idx');
             $table->string('study_id', 41)->index('fk__survey__study_idx');
@@ -627,7 +627,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('tag', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name', 63);
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
@@ -637,7 +637,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('token', function (Blueprint $table) {
-            $table->string('id', 41)->default('')->unique('token_id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('user_id', 41);
             $table->string('token_hash', 128)->unique('token_hash_UNIQUE');
             $table->bigInteger('key_id')->unsigned();
@@ -649,7 +649,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('translation', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
             // $table->timestamps();
@@ -658,7 +658,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('translation_text', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('translation_id', 41)->index('fk__translation_text__translation_idx');
             $table->string('locale_id', 41)->nullable()->index('fk__translation_text__locale_idx');
             $table->text('translated_text', 65535);
@@ -670,7 +670,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('user_study', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('user_id', 41)->index('fk__user_study__user_idx');
             $table->string('study_id', 41)->index('fk__user_study__study_idx');
             $table->dateTime('created_at');
@@ -681,7 +681,7 @@ class CreateTables extends Migration
         });
 
         Schema::create('user', function (Blueprint $table) {
-            $table->string('id', 41)->unique('id_UNIQUE');
+            $table->string('id', 41)->primary();
             $table->string('name');
             $table->string('username', 63);
             $table->string('password', 63);
