@@ -275,10 +275,8 @@ class SyncController extends Controller
                 }
 
                 if (isset($statement->statements)) {
-                    $insertStatements = $getInsertStatements($statement->statements);
-
-                    if (count($insertStatements)) {
-                        array_push($inserts, ...$insertStatements); // splat operator appends array to array
+                    foreach ($getInsertStatements($statement->statements) as $insertStatement) {
+                        $inserts []= $insertStatement;
                     }
                 }
             }
