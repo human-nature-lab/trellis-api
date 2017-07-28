@@ -34,8 +34,9 @@ class ExportMySQL extends Command
         $db = escapeshellarg(config('database.connections.mysql.database'));
         $dbHost = escapeshellarg(config('database.connections.mysql.host'));
         $dbPort = escapeshellarg(config('database.connections.mysql.port'));
-        // $dbUsername = escapeshellarg(config('database.connections.mysql.username'));
-        // $dbPassword = escapeshellarg(config('database.connections.mysql.password'));
+        $dbUsername = escapeshellarg(config('database.connections.mysql.username'));
+        $dbPassword = escapeshellarg(config('database.connections.mysql.password'));
+        $length = escapeshellarg(10*1024);    //TODO get this from .env or derive it as: length <= (smallest insert statement)*SQLITE_MAX_COMPOUND_SELECT.  for example 24*500 = 12000.  use 10k for now
         $ignoreTablesString = implode(' ', array_map(function ($table) use ($db) {
             return "--ignore-table=$db." . escapeshellarg($table);
         }, $this->option('exclude')));
@@ -50,14 +51,14 @@ class ExportMySQL extends Command
             $dumpPathString = '';
         }
 
-        // # to save encrypted password in ~/.mylogin.cnf run:
+        // # (optional) to save encrypted password in ~/.mylogin.cnf run:
         // mysql_config_editor set --login-path=client --host=localhost --user=homestead --password
         // # to show ~/.mylogin.cnf run:
         // mysql_config_editor print --all
         // # to run mysql utilities with config:
         // mysqldump --login-path=client --host $dbHost --port $dbPort --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
         $process = new Process(<<<EOT
-mysqldump --host $dbHost --port $dbPort --single-transaction --complete-insert --compact --net-buffer-length=10240 $ignoreTablesString $db $dumpPathString
+mysqldump --host=$dbHost --port=$dbPort --user=$dbUsername --password=$dbPassword --net-buffer-length=$length --single-transaction --complete-insert --compact $ignoreTablesString $db $dumpPathString
 EOT
 , base_path());
 
