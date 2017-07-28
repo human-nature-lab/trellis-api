@@ -62,7 +62,7 @@ class SimulateMigrate extends Command
             DB::statement("DROP DATABASE IF EXISTS $database");
             DB::statement("CREATE DATABASE $database");
 
-            DatabaseHelper::use($database, function () use ($database) {
+            DatabaseHelper::useDatabase($database, function () use ($database) {
                 echo "Using database $database." . PHP_EOL;
 
                 if ($this->call('migrate', [

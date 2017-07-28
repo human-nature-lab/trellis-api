@@ -31,7 +31,7 @@ class DatabaseHelper
     /**
      * Use the specified database (or current database if empty) until callable finishes, then restore the previous one.
     */
-    public static function use($database, $callable)
+    public static function useDatabase($database, $callable)
     {
         if (!strlen($database)) {
             return value($callable);
