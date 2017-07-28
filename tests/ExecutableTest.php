@@ -36,7 +36,9 @@ class ExecutableTest extends TestCase
      */
     public function testMySQL2SQLite()
     {
-        $this->assertExecutableExists(base_path() . '/' . self::MYSQL_2_SQLITE);
+        $mysql2sqlite = base_path() . '/' . self::MYSQL_2_SQLITE;
+
+        $this->assertExecutableExists($mysql2sqlite, "echo | $mysql2sqlite -"); // pipe empty string to mysql2sqlite
     }
 
     /**

@@ -21,7 +21,7 @@ abstract class TestCase extends Laravel\Lumen\Testing\TestCase
         exec($command, $output, $exitCode);
 
         if (is_null($message)) {
-            $message = "Could not find the executable `$executable`, please install it.";
+            $message = "Could not run `" . basename($executable) . "`, please install it or grant executable privileges with `chmod +x $executable`";
         }
 
         $this->assertEquals(
