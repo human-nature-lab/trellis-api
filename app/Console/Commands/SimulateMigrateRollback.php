@@ -59,7 +59,7 @@ class SimulateMigrateRollback extends Command
         $database = DatabaseHelper::escape(config('database.connections.mysql_simulated.database'));
 
         try {
-            DatabaseHelper::use($database, function () use ($database) {
+            DatabaseHelper::useDatabase($database, function () use ($database) {
                 echo "Using database $database." . PHP_EOL;
 
                 if ($this->call('migrate:rollback', [

@@ -46,7 +46,7 @@ class ShowMySQLJSON extends Command
             return 1;
         }
 
-        return DatabaseHelper::use($this->option('database'), function () {
+        return DatabaseHelper::useDatabase($this->option('database'), function () {
             return DatabaseHelper::fetch(PDO::FETCH_ASSOC, function () {
                 $tableColumns = collect(DatabaseHelper::tables())->flip()->map(function ($value, $table) {
                     return collect(DatabaseHelper::columns($table))->map(function ($column) {

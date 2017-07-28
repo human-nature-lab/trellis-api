@@ -48,7 +48,7 @@ class CheckMySQLJSON extends Command
             return 1;
         }
 
-        return DatabaseHelper::use($this->option('database'), function () {
+        return DatabaseHelper::useDatabaseDatabase($this->option('database'), function () {
             $fileSchemaHandle = fopen(base_path() . '/schema.json', 'r');
 
             if (!flock($fileSchemaHandle, LOCK_EX)) {
