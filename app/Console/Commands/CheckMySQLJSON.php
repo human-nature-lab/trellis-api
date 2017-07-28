@@ -99,6 +99,8 @@ EOT
                 echo 'Tables only in the database: ' . implode(', ', $tablesOnlyInDB) . PHP_EOL;
                 echo 'Tables updated: ' . implode(', ', $tablesModified) . PHP_EOL;
 
+                $dbSimulated = escapeshellarg(config('database.connections.mysql.database') . '_simulated');
+
                 echo <<<EOT
 
 ==================================================
@@ -131,13 +133,13 @@ database/migrations/XXXX_XX_XX_XXXXXX_change_my_column_in_my_table
 
 Add code to the migrations to update the schema.
 
-(5) Simulate the new schema in a temporary `trellis_simulated` database using:
+(5) Simulate the new schema in a temporary $dbSimulated database using:
 
-composer dump-autoload && php artisan trellis:simulate:migrate --preserve && php artisan trellis:check:mysql:json --database=trellis_simulated
+composer dump-autoload && php artisan trellis:simulate:migrate --preserve && php artisan trellis:check:mysql:json --database=$dbSimulated
 
 (6) Once migrations have been updated to your satisfaction, export the simulated database schema:
 
-cat schema.json > "schema_$(date +%Y_%m_%d_%H%M%S).json" && composer dump-autoload && php artisan trellis:simulate:migrate --preserve && php artisan trellis:show:mysql:json --database=trellis_simulated > schema.json
+cat schema.json > "schema_$(date +%Y_%m_%d_%H%M%S).json" && composer dump-autoload && php artisan trellis:simulate:migrate --preserve && php artisan trellis:show:mysql:json --database=$dbSimulated > schema.json
 
 (7) Next time you run `php artisan migrate` you should see: "schema.json and the current database schema are identical."
 
