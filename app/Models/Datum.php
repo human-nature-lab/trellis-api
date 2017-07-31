@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Datum extends Model {
-
+class Datum extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -27,7 +27,8 @@ class Datum extends Model {
         'datum_type_id'
     ];
 
-    public function delete() {
+    public function delete()
+    {
         $childDatumChoices = DatumChoice::where('datum_id', '=', $this->id)->get();
         foreach ($childDatumChoices as $childDatumChoice) {
             $childDatumChoice->delete();

@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class DatumChoice extends Model {
-
+class DatumChoice extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -15,9 +15,9 @@ class DatumChoice extends Model {
 
     protected $fillable = [
         'id',
-		'created_at',
-		'updated_at',
-		'deleted_at',
+        'created_at',
+        'updated_at',
+        'deleted_at',
         'datum_id',
         'choice_id',
         'sort_order'

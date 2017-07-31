@@ -7,20 +7,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Translation extends Model
 {
-	use SoftDeletes;
+    use SoftDeletes;
 
-	public $incrementing = false;
+    public $incrementing = false;
 
-	protected $table = 'translation';
+    protected $table = 'translation';
 
-	protected $fillable = [
-			'id',
-			'created_at',
-			'updated_at',
-			'deleted_at',
-	];
+    protected $fillable = [
+            'id',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+    ];
 
-    public function translationText() {
+    public function translationText()
+    {
         return $this
             ->hasMany('App\Models\TranslationText')
             ->with('locale');

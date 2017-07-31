@@ -22,20 +22,23 @@ class Respondent extends Model
         'name'
     ];
 
-    public function photos() {
+    public function photos()
+    {
         return $this
         ->belongsToMany('App\Models\Photo', 'respondent_photo')
         ->whereNull('respondent_photo.deleted_at')
         ->withTimestamps();
     }
 
-    public function studies() {
+    public function studies()
+    {
         return $this->belongsToMany('App\Models\Study', 'study_respondent')
         ->whereNull('study_respondent.deleted_at')
         ->withTimestamps();
     }
 
-    public function delete() {
+    public function delete()
+    {
         StudyRespondent::where('respondent_id', $this->id)
             ->delete();
 

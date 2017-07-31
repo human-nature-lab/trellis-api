@@ -17,157 +17,155 @@ use DB;
 
 class QuestionParamController extends Controller
 {
-	public function updateQuestionNumeric(Request $request, $questionId) {
+    public function updateQuestionNumeric(Request $request, $questionId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $questionId
+        ]), [
+            'id' => 'required|string|min:36|exists:question,id'
+        ]);
 
-		$validator = Validator::make(array_merge($request->all(),[
-			'id' => $questionId
-		]), [
-			'id' => 'required|string|min:36|exists:question,id'
-		]);
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $questionModel = Question::find($questionId);
 
-		$questionModel = Question::find($questionId);
+        if ($questionModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+        $minParameterModel = Parameter::where('name', 'min')
+            ->first();
+        $maxParameterModel = Parameter::where('name', 'max')
+            ->first();
 
-		if ($questionModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
-		$minParameterModel = Parameter::where('name', 'min')
-			->first();
-		$maxParameterModel = Parameter::where('name', 'max')
-			->first();
+        if ($minParameterModel === null || $maxParameterModel === null) {
+            return response()->json([
+                    'msg' => 'An error has occurred.'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		if ($minParameterModel === null || $maxParameterModel === null) {
-			return response()->json([
-					'msg' => 'An error has occurred.'
-			], Response::HTTP_NOT_FOUND);
-		}
+        if ($request->has('min')) {
+            $minQuestionParameterModel = QuestionParameter::where('parameter_id', $minParameterModel->id)
+                ->where('question_id', $questionId)
+                ->first();
 
-		if ($request->has('min')) {
-			$minQuestionParameterModel = QuestionParameter::where('parameter_id', $minParameterModel->id)
-				->where('question_id', $questionId)
-				->first();
+            if ($minQuestionParameterModel === null) {
+                $newQuestionParameterModel = new QuestionParameter;
 
-			if ($minQuestionParameterModel === null) {
-				$newQuestionParameterModel = new QuestionParameter;
+                $newQuestionParameterModel->id = Uuid::uuid4();
+                $newQuestionParameterModel->question_id = $questionId;
+                $newQuestionParameterModel->parameter_id = $minParameterModel->id;
+                $newQuestionParameterModel->val = $request->input('min');
+                $newQuestionParameterModel->save();
+            } else {
+                $minQuestionParameterModel->val = $request->input('min');
+                $minQuestionParameterModel->save();
+            }
+        }
 
-				$newQuestionParameterModel->id = Uuid::uuid4();
-				$newQuestionParameterModel->question_id = $questionId;
-				$newQuestionParameterModel->parameter_id = $minParameterModel->id;
-				$newQuestionParameterModel->val = $request->input('min');
-				$newQuestionParameterModel->save();
-			} else {
-				$minQuestionParameterModel->val = $request->input('min');
-				$minQuestionParameterModel->save();
-			}
-		}
+        if ($request->has('max')) {
+            $maxQuestionParameterModel = QuestionParameter::where('parameter_id', $maxParameterModel->id)
+                ->where('question_id', $questionId)
+                ->first();
 
-		if ($request->has('max')) {
-			$maxQuestionParameterModel = QuestionParameter::where('parameter_id', $maxParameterModel->id)
-				->where('question_id', $questionId)
-				->first();
+            if ($maxQuestionParameterModel === null) {
+                $newQuestionParameterModel = new QuestionParameter;
 
-			if ($maxQuestionParameterModel === null) {
-				$newQuestionParameterModel = new QuestionParameter;
+                $newQuestionParameterModel->id = Uuid::uuid4();
+                $newQuestionParameterModel->question_id = $questionId;
+                $newQuestionParameterModel->parameter_id = $maxParameterModel->id;
+                $newQuestionParameterModel->val = $request->input('max');
+                $newQuestionParameterModel->save();
+            } else {
+                $maxQuestionParameterModel->val = $request->input('max');
+                $maxQuestionParameterModel->save();
+            }
+        }
 
-				$newQuestionParameterModel->id = Uuid::uuid4();
-				$newQuestionParameterModel->question_id = $questionId;
-				$newQuestionParameterModel->parameter_id = $maxParameterModel->id;
-				$newQuestionParameterModel->val = $request->input('max');
-				$newQuestionParameterModel->save();
-			} else {
-				$maxQuestionParameterModel->val = $request->input('max');
-				$maxQuestionParameterModel->save();
-			}
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 
-		}
+    public function updateQuestionDateTime(Request $request, $questionId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $questionId
+        ]), [
+            'id' => 'required|string|min:36|exists:question,id'
+        ]);
 
-		return response()->json([
-			'msg' => Response::$statusTexts[Response::HTTP_OK]
-		], Response::HTTP_OK);
-	}
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-	public function updateQuestionDateTime(Request $request, $questionId) {
+        $questionModel = Question::find($questionId);
 
-		$validator = Validator::make(array_merge($request->all(),[
-			'id' => $questionId
-		]), [
-			'id' => 'required|string|min:36|exists:question,id'
-		]);
+        if ($questionModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+        $minParameterModel = Parameter::where('name', 'min')
+            ->first();
+        $maxParameterModel = Parameter::where('name', 'max')
+            ->first();
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($minParameterModel === null || $maxParameterModel === null) {
+            return response()->json([
+                'msg' => 'An error has occurred.'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		$questionModel = Question::find($questionId);
+        if ($request->has('min')) {
+            $minQuestionParameterModel = QuestionParameter::where('parameter_id', $minParameterModel->id)
+                ->where('question_id', $questionId)
+                ->first();
 
-		if ($questionModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
-		$minParameterModel = Parameter::where('name', 'min')
-			->first();
-		$maxParameterModel = Parameter::where('name', 'max')
-			->first();
+            if ($minQuestionParameterModel === null) {
+                $newQuestionParameterModel = new QuestionParameter;
 
-		if ($minParameterModel === null || $maxParameterModel === null) {
-			return response()->json([
-				'msg' => 'An error has occurred.'
-			], Response::HTTP_NOT_FOUND);
-		}
+                $newQuestionParameterModel->id = Uuid::uuid4();
+                $newQuestionParameterModel->question_id = $questionId;
+                $newQuestionParameterModel->parameter_id = $minParameterModel->id;
+                $newQuestionParameterModel->val = $request->input('min');
+                $newQuestionParameterModel->save();
+            } else {
+                $minQuestionParameterModel->val = $request->input('min');
+                $minQuestionParameterModel->save();
+            }
+        }
 
-		if ($request->has('min')) {
-			$minQuestionParameterModel = QuestionParameter::where('parameter_id', $minParameterModel->id)
-				->where('question_id', $questionId)
-				->first();
+        if ($request->has('max')) {
+            $maxQuestionParameterModel = QuestionParameter::where('parameter_id', $maxParameterModel->id)
+                ->where('question_id', $questionId)
+                ->first();
 
-			if ($minQuestionParameterModel === null) {
-				$newQuestionParameterModel = new QuestionParameter;
+            if ($maxQuestionParameterModel === null) {
+                $newQuestionParameterModel = new QuestionParameter;
 
-				$newQuestionParameterModel->id = Uuid::uuid4();
-				$newQuestionParameterModel->question_id = $questionId;
-				$newQuestionParameterModel->parameter_id = $minParameterModel->id;
-				$newQuestionParameterModel->val = $request->input('min');
-				$newQuestionParameterModel->save();
-			} else {
-				$minQuestionParameterModel->val = $request->input('min');
-				$minQuestionParameterModel->save();
-			}
-		}
+                $newQuestionParameterModel->id = Uuid::uuid4();
+                $newQuestionParameterModel->question_id = $questionId;
+                $newQuestionParameterModel->parameter_id = $maxParameterModel->id;
+                $newQuestionParameterModel->val = $request->input('max');
+                $newQuestionParameterModel->save();
+            } else {
+                $maxQuestionParameterModel->val = $request->input('max');
+                $maxQuestionParameterModel->save();
+            }
+        }
 
-		if ($request->has('max')) {
-			$maxQuestionParameterModel = QuestionParameter::where('parameter_id', $maxParameterModel->id)
-				->where('question_id', $questionId)
-				->first();
-
-			if ($maxQuestionParameterModel === null) {
-				$newQuestionParameterModel = new QuestionParameter;
-
-				$newQuestionParameterModel->id = Uuid::uuid4();
-				$newQuestionParameterModel->question_id = $questionId;
-				$newQuestionParameterModel->parameter_id = $maxParameterModel->id;
-				$newQuestionParameterModel->val = $request->input('max');
-				$newQuestionParameterModel->save();
-			} else {
-				$maxQuestionParameterModel->val = $request->input('max');
-				$maxQuestionParameterModel->save();
-			}
-
-		}
-
-		return response()->json([
-			'msg' => Response::$statusTexts[Response::HTTP_OK]
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 }

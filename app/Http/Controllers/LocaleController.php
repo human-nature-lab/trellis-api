@@ -9,11 +9,10 @@ use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\Locale;
 
-
 class LocaleController extends Controller
 {
-    public function getLocale(Request $request, $id) {
-
+    public function getLocale(Request $request, $id)
+    {
         $validator = Validator::make(
             ['id' => $id],
             ['id' => 'required|string|min:36']
@@ -39,8 +38,8 @@ class LocaleController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function getAllLocales(Request $request) {
-
+    public function getAllLocales(Request $request)
+    {
         $localeModel = Locale::get();
 
         return response()->json(
@@ -49,9 +48,9 @@ class LocaleController extends Controller
         );
     }
 
-    public function updateLocale(Request $request, $id) {
-
-        $validator = Validator::make(array_merge($request->all(),[
+    public function updateLocale(Request $request, $id)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
@@ -83,8 +82,8 @@ class LocaleController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function removeLocale(Request $request, $id) {
-
+    public function removeLocale(Request $request, $id)
+    {
         $validator = Validator::make(
             ['id' => $id],
             ['id' => 'required|string|min:36']
@@ -112,8 +111,8 @@ class LocaleController extends Controller
         ]);
     }
 
-    public function createLocale(Request $request) {
-
+    public function createLocale(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'language_name' => 'string|min:1|max:255',
             'language_native' => 'string|min:1|max:255',

@@ -93,7 +93,6 @@ class UserService
 
             return $selectedStudyId;
         } else {
-
             return session('selected_study_id');
         }
     }

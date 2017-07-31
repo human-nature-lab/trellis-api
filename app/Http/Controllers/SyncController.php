@@ -13,17 +13,13 @@ use Log;
 
 class SyncController extends Controller
 {
-
     public function heartbeat()
     {
-
         return response()->json([], Response::HTTP_OK);
-
     }
 
     public function store(Request $request, $deviceId)
     {
-
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $deviceId
         ]), [
@@ -36,7 +32,6 @@ class SyncController extends Controller
                 'err' => $validator->errors()
             ], $validator->statusCode());
         }
-
     }
 
     public function download(Request $request, $deviceId)
@@ -75,7 +70,6 @@ class SyncController extends Controller
 
     public function upload(Request $request, $deviceId)
     {
-
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $deviceId
         ]), [
@@ -107,7 +101,6 @@ class SyncController extends Controller
         }
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
         return response()->json([], Response::HTTP_OK);
-
     }
 
     public function listImages($deviceId)

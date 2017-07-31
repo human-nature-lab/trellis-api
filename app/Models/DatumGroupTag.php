@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class DatumGroupTag extends Model {
-
+class DatumGroupTag extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -15,9 +15,9 @@ class DatumGroupTag extends Model {
 
     protected $fillable = [
         'id',
-		'created_at',
-		'updated_at',
-		'deleted_at',
+        'created_at',
+        'updated_at',
+        'deleted_at',
         'datum_id',
         'group_tag_id',
         'sort_order'

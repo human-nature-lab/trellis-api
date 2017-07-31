@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class FormSkip extends Model {
-
+class FormSkip extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;

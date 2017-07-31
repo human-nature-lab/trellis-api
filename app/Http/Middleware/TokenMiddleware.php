@@ -7,22 +7,22 @@ use DB;
 use Illuminate\Http\Response;
 use App\Models\Token;
 
-class TokenMiddleware {
+class TokenMiddleware
+{
+    public function handle($request, Closure $next)
+    {
+        $token = $request->headers->get('X-Token');
 
-	public function handle($request, Closure $next) {
+        $tokenModel = Token::where('token_hash', $token)
+            ->where('created_at', '>=', DB::raw('now() - interval '.$_ENV['TOKEN_EXPIRE'].' minute'))
+            ->first();
 
-		$token = $request->headers->get('X-Token');
+        if ($tokenModel === null) {
+            return response()->json([
+                'msg' => Response::$statusTexts[Response::HTTP_UNAUTHORIZED]
+            ], Response::HTTP_UNAUTHORIZED);
+        }
 
-		$tokenModel = Token::where('token_hash', $token)
-			->where('created_at', '>=', DB::raw('now() - interval '.$_ENV['TOKEN_EXPIRE'].' minute'))
-			->first();
-
-		if ( $tokenModel === null) {
-			return response()->json([
-				'msg' => Response::$statusTexts[Response::HTTP_UNAUTHORIZED]
-			], Response::HTTP_UNAUTHORIZED);
-		}
-
-		return $next($request);
-	}
+        return $next($request);
+    }
 }

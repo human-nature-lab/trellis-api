@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
 
-class Question extends Model {
-
+class Question extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -26,23 +26,27 @@ class Question extends Model {
         'var_name'
     ];
 
-    public function questionTranslation() {
+    public function questionTranslation()
+    {
         return $this
             ->belongsTo('App\Models\Translation', 'question_translation_id')
             ->with('translationText');
     }
 
-    public function questionType() {
+    public function questionType()
+    {
         return $this->belongsTo('App\Models\QuestionType', 'question_type_id');
     }
 
-    public function questionParameters() {
+    public function questionParameters()
+    {
         return $this
             ->hasMany('App\Models\QuestionParameter', 'question_id')
             ->with('parameter');
     }
 
-    public function choices() {
+    public function choices()
+    {
         return $this
             ->belongsToMany('App\Models\Choice', 'question_choice')
             ->withPivot('sort_order', 'id')
@@ -51,7 +55,8 @@ class Question extends Model {
             ->with('choiceTranslation');
     }
 
-    public function assignConditionTags() {
+    public function assignConditionTags()
+    {
         return $this
             ->belongsToMany('App\Models\AssignConditionTag', 'question_assign_condition_tag')
             ->withPivot('question_id')
@@ -60,7 +65,8 @@ class Question extends Model {
             ->with('condition');
     }
 
-    public function delete() {
+    public function delete()
+    {
         //Log::info('Question->delete()');
         QuestionChoice::where('question_id', $this->id)
             ->delete();

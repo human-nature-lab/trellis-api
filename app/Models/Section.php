@@ -8,33 +8,35 @@ use Illuminate\Support\Facades\Log;
 
 class Section extends Model
 {
-	use SoftDeletes;
+    use SoftDeletes;
 
-	public $incrementing = false;
+    public $incrementing = false;
 
-	protected $table = 'section';
+    protected $table = 'section';
 
-	protected $fillable = [
-		'id',
-		'created_at',
-		'updated_at',
-		'deleted_at',
-		'name_translation_id',
-	];
+    protected $fillable = [
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'name_translation_id',
+    ];
 
-    public function nameTranslation() {
+    public function nameTranslation()
+    {
         return $this
             ->belongsTo('App\Models\Translation', 'name_translation_id')
             ->with('translationText');
     }
 
-    public function formSections() {
+    public function formSections()
+    {
         return $this
             ->hasMany('App\Models\FormSection');
-
     }
 
-    public function questionGroups() {
+    public function questionGroups()
+    {
         return $this
             ->belongsToMany('App\Models\QuestionGroup', 'section_question_group')
             ->whereNull('section_question_group.deleted_at')
@@ -43,7 +45,8 @@ class Section extends Model
             ->with('questions', 'skips');
     }
 
-    public function delete() {
+    public function delete()
+    {
         Log::Debug("Got here.");
         $childSectionQuestionGroups = SectionQuestionGroup::where('section_id', '=', $this->id)->get();
         foreach ($childSectionQuestionGroups as $childSectionQuestionGroup) {

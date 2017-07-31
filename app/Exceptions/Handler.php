@@ -40,19 +40,18 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $e)
     {
-
-	    if ($e instanceof HttpException) {
-		    $statusCode = $e->getStatusCode();
-		    return response()->json([
-			    'msg' => Response::$statusTexts[$statusCode]
-		    ], $statusCode);
-	    } else {
-		    if ($_ENV['APP_DEBUG'] === 'false') {
-			    return response()->json([
-				    'msg' => Response::$statusTexts[Response::HTTP_INTERNAL_SERVER_ERROR]
-			    ], Response::HTTP_INTERNAL_SERVER_ERROR);
-		    }
-	    }
-	    return parent::render($request, $e);
+        if ($e instanceof HttpException) {
+            $statusCode = $e->getStatusCode();
+            return response()->json([
+                'msg' => Response::$statusTexts[$statusCode]
+            ], $statusCode);
+        } else {
+            if ($_ENV['APP_DEBUG'] === 'false') {
+                return response()->json([
+                    'msg' => Response::$statusTexts[Response::HTTP_INTERNAL_SERVER_ERROR]
+                ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+        }
+        return parent::render($request, $e);
     }
 }

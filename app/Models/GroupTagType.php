@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class GroupTagType extends Model {
-
+class GroupTagType extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -21,7 +21,8 @@ class GroupTagType extends Model {
         'name'
     ];
 
-    public function delete() {
+    public function delete()
+    {
         $childGroupTags = GroupTag::where('group_tag_type_id', '=', $this->id)->get();
         foreach ($childGroupTags as $childGroupTag) {
             $childGroupTag->delete();

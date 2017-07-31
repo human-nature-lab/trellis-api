@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 use DB;
 
-class QuestionChoice extends Model {
-
+class QuestionChoice extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -25,12 +25,13 @@ class QuestionChoice extends Model {
         'sort_order'
     ];
 
-    public function delete() {
+    public function delete()
+    {
 
         // Delete orphaned choices
         Choice::where('id', $this->choice_id)
-            ->whereNotExists(function($query) {
-               $query->select(DB::raw(1))
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
                    ->from('question_choice')
                    ->whereNull('deleted_at')
                    ->where('id', '<>', $this->id)

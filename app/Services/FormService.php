@@ -11,13 +11,10 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use DB;
 
-
 class FormService
 {
-
     public static function getAllForms()
     {
-
     }
 
     public static function getAllStudyForms($studyId)
@@ -106,14 +103,13 @@ class FormService
     }
     */
 
-    public function createForm($formName, $studyId, $formType) {
-
+    public function createForm($formName, $studyId, $formType)
+    {
         $studyModel = Study::find($studyId);
 
         $newFormModel = new Form;
 
-        DB::transaction(function() use ($formName, $newFormModel, $studyModel, $studyId, $formType) {
-
+        DB::transaction(function () use ($formName, $newFormModel, $studyModel, $studyId, $formType) {
             $translationId = Uuid::uuid4();
             $translationTextId = Uuid::uuid4();
             $formId = Uuid::uuid4();

@@ -6,8 +6,8 @@ use Illuminate\Support\MessageBag;
 use Illuminate\Validation\Validator;
 use Illuminate\Http\Response;
 
-class RestValidator extends Validator {
-
+class RestValidator extends Validator
+{
     protected $firstError = null;
     protected $errorTypes = [
         'min'      => Response::HTTP_BAD_REQUEST,
@@ -17,8 +17,8 @@ class RestValidator extends Validator {
         'required' => Response::HTTP_BAD_REQUEST
     ];
 
-    protected function addError($attribute, $rule, $parameters) {
-
+    protected function addError($attribute, $rule, $parameters)
+    {
         $message = $this->getMessage($attribute, $rule);
         $message = $this->doReplacements($message, $attribute, $rule, $parameters);
 
@@ -34,7 +34,8 @@ class RestValidator extends Validator {
         $this->messages->add($attribute, $customMessage);
     }
 
-    public function statusCode() {
+    public function statusCode()
+    {
         return $this->firstError;
     }
 }

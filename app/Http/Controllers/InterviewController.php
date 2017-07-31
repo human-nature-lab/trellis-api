@@ -19,43 +19,41 @@ use DateTime;
 
 class InterviewController extends Controller
 {
-
-	public function submit(Request $request) {
-
-		$validator = Validator::make($request->all(), [
-			'study_id' => 'required|string|min:36|exists:study,id',
+    public function submit(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'study_id' => 'required|string|min:36|exists:study,id',
             'form_id' => 'required|string|min:36|exists:form,id',
             'respondent_id' => 'required|string|min:36|exists:respondent,id',
             'token_id' => 'required|string|min:36|exists:token,id',
-			'questions' => 'required|array'
-		]);
+            'questions' => 'required|array'
+        ]);
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		$token = Token::find($request->input('token_id'));
+        $token = Token::find($request->input('token_id'));
         $user = User::find($token->user_id);
         $surveyModel = new Survey;
-		$interviewModel = new Interview;
+        $interviewModel = new Interview;
 
-		DB::transaction(function() use ($request, $surveyModel, $interviewModel, $user) {
+        DB::transaction(function () use ($request, $surveyModel, $interviewModel, $user) {
+            $surveyId = Uuid::uuid4();
+            $interviewId = Uuid::uuid4();
+            $now = new DateTime();
 
-			$surveyId = Uuid::uuid4();
-			$interviewId = Uuid::uuid4();
-			$now = new DateTime();
-
-			// Create new Survey.
+            // Create new Survey.
             $surveyModel->id = $surveyId;
             $surveyModel->respondent_id = $request->input('respondent_id');
             $surveyModel->form_id = $request->input('form_id');
             $surveyModel->study_id = $request->input('study_id');
-			$surveyModel->save();
+            $surveyModel->save();
 
-			// Create new Interview
+            // Create new Interview
             $interviewModel->id = $interviewId;
             $interviewModel->survey_id = $surveyId;
             $interviewModel->user_id = $user->id;
@@ -64,7 +62,7 @@ class InterviewController extends Controller
             $interviewModel->end_time = $now->getTimestamp();
 
             // Iterate through questions and add edges / datum
-            foreach($request->input('questions') as $question) {
+            foreach ($request->input('questions') as $question) {
                 if ($question['question_type']['name'] == 'relationship') {
                     // Create new datum
                     $datumId = Uuid::uuid4();
@@ -77,7 +75,7 @@ class InterviewController extends Controller
                     $datumModel->question_id = $question['id'];
                     $datumModel->save();
 
-                    foreach($question['selectedRespondents'] as $respondent) {
+                    foreach ($question['selectedRespondents'] as $respondent) {
                         if ($respondent) {
                             // Create edge
                             $edgeId = Uuid::uuid4();
@@ -109,10 +107,9 @@ class InterviewController extends Controller
                     $datumModel->save();
                 }
             }
-		});
+        });
 
-		return response()->json([
-		], Response::HTTP_OK);
-	}
-
+        return response()->json([
+        ], Response::HTTP_OK);
+    }
 }

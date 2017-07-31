@@ -47,11 +47,12 @@ class QuestionService
         return $question;
     }
 
-    public function createQuestion($questionText, $localeId, $questionTypeId, $questionGroupId, $varName) {
+    public function createQuestion($questionText, $localeId, $questionTypeId, $questionGroupId, $varName)
+    {
         // TODO: handle error when locale tag is not found.
         $localeTag = DB::table('locale')->where('id', '=', $localeId)->first()->language_tag;
 
-        $textLocaleArray = Array(
+        $textLocaleArray = array(
             $localeTag => $questionText
         );
 
@@ -60,12 +61,12 @@ class QuestionService
         return $returnQuestion;
     }
 
-    public function createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName) {
+    public function createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName)
+    {
         $newQuestionModel = new Question;
         $questionId = Uuid::uuid4();
 
-        DB::transaction(function() use ($questionId, $textLocaleArray, $questionTypeId, $questionGroupId, $varName, $newQuestionModel) {
-
+        DB::transaction(function () use ($questionId, $textLocaleArray, $questionTypeId, $questionGroupId, $varName, $newQuestionModel) {
             $translationId = Uuid::uuid4();
             $newTranslationModel = new Translation;
             $newTranslationModel->id = $translationId;
@@ -99,13 +100,11 @@ class QuestionService
             $newQuestionModel->sort_order = $maxSortOrder + 1;
             $newQuestionModel->var_name = $varName;
             $newQuestionModel->save();
-
         });
 
         $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters', 'assignConditionTags')
             ->find($questionId);
 
         return $returnQuestion;
-
     }
 }

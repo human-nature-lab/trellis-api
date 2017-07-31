@@ -8,10 +8,8 @@ use App\Models\SectionQuestionGroup;
 use Ramsey\Uuid\Uuid;
 use DB;
 
-
 class QuestionGroupService
 {
-
     public static function getAllQuestionGroups()
     {
         $questionGroups = QuestionGroup::get();
@@ -19,14 +17,14 @@ class QuestionGroupService
         return $questionGroups;
     }
 
-    public function createQuestionGroup($sectionId) {
+    public function createQuestionGroup($sectionId)
+    {
         $questionGroupId = Uuid::uuid4();
         $sectionQuestionGroupId = Uuid::uuid4();
 
         $questionGroupModel = new QuestionGroup;
 
-        DB::transaction(function() use($questionGroupId, $sectionQuestionGroupId, $questionGroupModel, $sectionId) {
-
+        DB::transaction(function () use ($questionGroupId, $sectionQuestionGroupId, $questionGroupModel, $sectionId) {
             $questionGroupModel->id = $questionGroupId;
             $questionGroupModel->save();
             $questionGroupModel->section_id = $sectionId;
@@ -51,5 +49,4 @@ class QuestionGroupService
 
         return $returnQuestionGroup;
     }
-
 }
