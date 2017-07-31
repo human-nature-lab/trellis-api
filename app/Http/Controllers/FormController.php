@@ -34,7 +34,6 @@ use DB;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 use League\Csv\Reader;
-use Illuminate\Support\Facades\Log;
 
 class FormController extends Controller
 {
@@ -120,7 +119,7 @@ class FormController extends Controller
                 $questionHeaderMap[$questionHeader] = $i;
             }
 
-            // Log::info('$questionHeaderMap: ' . implode(" ", array_keys($questionHeaderMap)));
+            // \Log::info('$questionHeaderMap: ' . implode(" ", array_keys($questionHeaderMap)));
             // Skip past header-row
             $questionCsv->setOffset(1);
             $questionCsv->each(function ($row) use ($questionGroupService, $questionService, $questionTypeService, $newSection, &$questionMap, $localeIndexArray, $questionHeaderMap) {
@@ -135,15 +134,15 @@ class FormController extends Controller
                 $questionTypeId = $questionTypeService->getIdByName($questionType);
                 $questionVarName = $row[$questionHeaderMap['question_var_name']];
 
-                // Log::info('$textLocaleArray: ' . implode(" ", $textLocaleArray));
+                // \Log::info('$textLocaleArray: ' . implode(" ", $textLocaleArray));
                 $newQuestion = $questionService->createQuestionLocalized($textLocaleArray, $questionTypeId, $newQuestionGroup->id, $questionVarName);
-                //Log::info('$questionVarName: ' . $questionVarName);
-                //Log::info('$newQuestion->id ' . $newQuestion->id);
+                //\Log::info('$questionVarName: ' . $questionVarName);
+                //\Log::info('$newQuestion->id ' . $newQuestion->id);
                 $questionMap[$questionVarName] = $newQuestion->id;
                 return true;
             });
 
-            //Log::info('$questionMap: ' . implode(" ", $questionMap));
+            //\Log::info('$questionMap: ' . implode(" ", $questionMap));
 
             $choiceFile = $request->file('choiceFile');
             $choiceStream = fopen($choiceFile->getRealPath(), 'r+');
@@ -298,7 +297,7 @@ class FormController extends Controller
         Form::where('form_master_id', $form_master_id)
             ->update(['is_published' => $published]);
 
-        // Log::info('publishFormQuery: ' . json_encode(DB::getQueryLog()));
+        // \Log::info('publishFormQuery: ' . json_encode(DB::getQueryLog()));
         // DB::disableQueryLog();
 
         return response()->json([

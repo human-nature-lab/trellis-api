@@ -37,7 +37,7 @@ class FormSection extends Model
 
     public function delete()
     {
-        //Log::info('FormSection->delete()');
+        //\Log::info('FormSection->delete()');
 
         // Delete orphaned Sections
         // This causes an infinite loop

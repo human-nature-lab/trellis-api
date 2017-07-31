@@ -11,7 +11,6 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
-use Illuminate\Support\Facades\Log;
 
 class ConditionController extends Controller
 {
@@ -29,11 +28,11 @@ class ConditionController extends Controller
             ], $validator->statusCode());
         };
 
-        Log::info('deleteAssignConditionTag, id: ' . $id);
+        \Log::info('deleteAssignConditionTag, id: ' . $id);
 
         $assignConditionTagModel = AssignConditionTag::find($id);
 
-        Log::info('deleteAssignConditionTag, assignConditionTagModel: ' . $assignConditionTagModel);
+        \Log::info('deleteAssignConditionTag, assignConditionTagModel: ' . $assignConditionTagModel);
 
         if ($assignConditionTagModel === null) {
             return response()->json([
