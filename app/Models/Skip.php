@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
-class Skip extends Model {
-
+class Skip extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -24,7 +24,8 @@ class Skip extends Model {
         'precedence'
     ];
 
-    public function conditions() {
+    public function conditions()
+    {
         return $this
             ->hasMany('App\Models\SkipConditionTag', 'skip_id');
         /*
@@ -42,7 +43,8 @@ class Skip extends Model {
         */
     }
 
-    public function delete() {
+    public function delete()
+    {
         SkipConditionTag::where('skip_id', $this->id)
             ->delete();
 

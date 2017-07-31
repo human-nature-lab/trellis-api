@@ -12,149 +12,150 @@ use App\Models\QuestionGroup;
 use App\Models\SectionQuestionGroup;
 use App\Services\QuestionGroupService;
 use DB;
+
 class QuestionGroupController extends Controller
 {
+    public function getQuestionGroup(Request $request, $id)
+    {
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36']
+        );
 
-	public function getQuestionGroup(Request $request, $id) {
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		$validator = Validator::make(
-			['id' => $id],
-			['id' => 'required|string|min:36']
-		);
+        $questionGroupModel = QuestionGroup::find($id);
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($questionGroupModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_OK);
+        }
 
-		$questionGroupModel = QuestionGroup::find($id);
+        return response()->json([
+            'questionGroup' => $questionGroupModel
+        ], Response::HTTP_OK);
+    }
 
-		if ($questionGroupModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_OK);
-		}
+    public function getAllQuestionGroups(Request $request, $formId, $localeId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+                'formId' => $formId,
+                'localeId' => $localeId
+        ]), [
+                'formId' => 'required|string|min:36|exists:form,id',
+                'localeId' => 'required|string|min:36|exists:locale,id'
+        ]);
 
-		return response()->json([
-			'questionGroup' => $questionGroupModel
-		], Response::HTTP_OK);
-	}
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-	public function getAllQuestionGroups(Request $request, $formId, $localeId) {
+        $questionGroupModel = QuestionGroup::select('question_group.id', 'sqg.question_group_order AS sort_order', 'fs.section_id')
+                ->join('section_question_group AS sqg', 'question_group_id', '=', 'question_group.id')
+                ->join('form_section AS fs', 'fs.section_id', '=', 'sqg.section_id')
+                ->where('fs.form_id', $formId)
+                ->orderBy('sqg.question_group_order', 'asc')
+                ->get();
 
-		$validator = Validator::make(array_merge($request->all(),[
-				'formId' => $formId,
-				'localeId' => $localeId
-		]), [
-				'formId' => 'required|string|min:36|exists:form,id',
-				'localeId' => 'required|string|min:36|exists:locale,id'
-		]);
+        return response()->json(
+            ['questionGroups' => $questionGroupModel],
+            Response::HTTP_OK
+        );
+    }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+    public function removeQuestionGroup(Request $request, $group_id)
+    {
+        $validator = Validator::make(
+            ['id' => $group_id],
+            ['id' => 'required|string|min:36']
+        );
 
-		$questionGroupModel = QuestionGroup::select('question_group.id', 'sqg.question_group_order AS sort_order', 'fs.section_id')
-				->join('section_question_group AS sqg', 'question_group_id', '=', 'question_group.id')
-				->join('form_section AS fs', 'fs.section_id', '=', 'sqg.section_id')
-				->where('fs.form_id', $formId)
-				->orderBy('sqg.question_group_order', 'asc')
-				->get();
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		return response()->json(
-			['questionGroups' => $questionGroupModel],
-			Response::HTTP_OK
-		);
-	}
+        $questionGroupModel = QuestionGroup::find($group_id);
 
-	public function removeQuestionGroup(Request $request, $group_id) {
+        if ($questionGroupModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		$validator = Validator::make(
-			['id' => $group_id],
-			['id' => 'required|string|min:36']
-		);
+        $questionGroupModel->delete();
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        return response()->json([
 
-		$questionGroupModel = QuestionGroup::find($group_id);
+        ]);
+    }
 
-		if ($questionGroupModel === null) {
-			return response()->json([
-				'msg' => 'URL resource was not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+    public function createQuestionGroup(Request $request, QuestionGroupService $questionGroupService, $sectionId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+                'section_id' => $sectionId]), [
+                'section_id' => 'required|string|min:36|exists:section,id'
+        ]);
 
-		$questionGroupModel->delete();
-
-		return response()->json([
-
-		]);
-	}
-
-	public function createQuestionGroup(Request $request, QuestionGroupService $questionGroupService, $sectionId) {
-
-		$validator = Validator::make(array_merge($request->all(), [
-				'section_id' => $sectionId]), [
-				'section_id' => 'required|string|min:36|exists:section,id'
-		]);
-
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
         $returnQuestionGroup = $questionGroupService->createQuestionGroup($sectionId);
 
-		return response()->json([
-			'questionGroup' => $returnQuestionGroup
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+            'questionGroup' => $returnQuestionGroup
+        ], Response::HTTP_OK);
+    }
 
-	public function updateQuestionGroup(Request $request, $id) {
+    public function updateQuestionGroup(Request $request, $id)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+                'id' => $id
+        ]), [
+                'id' => 'required|string|min:36'
+        ]);
 
-		$validator = Validator::make(array_merge($request->all(),[
-				'id' => $id
-		]), [
-				'id' => 'required|string|min:36'
-		]);
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $questionGroupModel = QuestionGroup::find($id);
 
-		$questionGroupModel = QuestionGroup::find($id);
+        if ($questionGroupModel === null) {
+            return response()->json([
+                    'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		if ($questionGroupModel === null) {
-			return response()->json([
-					'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+        $questionGroupModel->fill($request->input());
+        $questionGroupModel->save();
 
-		$questionGroupModel->fill($request->input());
-		$questionGroupModel->save();
-
-		return response()->json([
-				'msg' => Response::$statusTexts[Response::HTTP_OK]
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+                'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 
 
-    public function updateSectionQuestionGroups(Request $request) {
+    public function updateSectionQuestionGroups(Request $request)
+    {
         // PATCH method for updating multiple section_question_group rows at once
         // Should be provided an array of section question group objects with UID and one or more fields to be updated
         // TODO: Validate that each question provided has a valid ID, easier when upgrading to laravel 5.3+
@@ -172,7 +173,7 @@ class QuestionGroupController extends Controller
         $sectionQuestionGroups = $request->input('sectionQuestionGroups');
 
         DB::transaction(function () use ($sectionQuestionGroups) {
-            foreach($sectionQuestionGroups as $sectionQuestionGroup) {
+            foreach ($sectionQuestionGroups as $sectionQuestionGroup) {
                 DB::table('section_question_group')
                     ->where('section_id', $sectionQuestionGroup['section_id'])
                     ->where('question_group_id', $sectionQuestionGroup['question_group_id'])

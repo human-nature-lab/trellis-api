@@ -2,8 +2,6 @@
 
 namespace app\Services;
 
-
-
 class NotificationService
 {
     public static function addNewNotification($request, $message, $class, $status, $dismissable = null)
@@ -13,5 +11,4 @@ class NotificationService
         $request->session()->flash('status', $status);
         $request->session()->flash('dismissable', $dismissable);
     }
-
 }

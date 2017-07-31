@@ -8,10 +8,11 @@ use DB;
 
 class ConditionTagService
 {
-    public static function createConditionTag($name) {
+    public static function createConditionTag($name)
+    {
         $newConditionTag = new ConditionTag;
         $conditionTagId = Uuid::uuid4();
-        DB::transaction(function() use ($newConditionTag, $conditionTagId, $name) {
+        DB::transaction(function () use ($newConditionTag, $conditionTagId, $name) {
             $newConditionTag->id = $conditionTagId;
             $newConditionTag->name = $name;
             $newConditionTag->save();

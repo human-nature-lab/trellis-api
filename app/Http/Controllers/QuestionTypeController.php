@@ -10,104 +10,104 @@ use App\Http\Controllers\Controller;
 
 class QuestionTypeController extends Controller
 {
-	public function getQuestionType(Request $request, $id) {
+    public function getQuestionType(Request $request, $id)
+    {
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36|exists:question_type,id']
+        );
 
-		$validator = Validator::make(
-			['id' => $id],
-			['id' => 'required|string|min:36|exists:question_type,id']
-		);
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $questionTypeModel = QuestionType::find($id);
 
-		$questionTypeModel = QuestionType::find($id);
+        if ($questionTypeModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_OK);
+        }
 
-		if ($questionTypeModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_OK);
-		}
+        return response()->json([
+            'questionType' => $questionTypeModel
+        ], Response::HTTP_OK);
+    }
 
-		return response()->json([
-			'questionType' => $questionTypeModel
-		], Response::HTTP_OK);
-	}
+    public function getAllQuestionTypes(Request $request)
+    {
+        $questionTypeModel = QuestionType::get();
 
-	public function getAllQuestionTypes(Request $request) {
+        return response()->json(
+            ['questionTypes' => $questionTypeModel],
+            Response::HTTP_OK
+        );
+    }
 
-		$questionTypeModel = QuestionType::get();
+    public function updateQuestionTypes(Request $request, $questionTypeId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $questionTypeId
+        ]), [
+            'id' => 'required|string|min:36|exists:question_type,id'
+        ]);
 
-		return response()->json(
-			['questionTypes' => $questionTypeModel],
-			Response::HTTP_OK
-		);
-	}
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-	public function updateQuestionTypes(Request $request, $questionTypeId) {
+        $questionTypeModel = Question::find($questionTypeId);
 
-		$validator = Validator::make(array_merge($request->all(),[
-			'id' => $questionTypeId
-		]), [
-			'id' => 'required|string|min:36|exists:question_type,id'
-		]);
+        if ($questionTypeModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $questionTypeModel->fill->input();
+        $questionTypeModel->save();
 
-		$questionTypeModel = Question::find($questionTypeId);
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 
-		if ($questionTypeModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+    public function removeQuestion(Request $request, $questionTypeId)
+    {
+        $validator = Validator::make(
+            ['id' => $questionTypeId],
+            ['id' => 'required|string|min:36|exists:question_type,id']
+        );
 
-		$questionTypeModel->fill->input();
-		$questionTypeModel->save();
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		return response()->json([
-			'msg' => Response::$statusTexts[Response::HTTP_OK]
-		], Response::HTTP_OK);
-	}
+        $questionTypeModel = Form::find($questionTypeId);
 
-	public function removeQuestion(Request $request, $questionTypeId) {
+        if ($questionTypeModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		$validator = Validator::make(
-			['id' => $questionTypeId],
-			['id' => 'required|string|min:36|exists:question_type,id']
-		);
+        $questionTypeModel->delete();
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        return response()->json([
 
-		$questionTypeModel = Form::find($questionTypeId);
+        ]);
+    }
 
-		if ($questionTypeModel === null) {
-			return response()->json([
-				'msg' => 'URL resource was not found'
-			], Response::HTTP_NOT_FOUND);
-		}
-
-		$questionTypeModel->delete();
-
-		return response()->json([
-
-		]);
-	}
-
-	public function createQuestionType(Request $request) {
-
-	}
+    public function createQuestionType(Request $request)
+    {
+    }
 }

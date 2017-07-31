@@ -14,62 +14,62 @@ use Illuminate\Support\Facades\Log;
 
 class GeoController extends Controller
 {
-	public function getGeo(Request $request, $id) {
+    public function getGeo(Request $request, $id)
+    {
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36|exists:geo,id']
+        );
 
-		$validator = Validator::make(
-			['id' => $id],
-			['id' => 'required|string|min:36|exists:geo,id']
-		);
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $geoModel = Geo::find($id);
 
-		$geoModel = Geo::find($id);
+        if ($geoModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_OK);
+        }
 
-		if ($geoModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_OK);
-		}
+        return response()->json([
+            'geo' => $geoModel
+        ], Response::HTTP_OK);
+    }
 
-		return response()->json([
-			'geo' => $geoModel
-		], Response::HTTP_OK);
-	}
+    public function getAllGeos(Request $request, $localeId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'localeId' => $localeId
+        ]), [
+            'localeId' => 'required|string|min:36|exists:locale,id'
+        ]);
 
-	public function getAllGeos(Request $request, $localeId) {
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		$validator = Validator::make(array_merge($request->all(),[
-			'localeId' => $localeId
-		]), [
-			'localeId' => 'required|string|min:36|exists:locale,id'
-		]);
+        $geoModel = Geo::select('geo.id', 'gt.name AS type_name', 'gt.id as geo_type_id', 'geo.parent_id', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'tt.translated_text AS name')
+            ->join('translation_text AS tt', 'tt.translation_id', '=', 'geo.name_translation_id')
+            ->join('geo_type AS gt', 'gt.id', '=', 'geo.geo_type_id')
+            ->where('tt.locale_id', $localeId)
+            ->get();
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        return response()->json(
+            ['geos' => $geoModel],
+            Response::HTTP_OK
+        );
+    }
 
-		$geoModel = Geo::select('geo.id', 'gt.name AS type_name', 'gt.id as geo_type_id','geo.parent_id', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'tt.translated_text AS name')
-			->join('translation_text AS tt', 'tt.translation_id', '=', 'geo.name_translation_id')
-			->join('geo_type AS gt', 'gt.id', '=', 'geo.geo_type_id')
-			->where('tt.locale_id', $localeId)
-			->get();
-
-		return response()->json(
-			['geos' => $geoModel],
-			Response::HTTP_OK
-		);
-	}
-
-    public function getAllGeosByStudyId($studyId) {
-
+    public function getAllGeosByStudyId($studyId)
+    {
         $validator = Validator::make(
             ['study_id' => $studyId],
             ['study_id' => 'required|string|min:36|exists:study,id']
@@ -99,120 +99,118 @@ class GeoController extends Controller
         );
     }
 
-	public function updateGeo(Request $request, $id) {
+    public function updateGeo(Request $request, $id)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $id
+        ]), [
+            'id' => 'required|string|min:36',
+            'geo_type_id' => 'string|min:36',
+            'parent_id' => 'string|min:36',
+            'latitude' => 'integer|min:1',
+            'longitude' => 'integer|min:1',
+            'altitude' => 'integer|min:1',
+            'name_translation_id' => 'string|min:36'
+        ]);
 
-		$validator = Validator::make(array_merge($request->all(),[
-			'id' => $id
-		]), [
-			'id' => 'required|string|min:36',
-			'geo_type_id' => 'string|min:36',
-			'parent_id' => 'string|min:36',
-			'latitude' => 'integer|min:1',
-			'longitude' => 'integer|min:1',
-			'altitude' => 'integer|min:1',
-			'name_translation_id' => 'string|min:36'
-		]);
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $geoModel = Geo::find($id);
 
-		$geoModel = Geo::find($id);
+        if ($geoModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		if ($geoModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+        $geoModel->fill($request->input());
+        $geoModel->save();
 
-		$geoModel->fill($request->input());
-		$geoModel->save();
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 
-		return response()->json([
-			'msg' => Response::$statusTexts[Response::HTTP_OK]
-		], Response::HTTP_OK);
-	}
+    public function removeGeo(Request $request, $id)
+    {
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36']
+        );
 
-	public function removeGeo(Request $request, $id) {
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		$validator = Validator::make(
-			['id' => $id],
-			['id' => 'required|string|min:36']
-		);
+        $geoModel = Geo::find($id);
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($geoModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		$geoModel = Geo::find($id);
+        $geoModel->delete();
 
-		if ($geoModel === null) {
-			return response()->json([
-				'msg' => 'URL resource was not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+        return response()->json([
 
-		$geoModel->delete();
+        ]);
+    }
 
-		return response()->json([
+    public function createGeo(Request $request, $localeId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'localeId' => $localeId
+        ]), [
+            'localeId' => 'required|string|min:36|exists:locale,id',
+            'geo_type_id' => 'required|string|min:36|exists:geo_type,id',
+            'parent_id' => 'string|min:36|exists:geo,id',
+            'latitude' => 'string|min:1',
+            'longitude' => 'string|min:1',
+            'altitude' => 'string|min:1',
+            'name' => 'required|string|min:1'
+        ]);
 
-		]);
-	}
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-	public function createGeo(Request $request, $localeId) {
-
-		$validator = Validator::make(array_merge($request->all(),[
-			'localeId' => $localeId
-		]), [
-			'localeId' => 'required|string|min:36|exists:locale,id',
-			'geo_type_id' => 'required|string|min:36|exists:geo_type,id',
-			'parent_id' => 'string|min:36|exists:geo,id',
-			'latitude' => 'string|min:1',
-			'longitude' => 'string|min:1',
-			'altitude' => 'string|min:1',
-			'name' => 'required|string|min:1'
-		]);
-
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
-
-		$newGeoModel = new Geo;
+        $newGeoModel = new Geo;
         $geoId = Uuid::uuid4();
 
-		DB::transaction(function() use($request, $newGeoModel, $localeId, $geoId) {
+        DB::transaction(function () use ($request, $newGeoModel, $localeId, $geoId) {
+            $geoTypeId = $request->input('geo_type_id');
+            $parentId = $request->input('parent_id');
+            $name = $request->input('name');
+            $latitude = $request->input('latitude');
+            $longitude = $request->input('longitude');
+            $altitude = $request->input('altitude');
 
-			$geoTypeId = $request->input('geo_type_id');
-			$parentId = $request->input('parent_id');
-			$name = $request->input('name');
-			$latitude = $request->input('latitude');
-			$longitude = $request->input('longitude');
-			$altitude = $request->input('altitude');
+            $newGeoModel->id = $geoId;
+            $newGeoModel->geo_type_id = $geoTypeId;
+            $newGeoModel->parent_id = $parentId;
+            $newGeoModel->latitude = $latitude;
+            $newGeoModel->longitude = $longitude;
+            $newGeoModel->altitude = $altitude;
+            $newGeoModel->name_translation_id = TranslationHelper::createNewTranslation($name, $localeId);
+            $newGeoModel->save();
+        });
 
-			$newGeoModel->id = $geoId;
-			$newGeoModel->geo_type_id = $geoTypeId;
-			$newGeoModel->parent_id = $parentId;
-			$newGeoModel->latitude = $latitude;
-			$newGeoModel->longitude = $longitude;
-			$newGeoModel->altitude = $altitude;
-			$newGeoModel->name_translation_id = TranslationHelper::createNewTranslation($name, $localeId);
-			$newGeoModel->save();
+        $returnGeo = Geo::with('parent', 'nameTranslation', 'geoType')->find($geoId);
 
-		});
-
-		$returnGeo = Geo::with('parent', 'nameTranslation', 'geoType')->find($geoId);
-
-		return response()->json([
-			'geo' => $returnGeo
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+            'geo' => $returnGeo
+        ], Response::HTTP_OK);
+    }
 }

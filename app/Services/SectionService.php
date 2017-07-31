@@ -11,11 +11,10 @@ use App\Models\TranslationText;
 use Ramsey\Uuid\Uuid;
 use DB;
 
-
 class SectionService
 {
-    public function createSection($formId, $sectionName, $sortOrder) {
-
+    public function createSection($formId, $sectionName, $sortOrder)
+    {
         $studyModel = Study::select('study.*')
             ->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
             ->join('form AS f', 'f.id', '=', 'sf.form_master_id')
@@ -33,8 +32,7 @@ class SectionService
         //$repeatPromptTranslationId = ($repeatPrompt == null) ? null : Uuid::uuid4();
         //$repeatPromptTranslationTextId = ($repeatPrompt == null) ? null : Uuid::uuid4();
 
-        DB::transaction(function() use($formId, $sectionName, $sortOrder, $studyLocaleId, $newSectionModel, $translationId, $translationTextId, $sectionId, $formSectionId) {
-
+        DB::transaction(function () use ($formId, $sectionName, $sortOrder, $studyLocaleId, $newSectionModel, $translationId, $translationTextId, $sectionId, $formSectionId) {
             $newTranslationModel = new Translation;
             $newTranslationModel->id = $translationId;
             $newTranslationModel->save();

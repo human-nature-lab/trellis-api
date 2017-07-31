@@ -5,36 +5,38 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 
-class FormSection extends Model {
+class FormSection extends Model
+{
+    use SoftDeletes;
 
-	use SoftDeletes;
+    public $incrementing = false;
 
-	public $incrementing = false;
+    protected $table = 'form_section';
 
-	protected $table = 'form_section';
+    protected $with = ['repeatPromptTranslation'];
 
-	protected $with = ['repeatPromptTranslation'];
+    protected $fillable = [
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'form_id',
+        'section_id',
+        'sort_order',
+        'is_repeatable',
+        'max_repetitions',
+        'repeat_prompt_translation_id'
+    ];
 
-	protected $fillable = [
-		'id',
-		'created_at',
-		'updated_at',
-		'deleted_at',
-		'form_id',
-		'section_id',
-		'sort_order',
-		'is_repeatable',
-		'max_repetitions',
-		'repeat_prompt_translation_id'
-	];
-
-    public function repeatPromptTranslation() {
+    public function repeatPromptTranslation()
+    {
         return $this
             ->belongsTo('App\Models\Translation', 'repeat_prompt_translation_id')
             ->with('translationText');
     }
 
-    public function delete() {
+    public function delete()
+    {
         //Log::info('FormSection->delete()');
 
         // Delete orphaned Sections

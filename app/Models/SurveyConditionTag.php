@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class SurveyConditionTag extends Model {
-
+class SurveyConditionTag extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;

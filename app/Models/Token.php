@@ -6,33 +6,36 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class Token extends Model {
+class Token extends Model
+{
+    use SoftDeletes;
 
-	use SoftDeletes;
+    public $incrementing = false;
 
-	public $incrementing = false;
+    protected $table = 'token';
 
-	protected $table = 'token';
+    protected $fillable = [
+        'token_id',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'token_hash',
+        'key_id',
+        'user_id'
+    ];
 
-	protected $fillable = [
-		'token_id',
-		'created_at',
-		'updated_at',
-		'deleted_at',
-		'token_hash',
-		'key_id',
-		'user_id'
-	];
+    public function user()
+    {
+        return $this->hasOne('App\Models\User', 'user_id', 'user_id');
+    }
 
-	public function user() {
-		return $this->hasOne('App\Models\User', 'user_id', 'user_id');
-	}
+    public function key()
+    {
+        return $this->hasOne('App\Models\Key', 'key_id', 'key_id');
+    }
 
-	public function key() {
-		return $this->hasOne('App\Models\Key', 'key_id', 'key_id');
-	}
-
-	public static function createHash() {
-		return hash('sha512', Str::random(60));
-	}
+    public static function createHash()
+    {
+        return hash('sha512', Str::random(60));
+    }
 }

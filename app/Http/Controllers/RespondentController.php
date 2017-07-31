@@ -17,10 +17,9 @@ use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 
-
-class RespondentController extends Controller {
-
-     public function index()
+class RespondentController extends Controller
+{
+    public function index()
     {
         $respondents = Respondent::where('deleted_at', null)
             ->orderBy('created_at')
@@ -29,8 +28,8 @@ class RespondentController extends Controller {
         return view('respondents.respondents', array('title' => 'Respondents', 'respondents' => $respondents));
     }
 
-    public function getAllRespondents(Request $request) {
-
+    public function getAllRespondents(Request $request)
+    {
         $respondents = Respondent::with('photos')->get();
 
         return response()->json(
@@ -39,7 +38,8 @@ class RespondentController extends Controller {
         );
     }
 
-    public function getAllRespondentsByStudyId($study_id) {
+    public function getAllRespondentsByStudyId($study_id)
+    {
         $validator = Validator::make(
             ['study_id' => $study_id],
             ['study_id' => 'required|string|min:36|exists:study,id']
@@ -53,7 +53,7 @@ class RespondentController extends Controller {
         }
 
         //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
-        $respondents = Respondent::with('photos')->whereHas('studies', function($query) use ($study_id) {
+        $respondents = Respondent::with('photos')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
         })->get();
 
@@ -61,11 +61,10 @@ class RespondentController extends Controller {
             ['respondents' => $respondents],
             Response::HTTP_OK
         );
-
-
     }
 
-    public function addPhoto(Request $request, $respondentId) {
+    public function addPhoto(Request $request, $respondentId)
+    {
         $validator = Validator::make([
             'respondent_id' => $respondentId], [
             'respondent_id' => 'required|string|min:36'
@@ -83,7 +82,7 @@ class RespondentController extends Controller {
 
         $respondent = Respondent::find($respondentId);
         $hasFile = $request->hasFile('file');
-        if($hasFile and $respondent->exists()) {
+        if ($hasFile and $respondent->exists()) {
             $file = $request->file('file');
             $stream = fopen($file->getRealPath(), 'r+');
             $extension = $file->getClientOriginalExtension();
@@ -119,13 +118,13 @@ class RespondentController extends Controller {
         }
     }
 
-    public function create(){
-
+    public function create()
+    {
         return view('respondents.create');
-
     }
 
-    public function updateRespondent(Request $request, $id) {
+    public function updateRespondent(Request $request, $id)
+    {
         $validator = Validator::make($request->all(), [
             'name' => 'string|min:1|max:65535|required'
         ]);
@@ -146,10 +145,11 @@ class RespondentController extends Controller {
         ], Response::HTTP_OK);
     }
 
-    public function createRespondent(Request $request) {
+    public function createRespondent(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'name' => 'string|min:1|max:65535',
-			'study_id' => 'required|string|min:36|exists:study,id'
+            'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -181,8 +181,8 @@ class RespondentController extends Controller {
         ], Response::HTTP_OK);
     }
 
-    public function removeRespondent($id) {
-
+    public function removeRespondent($id)
+    {
         $validator = Validator::make(
             ['id' => $id],
             ['id' => 'required|string|min:36']
@@ -210,36 +210,34 @@ class RespondentController extends Controller {
         ]);
     }
 
-    public function store(){
-
+    public function store()
+    {
         $GUID = new DateTime();
         $respondent = new Respondent;
         $respondent->id = $GUID;
         $respondent->name = Input::get('name');
-        $respondent->add_date = time ();
-        $respondent->modify_date = time ();
+        $respondent->add_date = time();
+        $respondent->modify_date = time();
         $respondent->save();
 
         return Redirect::to('/respondents')->with(array('title' => 'Trellis'));
-
     }
 
-    public function show($id){
-
+    public function show($id)
+    {
         $respondent = Respondent::find($id);
         return view('respondents.show')->with('respondent', $respondent);
-
     }
 
 
-    public function edit($id){
-
+    public function edit($id)
+    {
         $respondent = Respondent::find($id);
         $input = Input::all();
 
-        if(isset($input['flashCard'])){
+        if (isset($input['flashCard'])) {
             $flashCard = $input['flashCard'];
-        }else{
+        } else {
             $flashCard = '';
         }
 
@@ -248,23 +246,23 @@ class RespondentController extends Controller {
 //            ->lists('marital_name','id');
 
         $respondent_geo_location = DB::table('geo')
-            ->join('respondent', 'geo.id', '=', 'respondent.geo_id' )
+            ->join('respondent', 'geo.id', '=', 'respondent.geo_id')
             ->where('respondent.id', '=', $respondent->id)
             ->select('geo.id', 'geo.name', 'respondent.name')
             ->get();
 
-        if (count($respondent_geo_location) > 0 ) {
+        if (count($respondent_geo_location) > 0) {
             $respondent->respondent_geo_location = $respondent_geo_location[0]->id;
         }
 
         global $geo_selection;
         $geo_selection = array();
-        $this->get_geo_tree(0,0);
+        $this->get_geo_tree(0, 0);
         $geoMaster = $geo_selection;
 
         $images = $imageslArr = DB::table('photo')
             ->join('respondent_photo', 'photo.id', '=', 'respondent_photo.photo_id')
-            ->where('respondent_photo.respondent_id', $id )
+            ->where('respondent_photo.respondent_id', $id)
             ->select('file_name', 'photo.id')
             ->get();
 
@@ -281,8 +279,8 @@ class RespondentController extends Controller {
     }
 
 
-    public function update(Request $request, $id){
-
+    public function update(Request $request, $id)
+    {
         $input = Input::all();
         $respondent = Respondent::find($id);
         $respondent->name = $input['name'];
@@ -302,11 +300,10 @@ class RespondentController extends Controller {
         $flashCard =['type' => 'success', 'icon' => 'fa-check', 'message' => 'This respondent was successfully modified!'];
 
         return Redirect::action('respondents.edit', array('id'=> $id, 'title' => 'Edit Respondent', 'flashCard' => $flashCard));
-
     }
 
-    public function destroy($id){
-
+    public function destroy($id)
+    {
         $respondent = Respondent::find($id);
         $respondent->status = 0;
         $respondent->save();
@@ -322,22 +319,20 @@ class RespondentController extends Controller {
 //        }
 
         return Redirect::to('/respondents');
-
     }
 
-    function get_geo_tree($parent, $level)  {
+    public function get_geo_tree($parent, $level)
+    {
         global $geo_selection;
 
         $allGeo = DB::table('geo')
             ->where('parent_id', $parent)
             ->get();
 
-        foreach($allGeo as $row){
-            $row->element_name = str_repeat(' - ',$level)." ".$row->element_name;
-            $geo_selection = array_merge_recursive($geo_selection,array($row->id => $row->element_name));
+        foreach ($allGeo as $row) {
+            $row->element_name = str_repeat(' - ', $level)." ".$row->element_name;
+            $geo_selection = array_merge_recursive($geo_selection, array($row->id => $row->element_name));
             self::get_geo_tree($row->id, $level+1);
         }
-
     }
-
 }

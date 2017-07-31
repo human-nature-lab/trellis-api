@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class QuestionParameter extends Model {
-
+class QuestionParameter extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -23,7 +23,8 @@ class QuestionParameter extends Model {
         'val'
     ];
 
-    public function parameter() {
+    public function parameter()
+    {
         return $this->belongsTo('App\Models\Parameter', 'parameter_id');
     }
 }

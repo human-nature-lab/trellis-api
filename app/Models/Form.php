@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
 
-class Form extends Model {
-
+class Form extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -24,13 +24,15 @@ class Form extends Model {
         'version'
     ];
 
-    public function nameTranslation() {
+    public function nameTranslation()
+    {
         return $this
             ->belongsTo('App\Models\Translation', 'name_translation_id')
             ->with('translationText');
     }
 
-    public function sections() {
+    public function sections()
+    {
         return $this
             ->belongsToMany('App\Models\Section', 'form_section')
             ->whereNull('form_section.deleted_at')
@@ -39,7 +41,8 @@ class Form extends Model {
             ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
     }
 
-    public function delete() {
+    public function delete()
+    {
         //Log::info("Form->delete()");
         $childFormSections = FormSection::where('form_id', '=', $this->id)->get();
         foreach ($childFormSections as $childFormSection) {
@@ -58,5 +61,4 @@ class Form extends Model {
 
         return parent::delete();
     }
-
 }

@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class RespondentPhoto extends Model {
-
+class RespondentPhoto extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -24,7 +24,8 @@ class RespondentPhoto extends Model {
         'notes'
     ];
 
-    public function delete() {
+    public function delete()
+    {
         Photo::where('id', $this->photo_id)
             ->delete();
 

@@ -12,52 +12,51 @@ use App\Models\TranslationText;
 
 class TranslationController extends Controller
 {
+    public function removeTranslation(Request $request, $id)
+    {
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36']
+        );
 
-	public function removeTranslation(Request $request, $id) {
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		$validator = Validator::make(
-			['id' => $id],
-			['id' => 'required|string|min:36']
-		);
+        $translationModel = Translation::find($id);
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($translationModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		$translationModel = Translation::find($id);
+        $translationTextModel = TranslationText::where('translation_id', '=', $id)->get();
 
-		if ($translationModel === null) {
-			return response()->json([
-				'msg' => 'URL resource was not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+        if ($translationTextModel !== null) {
+            return response()->json([
+                'msg' => 'Translation parent still in use',
+            ], Response::HTTP_CONFLICT);
+        }
 
-		$translationTextModel = TranslationText::where('translation_id', '=', $id)->get();
+        $translationModel->delete();
 
-		if ($translationTextModel !== null) {
-			return response()->json([
-				'msg' => 'Translation parent still in use',
-			], Response::HTTP_CONFLICT);
-		}
+        return response()->json([
 
-		$translationModel->delete();
+        ], Response::HTTP_NO_CONTENT);
+    }
 
-		return response()->json([
+    public function createTranslation(Request $request)
+    {
+        $newTranslationModel = new Translation;
+        $newTranslationModel->id = Uuid::uuid4();
+        $newTranslationModel->save();
 
-		], Response::HTTP_NO_CONTENT);
-	}
-
-	public function createTranslation(Request $request) {
-
-		$newTranslationModel = new Translation;
-		$newTranslationModel->id = Uuid::uuid4();
-		$newTranslationModel->save();
-
-		return response()->json([
-			'translation' => $newTranslationModel
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+            'translation' => $newTranslationModel
+        ], Response::HTTP_OK);
+    }
 }

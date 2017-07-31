@@ -8,21 +8,21 @@ use Illuminate\Support\Facades\Log;
 
 class QuestionGroup extends Model
 {
+    use SoftDeletes;
 
-	use SoftDeletes;
+    public $incrementing = false;
 
-	public $incrementing = false;
+    protected $table = 'question_group';
 
-	protected $table = 'question_group';
+    protected $fillable = [
+            'id',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+    ];
 
-	protected $fillable = [
-			'id',
-			'created_at',
-			'updated_at',
-			'deleted_at',
-	];
-
-    public function delete() {
+    public function delete()
+    {
         //Log::info('QuestionGroup->delete()');
 
         $childQuestions = Question::where("question_group_id", $this->id)->get();
@@ -35,13 +35,15 @@ class QuestionGroup extends Model
         return parent::delete();
     }
 
-    public function questions() {
+    public function questions()
+    {
         return $this
             ->hasMany('App\Models\Question')
             ->with('choices', 'questionTranslation', 'questionType', 'questionParameters', 'assignConditionTags');
     }
 
-    public function skips() {
+    public function skips()
+    {
         return $this
             ->belongsToMany('App\Models\Skip', 'question_group_skip')
             ->whereNull('question_group_skip.deleted_at')
@@ -49,5 +51,4 @@ class QuestionGroup extends Model
             ->withTimestamps()
             ->with('conditions');
     }
-
 }

@@ -13,12 +13,11 @@ use DB;
 
 class QuestionChoiceService
 {
-
-    public function createQuestionChoice($val, $text, $sortOrder, $localeId, $questionId) {
-
+    public function createQuestionChoice($val, $text, $sortOrder, $localeId, $questionId)
+    {
         $localeTag = DB::table('locale')->where('id', '=', $localeId)->locale_tag;
 
-        $textLocaleArray = Array(
+        $textLocaleArray = array(
             $localeTag => $text
         );
 
@@ -27,7 +26,8 @@ class QuestionChoiceService
         return $newQuestionChoiceModel;
     }
 
-    public function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId) {
+    public function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId)
+    {
         $questionChoiceId = Uuid::uuid4();
         $choiceId = Uuid::uuid4();
         $translationId = Uuid::uuid4();
@@ -35,8 +35,7 @@ class QuestionChoiceService
 
         $newQuestionChoiceModel = new QuestionChoice;
 
-        DB::transaction(function() use($val, $textLocaleArray, $sortOrder, $questionId, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel) {
-
+        DB::transaction(function () use ($val, $textLocaleArray, $sortOrder, $questionId, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel) {
             $newTranslationModel = new Translation;
             $newTranslationModel->id = $translationId;
             $newTranslationModel->save();

@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class SkipConditionTag extends Model {
-
+class SkipConditionTag extends Model
+{
     use SoftDeletes;
 
     public $incrementing = false;
@@ -21,5 +21,4 @@ class SkipConditionTag extends Model {
         'skip_id',
         'condition_tag_name'
     ];
-
 }

@@ -20,5 +20,4 @@ class QuestionType extends Model
         'deleted_at',
         'name'
     ];
-
 }

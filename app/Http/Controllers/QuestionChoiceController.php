@@ -19,8 +19,8 @@ use Log;
 
 class QuestionChoiceController extends Controller
 {
-    public function createNewQuestionChoice(Request $request, $questionId) {
-
+    public function createNewQuestionChoice(Request $request, $questionId)
+    {
         $validator = Validator::make(array_merge($request->all(), [
             'question_id' => $questionId]), [
             'question_id' => 'required|string|min:36|exists:question,id'
@@ -38,8 +38,7 @@ class QuestionChoiceController extends Controller
         $translationId = Uuid::uuid4();
         $newQuestionChoiceModel = new QuestionChoice;
 
-        DB::transaction(function() use($questionChoiceId, $choiceId, $translationId, $questionId, $newQuestionChoiceModel) {
-
+        DB::transaction(function () use ($questionChoiceId, $choiceId, $translationId, $questionId, $newQuestionChoiceModel) {
             $newTranslationModel = new Translation;
             $newTranslationModel->id = $translationId;
             $newTranslationModel->save();
@@ -68,77 +67,76 @@ class QuestionChoiceController extends Controller
         ], Response::HTTP_OK);
     }
 
-	public function createQuestionChoice(Request $request, $questionId) {
+    public function createQuestionChoice(Request $request, $questionId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+                'question_id' => $questionId]), [
+                'question_id' => 'required|string|min:36|exists:question,id',
+                'locale_id' => 'required|string|min:36|exists:locale,id'
+        ]);
 
-		$validator = Validator::make(array_merge($request->all(), [
-				'question_id' => $questionId]), [
-				'question_id' => 'required|string|min:36|exists:question,id',
-				'locale_id' => 'required|string|min:36|exists:locale,id'
-		]);
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $questionChoiceId = Uuid::uuid4();
+        $choiceId = Uuid::uuid4();
+        $translationId = Uuid::uuid4();
+        $translationTextId = Uuid::uuid4();
 
-		$questionChoiceId = Uuid::uuid4();
-		$choiceId = Uuid::uuid4();
-		$translationId = Uuid::uuid4();
-		$translationTextId = Uuid::uuid4();
+        $newQuestionChoiceModel = new QuestionChoice;
 
-		$newQuestionChoiceModel = new QuestionChoice;
+        DB::transaction(function () use ($request, $questionChoiceId, $choiceId, $translationId, $translationTextId, $questionId, $newQuestionChoiceModel) {
+            $newTranslationModel = new Translation;
+            $newTranslationModel->id = $translationId;
+            $newTranslationModel->save();
 
-		DB::transaction(function() use($request, $questionChoiceId, $choiceId, $translationId, $translationTextId, $questionId, $newQuestionChoiceModel) {
+            $newTranslationTextModel = new TranslationText;
+            $newTranslationTextModel->id = $translationTextId;
+            $newTranslationTextModel->translation_id = $translationId;
+            $newTranslationTextModel->locale_id = $request->input('locale_id');
+            $newTranslationTextModel->translated_text = $request->input('translated_text');
+            $newTranslationTextModel->save();
 
-			$newTranslationModel = new Translation;
-			$newTranslationModel->id = $translationId;
-			$newTranslationModel->save();
+            $newChoiceModel = new Choice;
+            $newChoiceModel->id = $choiceId;
+            $newChoiceModel->choice_translation_id = $translationId;
+            $newChoiceModel->val = $request->input('val');
+            $newChoiceModel->save();
 
-			$newTranslationTextModel = new TranslationText;
-			$newTranslationTextModel->id = $translationTextId;
-			$newTranslationTextModel->translation_id = $translationId;
-			$newTranslationTextModel->locale_id = $request->input('locale_id');
-			$newTranslationTextModel->translated_text = $request->input('translated_text');
-			$newTranslationTextModel->save();
+            // Get the next available sort_order for the question, this should avoid race conditions as it is within the same transaction
+            $sort_order = DB::select('select (ifnull((max(sort_order) + 1), 1)) as sort_order from question_choice where question_id = ?', [$questionId]);
+            $newQuestionChoiceModel->id = $questionChoiceId;
+            $newQuestionChoiceModel->question_id = $questionId;
+            $newQuestionChoiceModel->choice_id = $choiceId;
 
-			$newChoiceModel = new Choice;
-			$newChoiceModel->id = $choiceId;
-			$newChoiceModel->choice_translation_id = $translationId;
-			$newChoiceModel->val = $request->input('val');
-			$newChoiceModel->save();
+            //$newQuestionChoiceModel->sort_order = $request->input('sort_order');
+            //$newQuestionChoiceModel->sort_order = DB::raw('select ifnull((max(sort_order) + 1), 1) from question_choice where question_id = $questionId');
+            $newQuestionChoiceModel->sort_order = $sort_order[0]->sort_order;
+            $newQuestionChoiceModel->save();
+            //DB::insert("insert into question_choice qc1 (id, question_id, choice_id, sort_order) values ('?', '?', '?', (select ifnull((max(qc2.sort_order) + 1), 1) from question_choice qc2 where qc2.question_id = '?')", [$questionChoiceId, $questionId, $choiceId, $questionId]);
 
-			// Get the next available sort_order for the question, this should avoid race conditions as it is within the same transaction
-			$sort_order = DB::select('select (ifnull((max(sort_order) + 1), 1)) as sort_order from question_choice where question_id = ?', [$questionId]);
-			$newQuestionChoiceModel->id = $questionChoiceId;
-			$newQuestionChoiceModel->question_id = $questionId;
-			$newQuestionChoiceModel->choice_id = $choiceId;
+            $newQuestionChoiceModel->translated_text = $request->input('translated_text');
+            $newQuestionChoiceModel->val = $request->input('val');
+        });
 
-			//$newQuestionChoiceModel->sort_order = $request->input('sort_order');
-			//$newQuestionChoiceModel->sort_order = DB::raw('select ifnull((max(sort_order) + 1), 1) from question_choice where question_id = $questionId');
-			$newQuestionChoiceModel->sort_order = $sort_order[0]->sort_order;
-			$newQuestionChoiceModel->save();
-			//DB::insert("insert into question_choice qc1 (id, question_id, choice_id, sort_order) values ('?', '?', '?', (select ifnull((max(qc2.sort_order) + 1), 1) from question_choice qc2 where qc2.question_id = '?')", [$questionChoiceId, $questionId, $choiceId, $questionId]);
-
-			$newQuestionChoiceModel->translated_text = $request->input('translated_text');
-			$newQuestionChoiceModel->val = $request->input('val');
-
-		});
-
-		/*
-		$newQuestionChoiceModel = DB::select("select qc.id, qc.question_id, qc.choice_id, qc.sort_order,
+        /*
+        $newQuestionChoiceModel = DB::select("select qc.id, qc.question_id, qc.choice_id, qc.sort_order,
                                                                c.val, c.choice_translation_id,
                                                                (select translated_text from translation_text where locale_id = '?' and translation_id = c.choice_translation_id) as translated_text
                                                                from question_choice qc where qc.id = '?' left join choice c on qc.choice_id = c.id",[$request->input('locale_id'), $questionChoiceId]);
-		*/
+        */
 
-		return response()->json([
-				'questionChoice' => $newQuestionChoiceModel
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+                'questionChoice' => $newQuestionChoiceModel
+        ], Response::HTTP_OK);
+    }
 
-    public function removeChoice($questionId, $choiceId) {
+    public function removeChoice($questionId, $choiceId)
+    {
         $validator = Validator::make([
             'question_id' => $questionId,
             'choice_id' => $choiceId], [
@@ -167,105 +165,106 @@ class QuestionChoiceController extends Controller
         );
     }
 
-	public function removeQuestionChoice(Request $request, $id) {
+    public function removeQuestionChoice(Request $request, $id)
+    {
+        $validator = Validator::make(
+                ['id' => $id],
+                ['id' => 'required|string|min:36|exists:question_choice,id']
+        );
 
-		$validator = Validator::make(
-				['id' => $id],
-				['id' => 'required|string|min:36|exists:question_choice,id']
-		);
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
 
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		};
+        $questionChoiceModel = QuestionChoice::find($id);
 
-		$questionChoiceModel = QuestionChoice::find($id);
+        if ($questionChoiceModel === null) {
+            return response()->json([
+                    'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        };
 
-		if ($questionChoiceModel === null) {
-			return response()->json([
-					'msg' => 'URL resource was not found'
-			], Response::HTTP_NOT_FOUND);
-		};
+        DB::transaction(function () use ($request, $questionChoiceModel) {
+            $choiceModel = Choice::find($questionChoiceModel->choice_id);
+            $translationTextModel = TranslationText::where('translation_id', $choiceModel->choice_translation_id);
+            $translationModel = Translation::find($choiceModel->choice_translation_id);
 
-		DB::transaction(function() use($request, $questionChoiceModel) {
-			$choiceModel = Choice::find($questionChoiceModel->choice_id);
-			$translationTextModel = TranslationText::where('translation_id', $choiceModel->choice_translation_id);
-			$translationModel = Translation::find($choiceModel->choice_translation_id);
+            $translationTextModel->delete();
+            $translationModel->delete();
+            $choiceModel->delete();
+            $questionChoiceModel->delete();
+        });
 
-			$translationTextModel->delete();
-			$translationModel->delete();
-			$choiceModel->delete();
-			$questionChoiceModel->delete();
-		});
+        return response()->json([
 
-		return response()->json([
+        ]);
+    }
 
-		]);
-	}
+    public function getQuestionChoice(Request $request, $id)
+    {
+        $validator = Validator::make(
+            ['id' => $id],
+            ['id' => 'required|string|min:36']
+        );
 
-	public function getQuestionChoice(Request $request, $id) {
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		$validator = Validator::make(
-			['id' => $id],
-			['id' => 'required|string|min:36']
-		);
+        $questionGroupModel = QuestionGroup::find($id);
 
-		if ($validator->fails() === true) {
-			return response()->json([
-				'msg' => 'Validation failed',
-				'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        if ($questionGroupModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_OK);
+        }
 
-		$questionGroupModel = QuestionGroup::find($id);
+        return response()->json([
+            'questionGroup' => $questionGroupModel
+        ], Response::HTTP_OK);
+    }
 
-		if ($questionGroupModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_OK);
-		}
+    public function getAllQuestionChoices(Request $request, $formId, $localeId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+                'formId' => $formId,
+                'localeId' => $localeId
+        ]), [
+                'formId' => 'required|string|min:36|exists:form,id',
+                'localeId' => 'required|string|min:36|exists:locale,id'
+        ]);
 
-		return response()->json([
-			'questionGroup' => $questionGroupModel
-		], Response::HTTP_OK);
-	}
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-	public function getAllQuestionChoices(Request $request, $formId, $localeId) {
+        $questionChoiceModel = QuestionChoice::select('question_choice.id', 'question_choice.sort_order', 'question_choice.question_id', 'tt.translated_text AS text', 'c.val')
+                ->join('choice AS c', 'c.id', '=', 'question_choice.choice_id')
+                ->join('translation_text AS tt', 'tt.translation_id', '=', 'c.choice_translation_id')
+                ->join('question AS q', 'q.id', '=', 'question_choice.question_id')
+                ->join('section_question_group AS sqg', 'sqg.question_group_id', '=', 'q.question_group_id')
+                ->join('form_section AS fs', 'fs.section_id', '=', 'sqg.section_id')
+                ->where('fs.form_id', $formId)
+                ->where('tt.locale_id', $localeId)
+                ->get();
 
-		$validator = Validator::make(array_merge($request->all(),[
-				'formId' => $formId,
-				'localeId' => $localeId
-		]), [
-				'formId' => 'required|string|min:36|exists:form,id',
-				'localeId' => 'required|string|min:36|exists:locale,id'
-		]);
+        return response()->json(
+            ['questionChoices' => $questionChoiceModel],
+            Response::HTTP_OK
+        );
+    }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		}
-
-		$questionChoiceModel = QuestionChoice::select('question_choice.id', 'question_choice.sort_order', 'question_choice.question_id', 'tt.translated_text AS text', 'c.val')
-				->join('choice AS c', 'c.id', '=', 'question_choice.choice_id')
-				->join('translation_text AS tt', 'tt.translation_id', '=', 'c.choice_translation_id')
-				->join('question AS q', 'q.id', '=', 'question_choice.question_id')
-				->join('section_question_group AS sqg', 'sqg.question_group_id', '=', 'q.question_group_id')
-				->join('form_section AS fs', 'fs.section_id', '=', 'sqg.section_id')
-				->where('fs.form_id', $formId)
-				->where('tt.locale_id', $localeId)
-				->get();
-
-		return response()->json(
-			['questionChoices' => $questionChoiceModel],
-			Response::HTTP_OK
-		);
-	}
-
-	public function updateQuestionChoices(Request $request, $question_id) {
+    public function updateQuestionChoices(Request $request, $question_id)
+    {
         $validator = Validator::make(array_merge($request->all(), ['question_id' => $question_id]),
             [
                 'question_id' => 'required|string|min:36|exists:question,id',
@@ -322,7 +321,8 @@ class QuestionChoiceController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function updateChoice($choiceId, $val, $text) {
+    public function updateChoice($choiceId, $val, $text)
+    {
         $choiceModel = Choice::find($choiceId);
 
         if ($choiceModel === null) {
@@ -343,7 +343,8 @@ class QuestionChoiceController extends Controller
         return true;
     }
 
-    public function createChoice($val, $text, $sortOrder, $localeId, $questionId) {
+    public function createChoice($val, $text, $sortOrder, $localeId, $questionId)
+    {
         $questionChoiceId = Uuid::uuid4();
         $choiceId = Uuid::uuid4();
         $translationId = Uuid::uuid4();
@@ -351,8 +352,7 @@ class QuestionChoiceController extends Controller
 
         $newQuestionChoiceModel = new QuestionChoice;
 
-        DB::transaction(function() use($val, $text, $sortOrder, $localeId, $questionId, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel) {
-
+        DB::transaction(function () use ($val, $text, $sortOrder, $localeId, $questionId, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel) {
             $newTranslationModel = new Translation;
             $newTranslationModel->id = $translationId;
             $newTranslationModel->save();
@@ -383,51 +383,51 @@ class QuestionChoiceController extends Controller
         return $newQuestionChoiceModel;
     }
 
-	public function updateQuestionChoice(Request $request, $id) {
+    public function updateQuestionChoice(Request $request, $id)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+                'id' => $id
+        ]), [
+                'id' => 'required|string|min:36|exists:question_choice,id'
+        ]);
 
-		$validator = Validator::make(array_merge($request->all(),[
-				'id' => $id
-		]), [
-				'id' => 'required|string|min:36|exists:question_choice,id'
-		]);
+        if ($validator->fails() === true) {
+            return response()->json([
+                    'msg' => 'Validation failed',
+                    'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
 
-		if ($validator->fails() === true) {
-			return response()->json([
-					'msg' => 'Validation failed',
-					'err' => $validator->errors()
-			], $validator->statusCode());
-		}
+        $questionChoiceModel = QuestionChoice::find($id);
 
-		$questionChoiceModel = QuestionChoice::find($id);
+        if ($questionChoiceModel === null) {
+            return response()->json([
+                    'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		if ($questionChoiceModel === null) {
-			return response()->json([
-					'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+        $choiceModel = Choice::find($questionChoiceModel->choice_id);
 
-		$choiceModel = Choice::find($questionChoiceModel->choice_id);
+        if ($choiceModel === null) {
+            return response()->json([
+                'msg' => 'URL resource not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-		if ($choiceModel === null) {
-			return response()->json([
-				'msg' => 'URL resource not found'
-			], Response::HTTP_NOT_FOUND);
-		}
+        if ($request->input('val') != null) {
+            $choiceModel->val = $request->input('val');
+            $choiceModel->save();
+        }
 
-		if ($request->input('val') != null) {
-			$choiceModel->val = $request->input('val');
-			$choiceModel->save();
-		}
+        if ($request->input('translated_text') != null) {
+            $translationModel = TranslationText::where('translation_id', $choiceModel->choice_translation_id)->first();
 
-		if ($request->input('translated_text') != null) {
-			$translationModel = TranslationText::where('translation_id', $choiceModel->choice_translation_id)->first();
+            $translationModel->translated_text = $request->input('translated_text');
+            $translationModel->save();
+        }
 
-			$translationModel->translated_text = $request->input('translated_text');
-			$translationModel->save();
-		}
-
-		return response()->json([
-				'msg' => Response::$statusTexts[Response::HTTP_OK]
-		], Response::HTTP_OK);
-	}
+        return response()->json([
+                'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
 }
