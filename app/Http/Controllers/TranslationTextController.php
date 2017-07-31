@@ -141,8 +141,8 @@ class TranslationTextController extends Controller
 
         //$returnTranslationTextModel = $newTranslationTextModel->create();
         $returnTranslationTextModel = TranslationText::with('locale')->find($translationTextId);
-        //Log::Debug("returnTranslationTextModel");
-        //Log::Debug($returnTranslationTextModel);
+        //\Log::Debug("returnTranslationTextModel");
+        //\Log::Debug($returnTranslationTextModel);
 
         return response()->json([
             'translationText' => $returnTranslationTextModel

@@ -9,7 +9,6 @@ use App\Models\Translation;
 use App\Models\TranslationText;
 use Ramsey\Uuid\Uuid;
 use DB;
-use Illuminate\Support\Facades\Log;
 
 class QuestionService
 {
@@ -79,8 +78,8 @@ class QuestionService
 
                 $newTranslationTextModel->id = $translationTextId;
                 $newTranslationTextModel->translation_id = $translationId;
-                Log::info('$localeTag: ' . $localeTag);
-                Log::info('$translationText: ' . $translationText);
+                \Log::info('$localeTag: ' . $localeTag);
+                \Log::info('$translationText: ' . $translationText);
                 $newTranslationTextModel->locale_id = DB::table('locale')->where('language_tag', '=', $localeTag)->first()->id;
 
                 $newTranslationTextModel->translated_text = $translationText;
