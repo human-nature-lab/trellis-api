@@ -248,7 +248,8 @@ class QuestionController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $questionId
         ]), [
-            'id' => 'required|string|min:36|exists:question,id'
+            'id' => 'required|string|min:36|exists:question,id',
+            'var_name' => 'required|string|min:1'
         ]);
 
         if ($validator->fails() === true) {
@@ -266,7 +267,9 @@ class QuestionController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $questionModel->fill->input();
+        //$questionModel->fill->input();
+        // TODO: question_type, question_parameters
+        $questionModel->var_name = $request->input("var_name");
         $questionModel->save();
 
         return response()->json([
