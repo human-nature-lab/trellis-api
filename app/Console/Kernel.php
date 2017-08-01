@@ -13,6 +13,7 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
+        \App\Console\Commands\CheckModels::class,
         \App\Console\Commands\CheckMySQL::class,
         \App\Console\Commands\CheckMySQLJSON::class,
         \App\Console\Commands\ExportMySQL::class,
@@ -49,6 +50,10 @@ class Kernel extends ConsoleKernel
         switch ($request->getFirstArgument()) {
             case 'migrate':
                 $this->getArtisan()->call('trellis:check:mysql:json');
+                
+                echo PHP_EOL;
+
+                $this->getArtisan()->call('trellis:check:models');
                 break;
         }
 
