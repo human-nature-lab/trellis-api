@@ -17,15 +17,15 @@ class FormSection extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'form_id',
         'section_id',
         'sort_order',
         'is_repeatable',
         'max_repetitions',
-        'repeat_prompt_translation_id'
+        'repeat_prompt_translation_id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function repeatPromptTranslation()

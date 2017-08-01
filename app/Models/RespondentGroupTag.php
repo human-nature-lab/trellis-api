@@ -15,10 +15,10 @@ class RespondentGroupTag extends Model
 
     protected $fillable = [
         'id',
+        'respondent_id',
+        'group_tag_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'respondent_id',
-        'group_tag_id'
+        'deleted_at'
     ];
 }

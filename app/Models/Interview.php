@@ -15,15 +15,15 @@ class Interview extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'survey_id',
         'user_id',
         'start_time',
         'end_time',
         'latitude',
         'longitude',
-        'altitude'
+        'altitude',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

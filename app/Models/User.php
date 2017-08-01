@@ -15,12 +15,14 @@ class User extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'name',
         'username',
-        'password'
+        'password',
+        'role',
+        'selected_study_id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function studies()

@@ -15,10 +15,10 @@ class StudyLocale extends Model
 
     protected $fillable = [
         'id',
+        'study_id',
+        'locale_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'study_id',
-        'locale_id'
+        'deleted_at'
     ];
 }

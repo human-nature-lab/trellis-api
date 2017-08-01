@@ -15,10 +15,10 @@ class ConditionTag extends Model
 
     protected $fillable = [
         'id',
+        'name',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'name'
+        'deleted_at'
     ];
 
     public function skips()

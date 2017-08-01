@@ -15,12 +15,12 @@ class TranslationText extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'translation_id',
         'locale_id',
-        'translated_text'
+        'translated_text',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function locale()

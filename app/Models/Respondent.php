@@ -15,11 +15,13 @@ class Respondent extends Model
 
     protected $fillable = [
         'id',
+        'geo_id',
+        'notes',
+        'geo_notes',
+        'name',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'geo_id',
-        'name'
+        'deleted_at'
     ];
 
     public function photos()

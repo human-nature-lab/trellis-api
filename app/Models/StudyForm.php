@@ -18,10 +18,10 @@ class StudyForm extends Model
         'study_id',
         'form_master_id',
         'sort_order',
-        'form_type',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
+        'form_type'
     ];
 
     public function delete()

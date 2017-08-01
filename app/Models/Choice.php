@@ -15,11 +15,11 @@ class Choice extends Model
 
     protected $fillable = [
         'id',
+        'choice_translation_id',
+        'val',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'choice_translation_id',
-        'val'
+        'deleted_at'
     ];
 
     public function choiceTranslation()

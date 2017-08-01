@@ -15,12 +15,12 @@ class SectionQuestionGroup extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'section_id',
         'question_group_id',
-        'question_group_order'
+        'question_group_order',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function delete()

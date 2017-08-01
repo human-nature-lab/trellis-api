@@ -15,14 +15,14 @@ class Question extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'question_type_id',
         'question_translation_id',
         'question_group_id',
         'sort_order',
-        'var_name'
+        'var_name',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function questionTranslation()

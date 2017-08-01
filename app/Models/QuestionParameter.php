@@ -15,12 +15,12 @@ class QuestionParameter extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'question_id',
         'parameter_id',
-        'val'
+        'val',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function parameter()

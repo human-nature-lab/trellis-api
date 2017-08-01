@@ -16,12 +16,12 @@ class Token extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
+        'user_id',
         'token_hash',
         'key_id',
-        'user_id'
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function user()
