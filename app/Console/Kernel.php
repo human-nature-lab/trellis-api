@@ -23,8 +23,10 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\ImportSQLite::class,
         \App\Console\Commands\MergeMigrations::class,
         \App\Console\Commands\ShowMySQLJSON::class,
+        \App\Console\Commands\ShowForeignKeys::class,
         \App\Console\Commands\SimulateMigrate::class,
         \App\Console\Commands\SimulateMigrateRollback::class,
+        \App\Console\Commands\ToTable::class,
 
         // overrides:   //TODO take this out if switched to Laravel
         \App\Console\Commands\MakeModel::class,
@@ -50,7 +52,7 @@ class Kernel extends ConsoleKernel
         switch ($request->getFirstArgument()) {
             case 'migrate':
                 $this->getArtisan()->call('trellis:check:mysql:json');
-                
+
                 echo PHP_EOL;
 
                 $this->getArtisan()->call('trellis:check:models');
