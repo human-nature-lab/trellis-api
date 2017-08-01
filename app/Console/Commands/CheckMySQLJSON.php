@@ -70,7 +70,7 @@ class CheckMySQLJSON extends Command
             echo PHP_EOL;
 
             if ($fileSchemaArray == $dbSchemaArray) {
-                echo 'schema.json and the current database schema are identical.' . PHP_EOL;
+                echo json_decode('"\u2714"') . ' schema.json and the current database schema are identical.' . PHP_EOL;
             } else {
                 $process = new Process(<<<EOT
 diff -U-1 schema.json - | sed 's/^-/\x1b[41m-/;s/^+/\x1b[42m+/;s/^@/\x1b[34m@/;s/$/\x1b[0m/'
