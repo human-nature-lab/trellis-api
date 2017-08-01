@@ -14,10 +14,10 @@ class Translation extends Model
     protected $table = 'translation';
 
     protected $fillable = [
-            'id',
-            'created_at',
-            'updated_at',
-            'deleted_at',
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function translationText()

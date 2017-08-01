@@ -15,10 +15,10 @@ class Section extends Model
 
     protected $fillable = [
         'id',
+        'name_translation_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'name_translation_id',
+        'deleted_at'
     ];
 
     public function nameTranslation()

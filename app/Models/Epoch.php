@@ -11,6 +11,14 @@ class Epoch extends Model
 
     protected $table = 'epoch';
 
+    protected $fillable = [
+        //NOTE 'epoch' must stay in the $guarded array so that increment is the only operation allowed
+    ];
+
+    protected $guarded = [
+        'epoch'
+    ];
+
     /**
      * Returns the decimal epoch as a 16 digit hex string to allow alphanumeric sorting.
      *

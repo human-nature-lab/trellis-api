@@ -15,10 +15,10 @@ class SkipConditionTag extends Model
 
     protected $fillable = [
         'id',
+        'skip_id',
         'created_at',
         'updated_at',
         'deleted_at',
-        'skip_id',
         'condition_tag_name'
     ];
 }

@@ -15,14 +15,12 @@ class Study extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'name',
         'photo_quality',
-        'root_geo',
-        'census_form_master_id',
-        'default_locale_id'
+        'default_locale_id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function users()

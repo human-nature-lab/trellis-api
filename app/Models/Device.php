@@ -15,11 +15,11 @@ class Device extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'device_id',
         'name',
-        'epoch'
+        'epoch',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

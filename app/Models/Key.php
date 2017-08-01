@@ -10,10 +10,10 @@ class Key extends Model
 
     protected $fillable = [
         'id',
+        'name',
+        'hash',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'key_hash',
-        'key_name'
+        'deleted_at'
     ];
 }

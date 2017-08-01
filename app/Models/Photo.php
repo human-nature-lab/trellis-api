@@ -15,9 +15,9 @@ class Photo extends Model
 
     protected $fillable = [
         'id',
+        'file_name',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'file_name'
+        'deleted_at'
     ];
 }

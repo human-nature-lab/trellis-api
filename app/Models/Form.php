@@ -15,13 +15,13 @@ class Form extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'form_master_id',
         'name_translation_id',
         'version',
-        'is_published'
+        'is_published',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function nameTranslation()

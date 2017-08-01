@@ -16,12 +16,12 @@ class Skip extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'show_hide',
         'any_all',
-        'precedence'
+        'precedence',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function conditions()

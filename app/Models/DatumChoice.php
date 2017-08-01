@@ -15,11 +15,11 @@ class DatumChoice extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'datum_id',
         'choice_id',
-        'sort_order'
+        'sort_order',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

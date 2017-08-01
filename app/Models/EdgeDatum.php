@@ -15,10 +15,10 @@ class EdgeDatum extends Model
 
     protected $fillable = [
         'id',
+        'edge_id',
+        'datum_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'edge_id',
-        'datum_id'
+        'deleted_at'
     ];
 }

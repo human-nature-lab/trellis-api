@@ -15,12 +15,12 @@ class DatumPhoto extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'datum_id',
         'photo_id',
         'sort_order',
-        'notes'
+        'notes',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

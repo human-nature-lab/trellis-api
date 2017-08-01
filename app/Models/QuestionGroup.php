@@ -14,10 +14,10 @@ class QuestionGroup extends Model
     protected $table = 'question_group';
 
     protected $fillable = [
-            'id',
-            'created_at',
-            'updated_at',
-            'deleted_at',
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function delete()

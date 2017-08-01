@@ -15,10 +15,10 @@ class QuestionAssignConditionTag extends Model
 
     protected $fillable = [
         'id',
+        'question_id',
+        'assign_condition_tag_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'question_id',
-        'assign_condition_tag_id'
+        'deleted_at'
     ];
 }

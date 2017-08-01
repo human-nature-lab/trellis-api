@@ -20,14 +20,14 @@ class Log extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'actor_id',
         'row_id',
         'table_name',
         'operation',
-        'previous_row'
+        'previous_row',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     /**
