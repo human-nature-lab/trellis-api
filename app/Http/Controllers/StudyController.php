@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
+use App\Services\StudyService;
 use App\Models\Study;
 use App\Models\Locale;
 use App\Models\StudyLocale;
@@ -118,7 +119,7 @@ class StudyController extends Controller
         ]);
     }
 
-    public function createStudy(Request $request)
+    public function createStudy(Request $request, StudyService $studyService)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:1',
@@ -145,6 +146,9 @@ class StudyController extends Controller
         $newStudyModel->default_locale_id = $studyDefaultLocaleId;
         $newStudyModel->save();
 
+        // Add the default locale ID to the study's locales
+        $studyService::addLocale($studyId, $studyDefaultLocaleId);
+
         $returnStudy = Study::with('defaultLocale', 'locales')->find($studyId);
 
         return response()->json([
@@ -152,7 +156,7 @@ class StudyController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function saveLocale($studyId, $localeId)
+    public function saveLocale(StudyService $studyService, $studyId, $localeId)
     {
         $validator = Validator::make([
             'study_id' => $studyId,
@@ -168,6 +172,9 @@ class StudyController extends Controller
             ], $validator->statusCode());
         }
 
+        $studyService::addLocale($studyId, $localeId);
+
+        /*
         $study = Study::findOrFail($studyId);
         $locale = Locale::findOrFail($localeId);
         $studyLocale = new StudyLocale;
@@ -176,7 +183,8 @@ class StudyController extends Controller
         $studyLocale->locale_id = $localeId;
         $studyLocale->save();
         //$study->locales()->save($locale);
-        $studyModel = $study::with('locales')->get();
+        */
+        $studyModel = Study::with('locales')->find($studyId);
         return response()->json(
             ['study' => $studyModel],
             Response::HTTP_OK
