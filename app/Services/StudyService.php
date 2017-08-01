@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\Study;
+use App\Models\StudyLocale;
 use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 
 class StudyService
 {
@@ -60,6 +60,18 @@ class StudyService
         $study->default_locale_id = $request->input('locale');
 
         $study->save();
+
+        return $study;
+    }
+
+    public static function addLocale($studyId, $localeId)
+    {
+        $study = Study::findOrFail($studyId);
+        $studyLocale = new StudyLocale;
+        $studyLocale->id = Uuid::uuid4();
+        $studyLocale->study_id = $studyId;
+        $studyLocale->locale_id = $localeId;
+        $studyLocale->save();
 
         return $study;
     }
