@@ -372,7 +372,7 @@ class SyncController extends Controller
 
             ob_start();
 
-            Artisan::call('trellis:check:mysql');
+            Artisan::call('trellis:check:mysql:foreignkeys');
 
             $inconsistencies = json_decode(ob_get_clean(), true);
 

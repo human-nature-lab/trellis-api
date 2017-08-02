@@ -14,7 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\CheckModels::class,
-        \App\Console\Commands\CheckMySQL::class,
+        \App\Console\Commands\CheckMySQLForeignKeys::class,
         \App\Console\Commands\CheckMySQLJSON::class,
         \App\Console\Commands\ExportMySQL::class,
         \App\Console\Commands\ExportSnapshot::class,
