@@ -63,6 +63,7 @@ return [
             'collation' => 'utf8mb4_unicode_ci',
             'prefix'    => '',
             'strict'    => false,
+            'version'   => '5.7.2', // required to prevent: 1235 This version of MySQL doesn't yet support 'multiple triggers with the same action time and event for one table'
         ],
 
         'mysql_simulated' => [

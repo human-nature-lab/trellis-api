@@ -30,6 +30,19 @@ class ExecutableTest extends TestCase
     }
 
     /**
+     * Verify that mysql version is high enough.
+     *
+     * @return void
+     */
+    public function testMySQLVersion()
+    {
+        $databaseConnection = config('database.default');
+        $minDatabaseVersion = config("database.connections.$databaseConnection.version");
+
+        $this->assertTrue(version_compare(DatabaseHelper::version(), $minDatabaseVersion) >= 0, "$databaseConnection $minDatabaseVersion is required.");
+    }
+
+    /**
      * Verify that mysql2sqlite is installed.
      *
      * @return void
