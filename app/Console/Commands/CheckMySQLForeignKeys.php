@@ -9,14 +9,14 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use PDO;
 
-class CheckMySQL extends Command
+class CheckMySQLForeignKeys extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'trellis:check:mysql';
+    protected $signature = 'trellis:check:mysql:foreignkeys';
 
     /**
      * The console command description.
@@ -32,7 +32,7 @@ class CheckMySQL extends Command
      *
      * ob_start();
      *
-     * \Illuminate\Support\Facades\Artisan::call('trellis:check:mysql');
+     * \Illuminate\Support\Facades\Artisan::call('trellis:check:mysql:foreignkeys');
      *
      * $result = json_decode(ob_get_clean(), true);
      *
