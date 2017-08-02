@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Library\DatabaseHelper;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Lumen\Console\Kernel as ConsoleKernel;
 
@@ -45,6 +46,30 @@ class Kernel extends ConsoleKernel
     }
 
     /**
+     * Handle an incoming console command.  NOTE handle() is only called from the CLI interface.
+     *
+     * @param  \Symfony\Component\Console\Input\InputInterface  $input
+     * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+     * @return int
+     */
+    public function handle($input, $output = null)
+    {
+        switch (array_get(\Request::server('argv', null), 1)) {
+            case 'migrate':
+            case 'migrate:refresh': // shame that this doesn't call 'php artisan migrate' internally
+                $databaseConnection = config('database.default');
+                $minDatabaseVersion = config("database.connections.$databaseConnection.version");
+
+                if (version_compare(DatabaseHelper::version(), $minDatabaseVersion) < 0) {
+                    dd("$databaseConnection $minDatabaseVersion is required.");
+                }
+                break;
+        }
+
+        return parent::handle($input, $output);
+    }
+
+    /**
      * @param InputInterface $request
      * @param int $response
      */
@@ -52,6 +77,7 @@ class Kernel extends ConsoleKernel
     {
         switch ($request->getFirstArgument()) {
             case 'migrate':
+            case 'migrate:refresh': // shame that this doesn't call 'php artisan migrate' internally
                 $this->getArtisan()->call('trellis:check:mysql:json');
 
                 echo PHP_EOL;

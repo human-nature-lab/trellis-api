@@ -261,6 +261,16 @@ class DatabaseHelper
     }
 
     /**
+     * Returns current database version.
+    */
+    public static function version()
+    {
+        preg_match('/^[0-9\.]+/', DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION), $matches);    // extract dotted decimal from versions like '5.6.28-0ubuntu0.14.04.1 (Ubuntu)'
+
+        return array_get($matches, 0, '');
+    }
+
+    /**
      * Returns size of current database in bytes.
     */
     public static function sizeInBytes()
