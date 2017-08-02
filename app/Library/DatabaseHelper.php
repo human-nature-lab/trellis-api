@@ -365,4 +365,69 @@ class DatabaseHelper
 
         return (new Carbon($dateTime, 'UTC'))->format('U.u')*1;
     }
+
+    /**
+     * Creates a trigger that sets the table row's deleted_at field when the referenced table rows's deleted_at becomes non-null.
+     * Undeleting dependent rows must be implemented in code because it's not possible to tell which rows were soft-deleted prior to cascading.
+     * Note that this function requires log_bin_trust_function_creators=1 to prevent "General error: 1419 You do not have the SUPER privilege and binary logging is enabled".
+     *
+     * Example: createSoftDeleteTrigger('user_addresses', 'user_id', 'users', 'id') soft-deletes any user_addresses where user_addresses.user_id = users.id when users are soft-deleted.
+     */
+    public static function createSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
+    {
+        if (!isset($triggerName)) {
+            $triggerName = $referencedTable . '_' . $table . '_cascade';
+        }
+
+        $escapedTable = DatabaseHelper::escape($table);
+        $escapedColumn = DatabaseHelper::escape($column);
+        $escapedReferencedTable = DatabaseHelper::escape($referencedTable);
+        $escapedReferencedColumn = DatabaseHelper::escape($referencedColumn);
+        $escapedTriggerName = DatabaseHelper::escape($triggerName);
+
+        if ($dropTriggerIfExists) {
+            DB::unprepared(<<<EOT
+drop trigger if exists $escapedTriggerName;
+EOT
+            );
+        }
+
+        DB::unprepared(<<<EOT
+create trigger $escapedTriggerName after update on $escapedReferencedTable for each row begin
+    if old.deleted_at is null and new.deleted_at is not null then
+        update $escapedTable
+        set deleted_at = new.deleted_at
+        where $escapedTable.$escapedColumn = new.$escapedReferencedColumn
+        and deleted_at is null;
+    end if;
+end;
+EOT
+        );
+    }
+
+    /**
+     * Drops a trigger that sets the table row's deleted_at field when the referenced table rows's deleted_at becomes non-null.
+     * Undeleting dependent rows must be implemented in code because it's not possible to tell which rows were soft-deleted prior to cascading.
+     * Note that this function requires log_bin_trust_function_creators=1 to prevent "General error: 1419 You do not have the SUPER privilege and binary logging is enabled".
+     */
+    public static function dropSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
+    {
+        if (!isset($triggerName)) {
+            $triggerName = $referencedTable . '_' . $table . '_cascade';
+        }
+
+        $escapedTriggerName = DatabaseHelper::escape($triggerName);
+
+        if ($dropTriggerIfExists) {
+            DB::unprepared(<<<EOT
+drop trigger if exists $escapedTriggerName;
+EOT
+            );
+        } else {
+            DB::unprepared(<<<EOT
+drop trigger $escapedTriggerName;
+EOT
+            );
+        }
+    }
 }
