@@ -307,6 +307,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'RespondentController@addPhoto'
     );
 
+    $app->delete(
+        'respondent/{respondent_id}/photo/{photo_id}',
+        'RespondentController@removeRespondentPhoto'
+    );
+
     //**************************************//
     //* Translation Controller Routes *//
     //**************************************//
