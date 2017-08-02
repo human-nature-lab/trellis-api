@@ -210,6 +210,31 @@ class RespondentController extends Controller
         ]);
     }
 
+    public function removeRespondentPhoto($respondentId, $photoId)
+    {
+        $validator = Validator::make(
+            ['respondent_id' => $respondentId,
+                'photo_id' => $photoId],
+            ['respondent_id' => 'required|string|min:36|exists:respondent_photo,respondent_id',
+                'photo_id' => 'required|string|min:36|exists:respondent_photo,photo_id']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $nDeleted = RespondentPhoto::where('photo_id', $photoId)
+            ->where('respondent_id', $respondentId)
+            ->delete();
+
+        return response()->json([
+            'rowsDeleted' => $nDeleted
+        ]);
+    }
+
     public function store()
     {
         $GUID = new DateTime();
