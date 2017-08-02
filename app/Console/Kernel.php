@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CheckModels::class,
         \App\Console\Commands\CheckMySQLForeignKeys::class,
         \App\Console\Commands\CheckMySQLJSON::class,
+        \App\Console\Commands\CheckMySQLSoftDeletes::class,
         \App\Console\Commands\ExportMySQL::class,
         \App\Console\Commands\ExportSnapshot::class,
         \App\Console\Commands\ExportSQLite::class,
