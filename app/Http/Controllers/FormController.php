@@ -306,11 +306,11 @@ class FormController extends Controller
         ]);
     }
 
-    public function removeForm(Request $request, $id)
+    public function removeForm($id)
     {
         $validator = Validator::make(
             ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['id' => 'required|string|min:36|exists:form,id']
         );
 
         if ($validator->fails() === true) {

@@ -26,8 +26,14 @@ class StudyForm extends Model
 
     public function delete()
     {
-        Form::where('form_id', $this->id)
+        /* This will cause an infinite loop between
+        Form::delete and StudyForm::delete
+        Also, removing a form from one study should not
+        necessarily delete the form as it may be associated
+        with another study
+        Form::where('id', $this->form_id)
             ->delete();
+        */
 
         return parent::delete();
     }
