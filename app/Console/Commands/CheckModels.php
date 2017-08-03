@@ -3,12 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Library\DatabaseHelper;
-use DB;
-use Faker;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Config;
-use PDO;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class CheckModels extends Command
@@ -102,8 +97,9 @@ class CheckModels extends Command
                     $equal = $this->option('ignore-order') ? !count(array_diff($columns, $fillableGuarded)) : $columns == $fillableGuarded;
 
                     if (!$equal) {
+                        $filePathEscaped = escapeshellarg($filePath);
                         $process = new Process(<<<EOT
-diff -u $filePath - | sed 's/^-/\x1b[41m-/;s/^+/\x1b[42m+/;s/^@/\x1b[34m@/;s/$/\x1b[0m/'
+diff -u $filePathEscaped - | sed 's/^-/\x1b[41m-/;s/^+/\x1b[42m+/;s/^@/\x1b[34m@/;s/$/\x1b[0m/'
 EOT
                         , base_path());
 
