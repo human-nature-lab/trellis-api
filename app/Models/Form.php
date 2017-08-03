@@ -21,7 +21,8 @@ class Form extends Model
         'deleted_at',
         'form_master_id',
         'name_translation_id',
-        'version'
+        'version',
+        'is_published'
     ];
 
     public function nameTranslation()
