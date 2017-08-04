@@ -24,6 +24,9 @@ return [
             'key' => [
                 '*' => null,
             ],
+            'log' => [
+                '*' => null,
+            ],
             'migrations' => [
                 '*' => null,
             ],
