@@ -52,9 +52,15 @@ class ExportMySQL extends Command
         // # to run mysql utilities with config:
         // mysqldump --login-path=client --host="\$DB_HOST" --port="\$DB_PORT" --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
         $process = new Process(<<<EOT
-mysqldump --host="\$DB_HOST" --port="\$DB_PORT" --user="\$DB_USERNAME" --password="\$DB_PASSWORD" --net-buffer-length=$length --single-transaction --complete-insert --compact $ignoreTablesString "\$DB_DATABASE" $dumpPathString
+mysqldump --host="\$DB_HOST" --port="\$DB_PORT" --user="\$DB_USERNAME" --net-buffer-length=$length --single-transaction --complete-insert --compact $ignoreTablesString "\$DB_DATABASE" $dumpPathString
 EOT
-, base_path());
+, base_path(), [
+    'DB_HOST' => env('DB_HOST'),
+    'DB_PORT' => env('DB_PORT'),
+    'DB_USERNAME' => env('DB_USERNAME'),
+    'MYSQL_PWD' => env('DB_PASSWORD'),  // use MYSQL_PWD to suppress "mysqldump: [Warning] Using a password on the command line interface can be insecure." instead of passing --password="$DB_PASSWORD"  //BUG decide whether to use mysql_config_editor
+    'DB_DATABASE' => env('DB_DATABASE'),
+]);
 
         $process->setTimeout(null)->run(function ($type, $buffer) {
             fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
