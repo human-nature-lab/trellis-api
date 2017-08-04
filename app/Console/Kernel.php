@@ -22,6 +22,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\ExportSnapshot::class,
         \App\Console\Commands\ExportSQLite::class,
         \App\Console\Commands\FillMySQL::class,
+        \App\Console\Commands\ImportMySQL::class,
+        \App\Console\Commands\ImportSnapshot::class,
         \App\Console\Commands\ImportSQLite::class,
         \App\Console\Commands\MergeMigrations::class,
         \App\Console\Commands\ShowMySQLJSON::class,

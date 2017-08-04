@@ -4,7 +4,6 @@ namespace app\Http\Controllers;
 
 use App\Library\DatabaseHelper;
 use App\Library\FileHelper;
-use App\Library\TimeHelper;
 use App\Models\Device;
 use App\Models\Epoch;
 use App\Models\Log;
@@ -15,9 +14,6 @@ use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
-use PhpMyAdmin\SqlParser\Parser;
-use PhpMyAdmin\SqlParser\Statements\InsertStatement;
-use Symfony\Component\Process\Process;
 use Validator;
 
 class SyncController extends Controller
@@ -200,201 +196,24 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        $tableColumnTypes = collect(DatabaseHelper::tables())->flip()->map(function ($index, $table) {
-            return array_map(function ($attributes) {
-                return $attributes['type'];
-            }, DatabaseHelper::columns($table));
-        })->toArray();
-
-        app()->configure('snapshot');   // save overhead by only loading config when needed
-
-        $tableRows = [];
-
-        $insertsToTableRows = function ($inserts) use ($tableColumnTypes, &$tableRows) {
-            $substitutions = config('snapshot.substitutions.upload');
-
-            foreach ($inserts as $insert) {
-                $table = $insert->into->dest->table;
-
-                if (!$table || !count($insert->into->columns)) {
-                    continue;   // require "insert into `table` (`field`) values ('value')" syntax where fields are specified
-                }
-
-                if (!isset($tableColumnTypes[$table])) {
-                    continue;   // skip unknown tables  //TODO make this a whitelist
-                }
-
-                if (!isset($tableRows[$table])) {
-                    $tableRows[$table] = [];
-                }
-
-                $fields = $insert->into->columns;
-                $values = $insert->values[0]->values;
-
-                foreach ($insert->values[0]->raw as $key => $raw) {
-                    if (strtolower($raw) == 'null') {
-                        $values[$key] = null;   // fix issue where null is parsed as "null" instead of null
-                    }
-                }
-
-                $fieldValues = array_combine($fields, $values);
-
-                // skip any blacklisted fields
-                foreach (array_get($substitutions, $table, []) as $field => $substitution) {
-                    if ($field == '*') {
-                        $fieldValues = array_fill_keys(array_keys($fieldValues), $substitution);  // if wildcard, substitute all fields
-                    } else {
-                        $fieldValues[$field] = $substitution;
-                    }
-                }
-
-                $fieldValues = array_filter($fieldValues, function ($value) {
-                    return isset($value);
-                }); // array_filter($fieldValues, 'isset');
-
-                foreach ($fieldValues as $field => $value) {
-                    if (!is_null($value)) {
-                        if (in_array(array_get($tableColumnTypes[$table], $field), ['date', 'datetime', 'time', 'timestamp', 'year'])) {
-                            $fieldValues[$field] = TimeHelper::utc($value); // ensure that timestamp/datetime is formatted properly for insertion
-                        }
-                    }
-                }
-
-                if (count($fieldValues)) {
-                    $tableRows[$table] []= $fieldValues;
-                }
-            }
-        };
-
-        $getInsertStatements = function ($statements) use (&$getInsertStatements) {
-            $inserts = [];
-
-            foreach ($statements as $statement) {
-                if (get_class($statement) == InsertStatement::class) {
-                    $inserts []= $statement;
-                }
-
-                if (isset($statement->statements)) {
-                    foreach ($getInsertStatements($statement->statements) as $insertStatement) {
-                        $inserts []= $insertStatement;
-                    }
-                }
-            }
-
-            return $inserts;
-        };
-
-        $processStatements = function ($string) use ($getInsertStatements, $insertsToTableRows) {
-            $parser = new Parser($string);
-            $insertStatements = $getInsertStatements($parser->statements);
-            $insertsToTableRows($insertStatements);
-        };
-
-        $process = new Process('gunzip');
-
-        $process->setInput(fopen('php://input', 'rb'));
-
-        $delimiter = ";\n";
-        $temp = '';
-        $start = 0;
-
-        $processOutput = function ($output) use ($delimiter, &$temp, &$start, $processStatements) {
-            $temp .= $output;
-
-            $end = strrpos($temp, $delimiter, $start);
-
-            if ($end !== false) {
-                $processStatements(substr($temp, 0, $end + strlen($delimiter)));
-
-                $temp = substr($temp, $end + strlen($delimiter));
-                $start = 0;
-            } else {
-                $start = strlen($temp) - (strlen($delimiter) - 1);
-            }
-        };
-
-        $process->setTimeout(null)->run(function ($type, $output) use ($processOutput) {
-            if ($type === Process::OUT) {
-                $processOutput($output);
-            }
-        });
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
-        }
-
-        $processOutput($delimiter);    // terminate stream with delimiter in case client did not.  final result is in $tableRows
-
-        $totalWrites = 0;
-
-        DB::beginTransaction();
-
-        // $writes = [
-        //     'created' => 0,
-        //     'updated' => 0,
-        //     'deleted' => 0,
-        //     'logged' => 0,
-        //     'skipped' => 0,
-        // ];
-
-        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
-
-        foreach ($tableRows as $table => $rows) {
-            foreach ($rows as $row) {
-                $result = Log::writeRow($row, $table);
-
-                if (isset($result)) {
-                    $totalWrites++;
-
-                    // switch ($result) {
-                    //     case 'create':
-                    //         $writes['created']++;
-                    //         break;
-                    //
-                    //     case 'update':
-                    //         $writes['updated']++;
-                    //         break;
-                    //
-                    //     case 'delete':
-                    //         $writes['deleted']++;
-                    //         break;
-                    //
-                    //     default:
-                    //         $writes['logged']++;
-                    //         break;
-                    // }
-                } else {
-                    // $writes['skipped']++;
-                }
-            }
-        }
-
-        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
-
         ob_start();
 
-        Artisan::call('trellis:check:mysql:foreignkeys');
+        $resultCode = Artisan::call('trellis:import:snapshot');
 
-        $inconsistencies = json_decode(ob_get_clean(), true);
+        $result = json_decode(ob_get_clean(), true);
 
-        if (count($inconsistencies)) {
-            DB::rollBack();
-
-            return response()->json($inconsistencies, Response::HTTP_BAD_REQUEST); // if any inconsistent rows, return them with error code and roll back transaction
+        if ($resultCode != 0) {
+            return response()->json($result, Response::HTTP_BAD_REQUEST); // if any inconsistent rows, return them with error code and roll back transaction
             // \App::abort(Response::HTTP_CONFLICT, json_encode($inconsistencies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));    // message doesn't work
             // throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($inconsistencies)));
         }
 
-        DB::commit();
+        $epoch = Epoch::inc();    // increment epoch if any rows were written or logged
 
-        if ($totalWrites > 0) {
-            $epoch = Epoch::inc();    // increment epoch if any rows were written or logged
-
-            Device::where('device_id', $deviceId)
-                ->update([
-                    'epoch' => $epoch
-                ]);
-        }
+        Device::where('device_id', $deviceId)
+            ->update([
+                'epoch' => $epoch
+            ]);
 
         return response()->json([]/*$writes*/, Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
     }
