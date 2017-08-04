@@ -327,63 +327,65 @@ class SyncController extends Controller
 
         $totalWrites = 0;
 
-        $response = DB::transaction(function () use ($tableRows, &$totalWrites) {
-            // $writes = [
-            //     'created' => 0,
-            //     'updated' => 0,
-            //     'deleted' => 0,
-            //     'logged' => 0,
-            //     'skipped' => 0,
-            // ];
+        DB::beginTransaction();
 
-            DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+        // $writes = [
+        //     'created' => 0,
+        //     'updated' => 0,
+        //     'deleted' => 0,
+        //     'logged' => 0,
+        //     'skipped' => 0,
+        // ];
 
-            foreach ($tableRows as $table => $rows) {
-                foreach ($rows as $row) {
-                    $result = Log::writeRow($row, $table);
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
-                    if (isset($result)) {
-                        $totalWrites++;
+        foreach ($tableRows as $table => $rows) {
+            foreach ($rows as $row) {
+                $result = Log::writeRow($row, $table);
 
-                        // switch ($result) {
-                        //     case 'create':
-                        //         $writes['created']++;
-                        //         break;
-                        //
-                        //     case 'update':
-                        //         $writes['updated']++;
-                        //         break;
-                        //
-                        //     case 'delete':
-                        //         $writes['deleted']++;
-                        //         break;
-                        //
-                        //     default:
-                        //         $writes['logged']++;
-                        //         break;
-                        // }
-                    } else {
-                        // $writes['skipped']++;
-                    }
+                if (isset($result)) {
+                    $totalWrites++;
+
+                    // switch ($result) {
+                    //     case 'create':
+                    //         $writes['created']++;
+                    //         break;
+                    //
+                    //     case 'update':
+                    //         $writes['updated']++;
+                    //         break;
+                    //
+                    //     case 'delete':
+                    //         $writes['deleted']++;
+                    //         break;
+                    //
+                    //     default:
+                    //         $writes['logged']++;
+                    //         break;
+                    // }
+                } else {
+                    // $writes['skipped']++;
                 }
             }
+        }
 
-            DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+        DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
-            ob_start();
+        ob_start();
 
-            Artisan::call('trellis:check:mysql:foreignkeys');
+        Artisan::call('trellis:check:mysql:foreignkeys');
 
-            $inconsistencies = json_decode(ob_get_clean(), true);
+        $inconsistencies = json_decode(ob_get_clean(), true);
 
-            if (count($inconsistencies)) {
-                return response()->json($inconsistencies, Response::HTTP_BAD_REQUEST); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
-                // \App::abort(Response::HTTP_CONFLICT, json_encode($inconsistencies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));    // message doesn't work
-                // throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($inconsistencies)));
-            }
+        if (count($inconsistencies)) {
+            DB::rollBack();
 
-            return response()->json([]/*$writes*/, Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
-        });
+            return response()->json($inconsistencies, Response::HTTP_BAD_REQUEST); // if any inconsistent rows, return them with error code and roll back transaction
+            // \App::abort(Response::HTTP_CONFLICT, json_encode($inconsistencies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));    // message doesn't work
+            // throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($inconsistencies)));
+        }
+
+        DB::commit();
 
         if ($totalWrites > 0) {
             $epoch = Epoch::inc();    // increment epoch if any rows were written or logged
@@ -394,7 +396,7 @@ class SyncController extends Controller
                 ]);
         }
 
-        return $response;
+        return response()->json([]/*$writes*/, Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
     }
 
     public function downloadSync(Request $request, $deviceId)
