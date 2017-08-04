@@ -14,14 +14,14 @@ class ImportSQLite extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:import:sqlite {storage_path}';
+    protected $signature = 'trellis:import:sqlite {--exclude=*} {storage_path?}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Import SQLite database';
+    protected $description = 'Import SQLite database (currently INSERT statements only) from storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the import. Returns either 1) the number of rows modified and exit code 0 or 2) the output of `php artisan trellis:check:mysql:foreignkeys` and exit code 1';
 
     /**
      * Execute the console command.
@@ -30,23 +30,29 @@ class ImportSQLite extends Command
      */
     public function handle()
     {
-        Config::set('database.connections.sqlite', array(
-            'driver'    => 'sqlite',
-            'database'  => storage_path($this->argument('storage_path')),
-        ));
+        // for now just call ImportMySQL internally since the INSERT statements are handled the same way
+        return $this->call('trellis:import:mysql', [
+            '--exclude' => $this->option('exclude'),
+            'storage_path' => $this->argument('storage_path'),
+        ]);
 
-        $sqlite = app('db')->connection('sqlite');
-
-        $sqlite->setFetchMode(PDO::FETCH_ASSOC);
-
-        $rows = $sqlite->select("
-            select * from user
-		");
-
-        $sqlite->setFetchMode(PDO::FETCH_CLASS);
-
-        dump($rows);
-
-        return 1;    //TODO decide whether to implement this command (see SyncController::uploadSync() for example).  for now return 1 to indicate failure
+        // Config::set('database.connections.sqlite', array(
+        //     'driver'    => 'sqlite',
+        //     'database'  => storage_path($this->argument('storage_path')),
+        // ));
+        //
+        // $sqlite = app('db')->connection('sqlite');
+        //
+        // $sqlite->setFetchMode(PDO::FETCH_ASSOC);
+        //
+        // $rows = $sqlite->select("
+        //     select * from user
+        // ");
+        //
+        // $sqlite->setFetchMode(PDO::FETCH_CLASS);
+        //
+        // dump($rows);
+        //
+        // return 1;    //TODO decide whether to implement this command (see SyncController::uploadSync() for example).  for now return 1 to indicate failure
     }
 }
