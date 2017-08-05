@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminated\Console\WithoutOverlapping;
 use PhpMyAdmin\SqlParser\Parser;
 use PhpMyAdmin\SqlParser\Statements\InsertStatement;
+use PhpMyAdmin\SqlParser\Token;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
@@ -49,26 +50,36 @@ class ImportMySQL extends Command
 
         $tableRows = [];
 
-        $delimiter = ";\n";
-        $temp = '';
-        $start = 0;
-
         $stdin = fopen(is_null($this->argument('storage_path')) ? (\App::runningInConsole() ? 'php://stdin' : 'php://input') : $this->argument('storage_path'), 'rb');
 
+        $characters = '';
+
         do {
-            $string = stream_get_line($stdin, 0);   // same as fread() when no delimiter specified, but defaults to at least 8192 bytes per read
+            $chunk = stream_get_line($stdin, 0);   // same as fread() when no delimiter specified, but defaults to at least 8192 bytes per read
 
             if (feof($stdin)) {
-                $string .= $delimiter;  // terminate stream with delimiter in case client did not.  final result is in $tableRows
+                $chunk .= ";\n";  // terminate stream with semicolon-newline in case client did not
             }
 
-            $this->split($string, $delimiter, $temp, $start, function ($string) use ($tableColumnTypes, &$tableRows) {
-                $parser = new Parser($string);
+            $characters .= $chunk;
 
-                $insertStatements = $this->getInsertStatements($parser->statements);
+            $parser = new Parser($characters);
+            $lastSemicolon = array_slice(array_filter($parser->list->tokens, function ($token) {
+                return $token->type == Token::TYPE_DELIMITER && isset($token->position);
+            }), -1, 1, true);
+
+            if (count($lastSemicolon)) {
+                $lastSemicolonIndex = key($lastSemicolon);
+                $lastSemicolonPosition = last($lastSemicolon)->position;
+                $statements = array_filter($parser->statements, function ($statement) use ($lastSemicolonIndex) {
+                    return $statement->last < $lastSemicolonIndex;  // semicolon is never part of statement's tokens (it's the next token)
+                });
+                $insertStatements = $this->getInsertStatements($statements);
 
                 $this->insertsToTableRows($insertStatements, $tableColumnTypes, $tableRows);
-            });
+
+                $characters = mb_substr($characters, $lastSemicolonPosition + 1, null, 'UTF-8');    // advance to the character after the last semicolon parsed.  note that PhpMyAdmin\SqlParser uses character offsets instead of byte offsets
+            }
         } while (!feof($stdin));
 
         $totalWrites = 0;
@@ -232,31 +243,5 @@ class ImportMySQL extends Command
         }
 
         return $inserts;
-    }
-
-    /**
-     * Optimized function similar to preg_split() except concatenates matches and remembers the starting position to prevent scanning the entire string.
-     *
-     * @param  string $string The next string to be processed
-     * @param  string $delimiter The string to split by
-     * @param  string $temp Temporary storage to which string is appended until delimiter is found
-     * @param  integer $start Temporary storage for which position to start from
-     * @param  callable $callback Callback of format "function ($string)" called for each part found between delimiter
-     * @return null
-     */
-    protected function split($string, $delimiter, &$temp, &$start, $callback)
-    {
-        $temp .= $string;
-
-        $end = strrpos($temp, $delimiter, $start);
-
-        if ($end !== false) {
-            $callback(substr($temp, 0, $end + strlen($delimiter)));
-
-            $temp = substr($temp, $end + strlen($delimiter));
-            $start = 0;
-        } else {
-            $start = strlen($temp) - (strlen($delimiter) - 1);
-        }
     }
 }
