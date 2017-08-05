@@ -48,11 +48,22 @@ class ImportMySQL extends Command
 
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
-        $tableRows = [];
-
         $stdin = fopen(is_null($this->argument('storage_path')) ? (\App::runningInConsole() ? 'php://stdin' : 'php://input') : $this->argument('storage_path'), 'rb');
-
         $characters = '';
+        // $totalTableRows = [];    //NOTE if any problems are encountered during high contention due to row locking, then append $tableRows to $totalTableRows and retry transaction with it up to some number of times
+        $totalWrites = 0;
+
+        // $writes = [
+        //     'created' => 0,
+        //     'updated' => 0,
+        //     'deleted' => 0,
+        //     'logged' => 0,
+        //     'skipped' => 0,
+        // ];
+
+        DB::beginTransaction();
+
+        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
         do {
             $chunk = stream_get_line($stdin, 0);   // same as fread() when no delimiter specified, but defaults to at least 8192 bytes per read
@@ -75,56 +86,52 @@ class ImportMySQL extends Command
                     return $statement->last < $lastSemicolonIndex;  // semicolon is never part of statement's tokens (it's the next token)
                 });
                 $insertStatements = $this->getInsertStatements($statements);
+                $tableRows = $this->insertsToTableRows($insertStatements, $tableColumnTypes);
 
-                $this->insertsToTableRows($insertStatements, $tableColumnTypes, $tableRows);
+                // //NOTE if any problems are encountered during high contention due to row locking, then append $tableRows to $totalTableRows and retry transaction with it up to some number of times
+                // foreach ($tableRows as $table => $rows) {
+                //     if (!isset($totalTableRows[$table])) {
+                //         $totalTableRows[$table] = [];
+                //     }
+                //
+                //     foreach ($rows as $row) {
+                //         $totalTableRows[$table] []= $row;
+                //     }
+                // }
+
+                foreach ($tableRows as $table => $rows) {
+                    foreach ($rows as $row) {
+                        $result = Log::writeRow($row, $table);
+
+                        if (isset($result)) {
+                            $totalWrites++;
+
+                            // switch ($result) {
+                            //     case 'create':
+                            //         $writes['created']++;
+                            //         break;
+                            //
+                            //     case 'update':
+                            //         $writes['updated']++;
+                            //         break;
+                            //
+                            //     case 'delete':
+                            //         $writes['deleted']++;
+                            //         break;
+                            //
+                            //     default:
+                            //         $writes['logged']++;
+                            //         break;
+                            // }
+                        } else {
+                            // $writes['skipped']++;
+                        }
+                    }
+                }
 
                 $characters = mb_substr($characters, $lastSemicolonPosition + 1, null, 'UTF-8');    // advance to the character after the last semicolon parsed.  note that PhpMyAdmin\SqlParser uses character offsets instead of byte offsets
             }
         } while (!feof($stdin));
-
-        $totalWrites = 0;
-
-        DB::beginTransaction();
-
-        // $writes = [
-        //     'created' => 0,
-        //     'updated' => 0,
-        //     'deleted' => 0,
-        //     'logged' => 0,
-        //     'skipped' => 0,
-        // ];
-
-        DB::statement('SET FOREIGN_KEY_CHECKS = 0');
-
-        foreach ($tableRows as $table => $rows) {
-            foreach ($rows as $row) {
-                $result = Log::writeRow($row, $table);
-
-                if (isset($result)) {
-                    $totalWrites++;
-
-                    // switch ($result) {
-                    //     case 'create':
-                    //         $writes['created']++;
-                    //         break;
-                    //
-                    //     case 'update':
-                    //         $writes['updated']++;
-                    //         break;
-                    //
-                    //     case 'delete':
-                    //         $writes['deleted']++;
-                    //         break;
-                    //
-                    //     default:
-                    //         $writes['logged']++;
-                    //         break;
-                    // }
-                } else {
-                    // $writes['skipped']++;
-                }
-            }
-        }
 
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
 
@@ -144,21 +151,22 @@ class ImportMySQL extends Command
 
         echo $totalWrites . PHP_EOL;
 
-        DB::commit();
+        DB::commit();   //NOTE if any problems are encountered during high contention due to row locking, then append $tableRows to $totalTableRows and retry transaction with it up to some number of times
 
         return 0;
     }
 
     /**
-     * Given an array of PhpMyAdmin\SqlParser\Parser InsertStatement and a table => column => type array, appends key-value pairs of column => type to table keys in $tableRows.
+     * Given an array of PhpMyAdmin\SqlParser\Parser InsertStatement and a table => column => type array, returns array having form of [table => [[column => value], ...]].
      *
      * @param  array $inserts          Array of PhpMyAdmin\SqlParser\Parser InsertStatement
      * @param  array $tableColumnTypes Array having form of [table => column => type]
-     * @param  array $tableRows        Reference to array having form of [table => [column => type]]
      * @return null
      */
-    protected function insertsToTableRows($inserts, $tableColumnTypes, &$tableRows)
+    protected function insertsToTableRows($inserts, $tableColumnTypes)
     {
+        $tableRows = [];
+
         $substitutions = config('snapshot.substitutions.upload');   //TODO this should probably be handled by ImportSnapshot passing --exclude=table1,table2,... but would need to figure out syntax for passing substitutions
 
         foreach ($this->option('exclude') as $exclude) {
@@ -218,6 +226,8 @@ class ImportMySQL extends Command
                 $tableRows[$table] []= $fieldValues;
             }
         }
+
+        return $tableRows;
     }
 
     /**
