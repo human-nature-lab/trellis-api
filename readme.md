@@ -26,9 +26,7 @@
       - [Add trellis-api to your hosts file](#add-trellis-api-to-your-hosts-file)
       - [Provision Homestead](#provision-homestead-1)
       - [Open the ~/Code/trellis-api directory in your local editor (Atom, PHPStorm, etc)](#open-the-codetrellis-api-directory-in-your-local-editor-atom-phpstorm-etc)
-      - [Download initial database seed data](#download-initial-database-seed-data)
-      - [Create database within Homestead and seed it](#create-database-within-homestead-and-seed-it)
-      - [Set "admin" user password to "***REMOVED***" (without quotes), to allow login at http://trellislocaldev.net/#/login](#set-admin-user-password-to-***REMOVED***-without-quotes-to-allow-login-at-httptrellislocaldevnetlogin)
+      - [Create database within Homestead](#create-database-within-homestead)
       - [Install trellis-api](#install-trellis-api-1)
       - [Visit trellis-api in the browser: http://api.trellislocaldev.net/](#visit-trellis-api-in-the-browser-httpapitrellislocaldevnet)
     + [Install trellis-app](#install-trellis-app)
@@ -49,6 +47,9 @@
     + [Perform Synchronization](#perform-synchronization)
       - [Upload](#upload)
       - [Download](#download)
+  * [Database Administration](#database-administration)
+      - [Update local database schema](#update-local-database-schema)
+      - [Import live database into local development database](#import-live-database-into-local-development-database)
 
 ------
 
@@ -281,21 +282,10 @@ QUEUE_DRIVER=database
 TOKEN_EXPIRE=60
 ```
 
-#### Download initial database seed data
-
-Save [https://github.com/human-nature-lab/trellis-vagrant/blob/master/trellis2.sql](https://github.com/human-nature-lab/trellis-vagrant/blob/master/trellis2.sql) to ~/Code/trellis-api/trellis2.sql
-
-#### Create database within Homestead and seed it
+#### Create database within Homestead
 ```
-mysql -hlocalhost -uhomestead -psecret -e "drop database trellis;"
+mysql -hlocalhost -uhomestead -psecret -e "drop database trellis;" # ignore error if not exist
 mysql -hlocalhost -uhomestead -psecret -e "create database trellis;"
-mysql -hlocalhost -uhomestead -psecret trellis < trellis2.sql
-```
-
-#### Set "admin" user password to "***REMOVED***" (without quotes), to allow login at [http://trellislocaldev.net/#/login](http://trellislocaldev.net/#/login)
-```
-CRYPT_PASSWORD=$(php -r'echo(password_hash("***REMOVED***",CRYPT_BLOWFISH));')
-mysql -hlocalhost -uhomestead -psecret -e'update user set password="'"$CRYPT_PASSWORD"'" where 1;' trellis
 ```
 
 #### Install trellis-api
@@ -316,10 +306,13 @@ chmod -R 775 storage/framework
 mkdir storage/framework/sessions
 chmod -R 775 storage/framework/sessions
 composer install
+php artisan migrate --seed
+php vendor/bin/phpunit
 ```
 
 #### Visit trellis-api in the browser: [http://api.trellislocaldev.net/](http://api.trellislocaldev.net/)
-*You should see {"msg":"Unauthorized"}*
+
+*You should see {"msg":"Unauthorized"} because the X-Key header is required (this is expected behavior)*
 
 ------
 
@@ -376,7 +369,7 @@ Enter:
 
 `admin`
 
-`***REMOVED***`
+`helloworld`
 
 Press the `Login` button to log into Trellis.
 
@@ -436,7 +429,7 @@ Press the `Login` button to log into Trellis.
 
   3. Click on the `Body` tab and enter the following text:
 
-     - `{"username":"admin","pass":"***REMOVED***"}`
+     - `{"username":"admin","pass":"helloworld"}`
 
   4. Click `Send`
 
@@ -464,7 +457,7 @@ Press the `Login` button to log into Trellis.
        --header 'X-Key: ***REMOVED***' \
        --header 'Content-Type: application/json;charset=UTF-8' \
        --header 'Accept: application/json, text/plain, */*' \
-       --data-binary '{"username":"admin","pass":"***REMOVED***"}' \
+       --data-binary '{"username":"admin","pass":"helloworld"}' \
        --silent 2>&1 | python -c "import json,sys;obj=json.load(sys.stdin);print obj['token']['hash'];"
      ```
 
@@ -518,7 +511,212 @@ curl --request GET \
   --remote-name --remote-header-name
 ```
 
-*You should see a newly-created file like `0000000000000001.sqlite.sql.gz` indicating that the API request was successful*
+*You should see either: 1) a 202 Accepted response code and no body (indicating that the next snapshot is being created and to try again in a few moments) or 2) a 200 OK response code and a newly-created file like `0000000000000001.sqlite.sql.gz` indicating that the API request was successful*
 
 The client app should unzip and read in bytes from the dump (either to a fresh database to replace the old database, or by dumping and recreating its existing database).  Each statement is separated by `";\n"` (`\n` is the linefeed character having ASCII code 10).  Any linefeeds in the fields of the dump are guaranteed to be escaped as the literal characters `\n`, so will never be mistaken for the ";\n" semicolon linefeed sequence.
+
+------
+
+## Database Administration
+
+The following workflow was used to convert the previous Trellis development database to its current schema.  Note that this destroys any existing tables and migrations.
+
+#### Update local database schema
+
+- Export development or production database to `live-dump.sql`:
+
+  ```
+  mysqldump -u<live-user> -p --single-transaction --compact trellis > live-dump.sql
+  ```
+
+- Log into local server
+
+  ```
+  vagrant ssh
+  cd Code/trellis-api
+  ```
+
+- Import SQL dump from development or production into local database
+
+     ```
+     mysql -hlocalhost -uhomestead -psecret -D trellis -o < live-dump.sql
+     ```
+
+- Remove existing migrations
+
+     ````
+     rm database/migrations/*
+     ````
+
+- Generate migrations from current database schema
+
+     ```
+     php artisan migrate:generate
+     ```
+
+- Merge migrations into 1 file
+
+     ```
+     composer dump-autoload && php artisan trellis:merge:migrations > "database/migrations/$(date +%Y%m%d%H%M%S)create_tables.php"
+     ```
+
+- Check repeatedly with
+
+     ```
+     composer dump-autoload && php artisan trellis:simulate:migrate --preserve && php artisan trellis:check:mysql:json --database=trellis_simulated
+     ```
+
+- Inside `xxxx_xx_xx_xxxxxx_create_tables`, replace:
+
+     ```
+     ->unique('id_UNIQUE')
+     ```
+
+- with:
+         ->primary()
+
+- Replace:
+         ->default('')->unique('key_id_UNIQUE');
+
+- with:
+         ->primary()
+
+- Replace:
+         ->default('')->unique('token_id_UNIQUE')
+
+- with:
+         ->primary()
+
+- Replace:
+         $table->timestamps();
+
+- with:
+         $table->dateTime('created_at');
+         $table->dateTime('updated_at');
+         // $table->timestamps();
+
+- Replace:
+         $table->softDeletes();
+
+- with:
+         $table->dateTime('deleted_at')->nullable();
+         // $table->softDeletes();
+
+- Replace:
+         boolean(
+
+- with:
+         unsignedTinyInteger
+
+- Replace:
+         unsignedTinyInteger('is_published')
+
+- with:
+         boolean('is_published')
+
+- Replace:
+         unsignedTinyInteger('can_enumerator_add')
+
+- with:
+         boolean('can_enumerator_add')
+
+- Replace:
+         unsignedTinyInteger('can_contain_respondent')
+
+- with:
+         boolean('can_contain_respondent')
+
+- Replace:
+         unsignedTinyInteger('is_repeatable')
+
+- with:
+         boolean('is_repeatable')
+
+#### Import live database into local development database
+
+- (Optional but recommended) on live: ensure that there are no null updated_at fields:
+
+     ````
+      update `key` set updated_at = created_at where updated_at is null;
+     ````
+
+- Export production database to `live-dump.sql`
+
+     ```
+     mysqldump -uhomestead -psecret --host 192.168.10.10 --port 3306 --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
+     ```
+
+- In `live-dump.sql`, replace any cases of:
+
+     ```
+     ('1','X-Key','***REMOVED***','2016-01-14 16:22:46',NULL,NULL);
+     ```
+
+- with:
+
+     ```
+     ('1','X-Key','***REMOVED***','2016-01-14 16:22:46','2016-01-14 16:22:46',NULL);
+     ```
+
+- On local dev: delete all tables in `trellis` database (or drop and create `trellis`)
+
+     ```
+     mysql -hlocalhost -uhomestead -psecret -e "drop database trellis;" # ignore error if not exist
+     mysql -hlocalhost -uhomestead -psecret -e "create database trellis;"
+     ```
+
+- Migrate database
+
+     ```
+     php artisan migrate
+     ```
+
+- Number the migrations so they can be rolled back:
+
+     ```
+     SET @i = 0; UPDATE migrations SET batch=(@i:=@i+1);
+     ```
+
+- Roll back migrations until only `xxxx_xx_xx_xxxxxx_create_tables` remains (likely at least 5 times):
+
+     ```
+     php artisan migrate:rollback
+     ```
+
+- Import live-dump.sql
+
+     ```
+     mysql -hlocalhost -uhomestead -psecret -D trellis -o < live-dump.sql
+     ```
+
+- Migrate database to newest schema
+
+     ```
+     php artisan migrate
+     ```
+
+- Add default rows for datum_type and condition_tag
+
+     ```
+     insert ignore into datum_type (id, name, created_at, updated_at, deleted_at) values (0, 'default', now(), now(), now());
+     insert ignore into condition_tag (id,name,created_at,updated_at,deleted_at) values ('','default',now(),now(),now());
+     ```
+
+- Fix rows to consistently point to default ids
+
+     ```
+     update datum set datum_type_id = 0 where datum_type_id = '';
+     ```
+
+- Add any needed default rows to ensure foreign key consistency (TODO clean this up to only use ids of null, 0 or '')
+
+ ```
+ insert into datum (id, name, val, choice_id, survey_id, question_id, repetition, parent_datum_id, datum_type_id, sort_order, created_at, updated_at, deleted_at) values ('', 'default', '', null, '22948e4d-e91d-4d7f-b60c-10081e4d378a', null, 0, null, 0,null, now(), now(), now());
+ ```
+
+- Verify that foreign keys are consistent
+
+     ```
+     php artisan trellis:check:mysql
+     ```
 
