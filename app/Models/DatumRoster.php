@@ -15,11 +15,11 @@ class DatumRoster extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'datum_id',
         'name',
-        'read_only'
+        'read_only',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

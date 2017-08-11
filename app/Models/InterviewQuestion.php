@@ -15,14 +15,14 @@ class InterviewQuestion extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'interview_id',
         'question_id',
         'enter_date',
         'answer_date',
         'leave_date',
-        'elapsed_time'
+        'elapsed_time',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

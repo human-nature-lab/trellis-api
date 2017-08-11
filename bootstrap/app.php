@@ -4,6 +4,10 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 Dotenv::load(__DIR__.'/../');
 
+if (env('MAX_EXECUTION_TIME')) {
+    ini_set('max_execution_time', env('MAX_EXECUTION_TIME'));
+}
+
 /*
 |--------------------------------------------------------------------------
 | Create The Application
@@ -15,12 +19,58 @@ Dotenv::load(__DIR__.'/../');
 |
 */
 
-$app = new Laravel\Lumen\Application(
+if (!class_exists('Application')) {
+    class Application extends Laravel\Lumen\Application
+    {
+        /**
+         * Get the path to the application configuration files.
+         *
+         * @param string $path Optionally, a path to append to the config path
+         * @return string
+         */
+        public function configPath($path = '')
+        {
+            return $this->basePath.DIRECTORY_SEPARATOR.'config'.($path ? DIRECTORY_SEPARATOR.$path : $path);
+        }
+    }
+}
+
+if (!function_exists('config_path')) {
+    /**
+     * Get the configuration path.
+     *
+     * @param  string $path
+     * @return string
+     */
+    function config_path($path = '')
+    {
+        return app()->basePath() . '/config' . ($path ? '/' . $path : $path);
+    }
+}
+
+if (!function_exists('app_path')) {
+    /**
+     * Get the path to the application folder.
+     *
+     * @param  string $path
+     * @return string
+     */
+    function app_path($path = '')
+    {
+        return app('path') . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+    }
+}
+
+if (!class_exists('Config')) {
+    class_alias('Illuminate\Support\Facades\Config', 'Config');
+}
+
+$app = new Application(
     realpath(__DIR__.'/../')
 );
 
- $app->withFacades();
- $app->withEloquent();
+$app->withFacades();
+$app->withEloquent();
 
 /*
 |--------------------------------------------------------------------------
@@ -80,7 +130,7 @@ $app->singleton(
 
  $app->register(App\Providers\AppServiceProvider::class);
 // $app->register(Barryvdh\Cors\LumenServiceProvider::class);
-// $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\EventServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------

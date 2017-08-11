@@ -15,11 +15,11 @@ class Locale extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'language_tag',
         'language_name',
-        'language_native'
+        'language_native',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

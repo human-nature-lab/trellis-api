@@ -20,13 +20,13 @@ class GeoType extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'parent_id',
         'study_id',
         'name',
         'can_enumerator_add',
         'can_contain_respondent',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 }

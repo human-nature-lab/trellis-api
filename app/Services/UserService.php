@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Token;
 use App\Models\User;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
@@ -22,9 +23,23 @@ class UserService
 
     public static function getCurrentUserId()
     {
-        $userId = Auth::User()->id;
+        $token = \Request::header('X-Token');
+        $tokenModel = Token::where('token_hash', $token)
+            ->withTrashed()    // find token regardless of deleted_at (user logs in elsewhere but token could expire during request)
+            ->orderBy('deleted_at', 'asc')  // prefer non-deleted (null first)
+            ->first();
 
-        return $userId;
+        if (!$tokenModel) {
+            return null;
+        }
+
+        $user = User::find($tokenModel->user_id);
+
+        return $user ? $user->id : null;
+
+        // $userId = Auth::User()->id;
+        //
+        // return $userId;
     }
 
     public static function createNewUser(Request $request)

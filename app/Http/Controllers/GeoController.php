@@ -10,7 +10,6 @@ use App\Models\Geo;
 use App\Library\TranslationHelper;
 use Ramsey\Uuid\Uuid;
 use DB;
-use Illuminate\Support\Facades\Log;
 
 class GeoController extends Controller
 {
@@ -91,7 +90,7 @@ class GeoController extends Controller
 
         //$geoModel->load('nameTranslation');
 
-        //Log::info('Query: ' . $geoModel);
+        //\Log::info('Query: ' . $geoModel);
 
         return response()->json(
             ['geos' => $geoModel],

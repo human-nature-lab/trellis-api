@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Log;
 
 class QuestionGroup extends Model
 {
@@ -15,15 +14,15 @@ class QuestionGroup extends Model
     protected $table = 'question_group';
 
     protected $fillable = [
-            'id',
-            'created_at',
-            'updated_at',
-            'deleted_at',
+        'id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function delete()
     {
-        //Log::info('QuestionGroup->delete()');
+        //\Log::info('QuestionGroup->delete()');
 
         $childQuestions = Question::where("question_group_id", $this->id)->get();
         foreach ($childQuestions as $childQuestion) {

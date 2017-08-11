@@ -2,14 +2,19 @@
 
 namespace app\Http\Controllers;
 
+use App\Library\DatabaseHelper;
+use App\Library\FileHelper;
+use App\Models\Device;
+use App\Models\Epoch;
+use App\Models\Log;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
-use Validator;
-use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
-use Log;
+use League\Flysystem\Filesystem;
+use Validator;
 
 class SyncController extends Controller
 {
@@ -40,8 +45,7 @@ class SyncController extends Controller
             'id' => $deviceId
         ]), [
             'id' => 'required|string|min:14|exists:device,device_id',
-            'table' => 'required|string|min:1',
-            'continuationToken' => 'string|min:1'
+            'table' => 'required|string|min:1'
         ]);
 
         if ($validator->fails() === true) {
@@ -55,7 +59,6 @@ class SyncController extends Controller
 
         $response["deviceId"] = $deviceId;
         $response["table"] = $request->input('table');
-        $response["continuationToken"] = null;
 
         $tableClass = str_replace(' ', '', ucwords(str_replace('_', ' ', $request->input('table'))));
         $className = "\\App\\Models\\$tableClass";
@@ -74,8 +77,7 @@ class SyncController extends Controller
             'id' => $deviceId
         ]), [
             'id' => 'required|string|min:14|exists:device,device_id',
-            'table' => 'required|string|min:1',
-            'continuationToken' => 'string|min:1'
+            'table' => 'required|string|min:1'
         ]);
 
         if ($validator->fails() === true) {
@@ -95,8 +97,8 @@ class SyncController extends Controller
             $fields = implode(',', array_keys($row));
             $values = '?' . str_repeat(',?', count($row) - 1);
             $insertQuery = 'insert ignore into ' . $request->input('table') . ' (' . $fields . ') values (' . $values . ')';
-            Log::debug($insertQuery);
-            Log::debug(implode(", ", array_values($row)));
+            \Log::debug($insertQuery);
+            \Log::debug(implode(", ", array_values($row)));
             DB::insert($insertQuery, array_values($row));
         }
         DB::statement('SET FOREIGN_KEY_CHECKS = 1');
@@ -177,5 +179,80 @@ class SyncController extends Controller
                     Response::HTTP_OK);
             }
         }
+    }
+
+    public function uploadSync(Request $request, $deviceId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        ob_start();
+
+        $resultCode = Artisan::call('trellis:import:snapshot');
+
+        $result = json_decode(ob_get_clean(), true);
+
+        if ($resultCode != 0) {
+            return response()->json($result, Response::HTTP_BAD_REQUEST); // if any inconsistent rows, return them with error code and roll back transaction
+            // \App::abort(Response::HTTP_CONFLICT, json_encode($inconsistencies, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));    // message doesn't work
+            // throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($inconsistencies)));
+        }
+
+        $epoch = Epoch::inc();    // increment epoch if any rows were written or logged
+
+        Device::where('device_id', $deviceId)
+            ->update([
+                'epoch' => $epoch
+            ]);
+
+        return response()->json([]/*$writes*/, Response::HTTP_OK); // now <name_greater_than_or_equal_to_epoch>.sqlite.sql.zip must exist in order to download snapshot, otherwise client must wait for next snapshot to be generated
+    }
+
+    public function downloadSync(Request $request, $deviceId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        Artisan::call('trellis:export:snapshot');
+
+        app()->configure('snapshot');   // save overhead by only loading config when needed
+
+        $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory.path'));
+        $files = glob("$snapshotDirPath/*");
+
+        if (count($files)) {
+            $files = array_combine($files, array_map("filemtime", $files));
+            $newestFilePath = array_keys($files, max($files))[0];
+            $newestFileName = basename($newestFilePath);
+            $hex = explode('.', $newestFileName)[0];
+            $snapshotEpoch = Epoch::dec($hex)*1;
+            $deviceEpoch = Device::where('device_id', $deviceId)->first()->epoch;
+
+            if ($snapshotEpoch >= $deviceEpoch) {
+                return response()->download($newestFilePath, $newestFileName);   // if snapshot epoch >= than device's epoch, then return binary file download
+            }
+        }
+
+        return response()->json([], Response::HTTP_ACCEPTED);   // if no snapshot epoch >= than device's epoch, then return 202 Accepted to make client retry later
     }
 }

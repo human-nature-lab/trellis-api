@@ -15,13 +15,14 @@ class Survey extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'respondent_id',
         'form_id',
         'study_id',
-        'last_question_id'
+        'last_question_id',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'completed_at'
     ];
 
     public function delete()

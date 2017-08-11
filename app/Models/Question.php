@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Log;
 
 class Question extends Model
 {
@@ -16,14 +15,14 @@ class Question extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'question_type_id',
         'question_translation_id',
         'question_group_id',
         'sort_order',
-        'var_name'
+        'var_name',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function questionTranslation()
@@ -67,7 +66,7 @@ class Question extends Model
 
     public function delete()
     {
-        //Log::info('Question->delete()');
+        //\Log::info('Question->delete()');
         QuestionChoice::where('question_id', $this->id)
             ->delete();
 

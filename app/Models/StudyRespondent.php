@@ -15,10 +15,10 @@ class StudyRespondent extends Model
 
     protected $fillable = [
         'id',
+        'study_id',
+        'respondent_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'study_id',
-        'respondent_id'
+        'deleted_at'
     ];
 }

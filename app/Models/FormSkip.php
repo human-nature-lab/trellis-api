@@ -15,10 +15,10 @@ class FormSkip extends Model
 
     protected $fillable = [
         'id',
+        'form_id',
+        'skip_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'form_id',
-        'skip_id'
+        'deleted_at'
     ];
 }

@@ -15,10 +15,10 @@ class Edge extends Model
 
     protected $fillable = [
         'id',
+        'source_respondent_id',
+        'target_respondent_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'source_respondent_id',
-        'target_respondent_id'
+        'deleted_at'
     ];
 }

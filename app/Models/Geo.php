@@ -15,15 +15,15 @@ class Geo extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'geo_type_id',
         'parent_id',
         'latitude',
         'longitude',
         'altitude',
-        'name_translation_id'
+        'name_translation_id',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function nameTranslation()

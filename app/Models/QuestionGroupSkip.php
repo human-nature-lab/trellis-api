@@ -15,10 +15,10 @@ class QuestionGroupSkip extends Model
 
     protected $fillable = [
         'id',
+        'question_group_id',
+        'skip_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'question_group_id',
-        'skip_id'
+        'deleted_at'
     ];
 }

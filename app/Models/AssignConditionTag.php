@@ -15,12 +15,12 @@ class AssignConditionTag extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'condition_tag_id',
         'logic',
-        'scope'
+        'scope',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
 
