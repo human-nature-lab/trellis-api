@@ -15,10 +15,10 @@ class UserStudy extends Model
 
     protected $fillable = [
         'id',
+        'user_id',
+        'study_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'user_id',
-        'study_id'
+        'deleted_at'
     ];
 }

@@ -15,10 +15,10 @@ class GroupTag extends Model
 
     protected $fillable = [
         'id',
+        'group_tag_type_id',
+        'name',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'group_tag_type_id',
-        'name'
+        'deleted_at'
     ];
 }

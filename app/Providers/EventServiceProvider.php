@@ -6,14 +6,23 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 
 class EventServiceProvider extends ServiceProvider
 {
+    // /**
+    //  * The event listener mappings for the application.
+    //  *
+    //  * @var array
+    //  */
+    // protected $listen = [
+    //     'App\Events\SomeEvent' => [
+    //         'App\Listeners\EventListener',
+    //     ],
+    // ];
+
     /**
-     * The event listener mappings for the application.
+     * The subscriber classes to register.
      *
      * @var array
      */
-    protected $listen = [
-        'App\Events\SomeEvent' => [
-            'App\Listeners\EventListener',
-        ],
+    protected $subscribe = [
+        'App\Listeners\ModelEventListener',
     ];
 }

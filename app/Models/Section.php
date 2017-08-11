@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Log;
 
 class Section extends Model
 {
@@ -16,10 +15,10 @@ class Section extends Model
 
     protected $fillable = [
         'id',
+        'name_translation_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'name_translation_id',
+        'deleted_at'
     ];
 
     public function nameTranslation()
@@ -47,7 +46,7 @@ class Section extends Model
 
     public function delete()
     {
-        Log::Debug("Got here.");
+        \Log::Debug("Got here.");
         $childSectionQuestionGroups = SectionQuestionGroup::where('section_id', '=', $this->id)->get();
         foreach ($childSectionQuestionGroups as $childSectionQuestionGroup) {
             $childSectionQuestionGroup->delete();

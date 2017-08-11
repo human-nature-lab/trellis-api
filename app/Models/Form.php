@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Log;
 
 class Form extends Model
 {
@@ -16,13 +15,13 @@ class Form extends Model
 
     protected $fillable = [
         'id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
         'form_master_id',
         'name_translation_id',
         'version',
-        'is_published'
+        'is_published',
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function nameTranslation()
@@ -44,7 +43,7 @@ class Form extends Model
 
     public function delete()
     {
-        //Log::info("Form->delete()");
+        //\Log::info("Form->delete()");
         $childFormSections = FormSection::where('form_id', '=', $this->id)->get();
         foreach ($childFormSections as $childFormSection) {
             $childFormSection->delete();

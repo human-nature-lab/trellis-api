@@ -15,13 +15,13 @@ class Token extends Model
     protected $table = 'token';
 
     protected $fillable = [
-        'token_id',
-        'created_at',
-        'updated_at',
-        'deleted_at',
+        'id',
+        'user_id',
         'token_hash',
         'key_id',
-        'user_id'
+        'created_at',
+        'updated_at',
+        'deleted_at'
     ];
 
     public function user()

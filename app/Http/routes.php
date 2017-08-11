@@ -38,6 +38,16 @@ $app->post(
     'SyncController@download'
 );
 
+$app->post(
+    'device/{device_id}/upload',
+    'SyncController@uploadSync'
+);
+
+$app->get(
+    'device/{device_id}/download',
+    'SyncController@downloadSync'
+);
+
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 
     //**************************//
@@ -419,15 +429,6 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     $app->patch(
         'form/sections',
         'SectionController@updateSections'
-    );
-
-    //*********************************//
-    //* FormSection Controller Routes *//
-    //*********************************//
-
-    $app->post(
-        'form_section/{form_section_id}',
-        'FormSectionController@updateFormSection'
     );
 
     //****************************************//

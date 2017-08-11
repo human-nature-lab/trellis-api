@@ -15,10 +15,10 @@ class SurveyConditionTag extends Model
 
     protected $fillable = [
         'id',
+        'survey_id',
+        'condition_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'study_id',
-        'condition_id'
+        'deleted_at'
     ];
 }

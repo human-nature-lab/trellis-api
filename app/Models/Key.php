@@ -6,16 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Key extends Model
 {
-    public $timestamps = false;
-
     protected $table = 'key';
 
     protected $fillable = [
         'id',
+        'name',
+        'hash',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'key_hash',
-        'key_name'
+        'deleted_at'
     ];
 }

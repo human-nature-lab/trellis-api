@@ -1,5 +1,8 @@
 <?php
 
+use Laravel\Lumen\Testing\DatabaseMigrations;
+use Laravel\Lumen\Testing\DatabaseTransactions;
+
 class ExampleTest extends TestCase
 {
     /**
@@ -7,9 +10,12 @@ class ExampleTest extends TestCase
      *
      * @return void
      */
-    public function testBasicExample()
+    public function testExample()
     {
-        $this->visit('/')
-             ->see('Lumen.');
+        $this->get('/');
+
+        $this->assertEquals(
+            '{"msg":"Unauthorized"}', $this->response->getContent()
+        );
     }
 }

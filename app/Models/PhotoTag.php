@@ -15,10 +15,10 @@ class PhotoTag extends Model
 
     protected $fillable = [
         'id',
+        'photo_id',
+        'tag_id',
         'created_at',
         'updated_at',
-        'deleted_at',
-        'photo_id',
-        'tag_id'
+        'deleted_at'
     ];
 }
