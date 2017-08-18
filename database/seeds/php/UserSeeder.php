@@ -3,15 +3,17 @@
 use Illuminate\Database\Seeder;
 use Illuminate\Database\QueryException;
 
-class KeySeeder extends Seeder
+class UserSeeder extends Seeder
 {
     public function run()
     {
         try {
-            DB::table('key')->insert([
-                'id' => 1,
-                'name' => 'X-Key',
-                'hash' => env('APP_KEY'),
+            DB::table('user')->insert([
+                'id' => 'c1f277ab-e181-11e5-84c9-a45e60f0e921',
+                'name' => 'Default Admin',
+                'username' => 'admin',
+                'password' => bcrypt('helloworld'),
+                'role' => 'ADMIN',
                 'created_at' => new DateTime('now'),
                 'updated_at' => new DateTime('now')
             ]);
