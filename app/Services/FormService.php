@@ -166,7 +166,7 @@ class FormService
             $newStudyFormModel->form_master_id = $formMasterId;
             // TODO: Pass in and set sort_order
             $newStudyFormModel->sort_order = 0;
-            $newStudyFormModel->form_type = $formType;
+            $newStudyFormModel->form_type = 1*$formType;
             $newStudyFormModel->save();
         });
 
