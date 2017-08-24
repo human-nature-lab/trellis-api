@@ -19,6 +19,7 @@ class SectionConditionTag extends Model
         'condition_id',
         'survey_id',
         'repetition',
+        'follow_up_datum_id',
         'created_at',
         'updated_at',
         'deleted_at'
