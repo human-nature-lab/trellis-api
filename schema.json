@@ -75,15 +75,6 @@
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
     },
-    "datum_roster": {
-        "id": "string(41):primary",
-        "datum_id": "string(41):nullable:index",
-        "name": "string(255)",
-        "read_only": "integer(11):nullable",
-        "created_at": "dateTime",
-        "updated_at": "dateTime",
-        "deleted_at": "dateTime:nullable"
-    },
     "datum_type": {
         "id": "string(41):primary",
         "name": "string(255)",
