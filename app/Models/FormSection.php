@@ -23,6 +23,7 @@ class FormSection extends Model
         'is_repeatable',
         'max_repetitions',
         'repeat_prompt_translation_id',
+        'follow_up_question_id',
         'created_at',
         'updated_at',
         'deleted_at'

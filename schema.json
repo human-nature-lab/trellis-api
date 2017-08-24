@@ -128,6 +128,7 @@
         "is_repeatable": "tinyInteger(1):default(0)",
         "max_repetitions": "tinyInteger(3):unsigned:default(0)",
         "repeat_prompt_translation_id": "string(41):nullable:index",
+        "follow_up_question_id": "string(41):nullable:index",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
