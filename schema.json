@@ -375,6 +375,7 @@
         "condition_id": "string(41):index",
         "survey_id": "string(41):index",
         "repetition": "integer(10):unsigned:default(0)",
+        "follow_up_datum_id": "string(41):nullable:index",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
