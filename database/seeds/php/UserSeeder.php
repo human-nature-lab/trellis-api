@@ -8,11 +8,15 @@ class UserSeeder extends Seeder
     public function run()
     {
         try {
+            $password = 'helloworld';
+            if (getenv('PASSWORD')) {
+                $password = getenv('PASSWORD');
+            }
             DB::table('user')->insert([
                 'id' => 'c1f277ab-e181-11e5-84c9-a45e60f0e921',
                 'name' => 'Default Admin',
                 'username' => 'admin',
-                'password' => bcrypt('helloworld'),
+                'password' => bcrypt($password),
                 'role' => 'ADMIN',
                 'created_at' => new DateTime('now'),
                 'updated_at' => new DateTime('now')
