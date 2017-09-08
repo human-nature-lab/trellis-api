@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\MergeMigrations::class,
         \App\Console\Commands\ShowMySQLJSON::class,
         \App\Console\Commands\ShowMySQLForeignKeys::class,
+        \App\Console\Commands\ShowMySQLForeignKeyCycles::class,
         \App\Console\Commands\SimulateMigrate::class,
         \App\Console\Commands\SimulateMigrateRollback::class,
         \App\Console\Commands\ToTable::class,
