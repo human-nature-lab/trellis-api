@@ -20,6 +20,14 @@ class DatabaseHelper
         return ($quote ? '`' : '') . preg_replace('/[^0-9a-zA-Z_\.]/', '', $string) . ($quote ? '`' : '');
     }
 
+	/**
+     * Similar to escape() but abbreviates the string by removing non-first letter vowels and runs of the same character, then truncates the result to 64 characters to fit within a MySQL identifier.
+     */
+	public static function abbreviate($string, $quote = true)
+    {
+        return ($quote ? '`' : '') . substr(static::escape(preg_replace('/(\w)\1+/', '\\1', preg_replace('/(?<=[^_.])\B[aeiouAEIOU]/', '', $string)), false), 0, 64) . ($quote ? '`' : '');
+    }
+
     /**
      * Return the current database.
      */
@@ -110,6 +118,36 @@ class DatabaseHelper
             })->toArray();
 
             // return DB::connection(config('database.default'))->getSchemaBuilder()->getColumnListing($table);
+        });
+    }
+
+    /**
+     * Returns array of the form:
+     *
+     * [
+     *     [
+     *         "Trigger" => "<trigger_name>",
+     *         "Event" => "INSERT|UPDATE|DELETE",
+     *         "Table" => "<table_name>",
+     *         "Statement" => """
+     *           begin\n
+     *               -- ...;\n
+     *           end
+     *           """,
+     *         "Timing" => "BEFORE|AFTER",
+     *         "Created" => "Y-m-d H:i:s",
+     *         "sql_mode" => "",
+     *         "Definer" => "user@domain",
+     *         "character_set_client" => "<character_set>",
+     *         "collation_connection" => "<collation>",
+     *         "Database Collation" => "<collation>",
+     *     ]
+     * ]
+     */
+    public static function triggers($table = null)
+    {
+        return static::fetch(PDO::FETCH_ASSOC, function () use ($table) {
+            return isset($table) ? DB::select('show triggers where `Table` = ?', [$table]) : DB::select('show triggers');
         });
     }
 
@@ -386,7 +424,7 @@ class DatabaseHelper
     public static function createSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
         if (!isset($triggerName)) {
-            $triggerName = $referencedTable . '_' . $table . '_cascade';
+            $triggerName = static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
         }
 
         $escapedTable = static::escape($table);
@@ -423,7 +461,7 @@ EOT
     public static function dropSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
         if (!isset($triggerName)) {
-            $triggerName = $referencedTable . '_' . $table . '_cascade';
+            $triggerName = static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
         }
 
         $escapedTriggerName = static::escape($triggerName);
