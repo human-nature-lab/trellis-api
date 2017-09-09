@@ -8,13 +8,13 @@ use PDO;
 
 class DatabaseHelper
 {
-    /**
+	/**
      * Returns the escaped form of an arbitrary string for safe usage directly in a raw SQL query.
      *
      * Currently alphanumeric characters, underscore and period are allowed.
      *
      * Note that this is not standardized across SQL databases: https://stackoverflow.com/a/1543309/539149
-    */
+     */
     public static function escape($string, $quote = true)
     {
         return ($quote ? '`' : '') . preg_replace('/[^0-9a-zA-Z_\.]/', '', $string) . ($quote ? '`' : '');
@@ -22,7 +22,7 @@ class DatabaseHelper
 
     /**
      * Return the current database.
-    */
+     */
     public static function database()
     {
         return data_get(head(DB::select('select database() from dual')), 'database()');
@@ -30,7 +30,7 @@ class DatabaseHelper
 
     /**
      * Use the specified database (or current database if empty) until callable finishes, then restore the previous one.
-    */
+     */
     public static function useDatabase($database, $callable)
     {
         if (!strlen($database)) {
@@ -54,7 +54,7 @@ class DatabaseHelper
 
     /**
      * Calls DB::setFetchMode($mode) and returns the result of $callable, restoring the old mode afterwards.
-    */
+     */
     public static function fetch($mode, $callable)
     {
         $oldMode = DB::getFetchMode();
@@ -74,7 +74,7 @@ class DatabaseHelper
 
     /**
      * Returns an array of all of the tables in the current database.
-    */
+     */
     public static function tables()
     {
         return static::fetch(PDO::FETCH_ASSOC, function () {
@@ -262,7 +262,7 @@ class DatabaseHelper
 
     /**
      * Returns current database version.
-    */
+     */
     public static function version()
     {
         preg_match('/^[0-9\.]+/', DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION), $matches);    // extract dotted decimal from versions like '5.6.28-0ubuntu0.14.04.1 (Ubuntu)'
@@ -272,7 +272,7 @@ class DatabaseHelper
 
     /**
      * Returns size of current database in bytes.
-    */
+     */
     public static function sizeInBytes()
     {
         return static::fetch(PDO::FETCH_ASSOC, function () {
@@ -334,7 +334,7 @@ class DatabaseHelper
 
     /**
      * Returns the length portion (in parentheses) of a MySQL type or null if not present.
-    */
+     */
     public static function typeLength($type)
     {
         return ((int) trim(strstr($type, '('), '()')) ?: null;
@@ -342,7 +342,7 @@ class DatabaseHelper
 
     /**
      * Returns true if MySQL type is unsigned or false otherwise.
-    */
+     */
     public static function typeUnsigned($type)
     {
         return strcasecmp(substr($type, -strlen(' unsigned')), ' unsigned') == 0;
@@ -352,7 +352,7 @@ class DatabaseHelper
      * Returns the floating point UTC unix timestamp for when the row was updated.
      *
      * $row can be an associative array or object.
-    */
+     */
     public static function modifiedAt($row)
     {
         return max(array_map(function ($field) use ($row) {
@@ -364,7 +364,7 @@ class DatabaseHelper
 
     /**
      * Returns the floating point UTC unix timestamp for when the database was updated.
-    */
+     */
     public static function databaseModifiedAt($database = null)
     {
         if (!isset($database)) {
@@ -389,11 +389,11 @@ class DatabaseHelper
             $triggerName = $referencedTable . '_' . $table . '_cascade';
         }
 
-        $escapedTable = DatabaseHelper::escape($table);
-        $escapedColumn = DatabaseHelper::escape($column);
-        $escapedReferencedTable = DatabaseHelper::escape($referencedTable);
-        $escapedReferencedColumn = DatabaseHelper::escape($referencedColumn);
-        $escapedTriggerName = DatabaseHelper::escape($triggerName);
+        $escapedTable = static::escape($table);
+        $escapedColumn = static::escape($column);
+        $escapedReferencedTable = static::escape($referencedTable);
+        $escapedReferencedColumn = static::escape($referencedColumn);
+        $escapedTriggerName = static::escape($triggerName);
 
         if ($dropTriggerIfExists) {
             DB::unprepared(<<<EOT
@@ -426,7 +426,7 @@ EOT
             $triggerName = $referencedTable . '_' . $table . '_cascade';
         }
 
-        $escapedTriggerName = DatabaseHelper::escape($triggerName);
+        $escapedTriggerName = static::escape($triggerName);
 
         if ($dropTriggerIfExists) {
             DB::unprepared(<<<EOT
