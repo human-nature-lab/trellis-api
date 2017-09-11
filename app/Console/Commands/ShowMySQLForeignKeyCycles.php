@@ -71,7 +71,7 @@ class ShowMySQLForeignKeyCycles extends Command
      *
      * @var string
      */
-    protected $description = 'Check MySQL foreign key cycles.  Prints JSON string of "[table1: [column1: [table2 : [column2: ...table1]]]]" for any foreign keys that have cycles';
+    protected $description = 'Show MySQL foreign key cycles.  Prints JSON string of "[[fk1, fk2, ...], [fk3, fk4, ...], ...[fk5, fk6, ...]]" for any foreign keys that have cycles';
 
     /**
      * Execute the console command.
@@ -112,8 +112,13 @@ class ShowMySQLForeignKeyCycles extends Command
         }
 
         $tableColumnTraversals = array_filter($tableColumnTraversals);  // filter out traversals that have no cycles
+        $traversalForeignKeys = array_map(function ($traversal) use ($tableColumnForeignKeys) {
+            return array_filter(array_map(function ($tableColumn) use ($tableColumnForeignKeys) {
+                return isset($tableColumn[1]) ? $tableColumnForeignKeys[$tableColumn[0]][$tableColumn[1]] : null;
+            }, array_chunk($traversal, 2)));
+        }, $this->traversal($tableColumnTraversals));
 
-        echo json_encode($tableColumnTraversals, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+        echo json_encode($traversalForeignKeys, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL;
 
         return 0;
     }
@@ -151,5 +156,21 @@ class ShowMySQLForeignKeyCycles extends Command
         }
 
         return $this->traverseForeignKeys($tableColumnForeignKeys, $nextTable, $nextColumn, $findTable, $seen, $result);
+    }
+
+    // similar to array_dot() and Arr:dot() but returns traversals as arrays instead of strings
+    protected function traversal($array, $prepend = [])
+    {
+        $results = [];
+
+        foreach ($array as $key => $value) {
+            if (is_array($value) && ! empty($value)) {
+                $results = array_merge($results, $this->traversal($value, array_merge($prepend, [$key])));
+            } else {
+                $results []= array_merge($prepend, [$key], [$value]);
+            }
+        }
+
+        return $results;
     }
 }
