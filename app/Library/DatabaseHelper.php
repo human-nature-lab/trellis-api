@@ -414,6 +414,14 @@ class DatabaseHelper
         return (new Carbon($dateTime, 'UTC'))->format('U.u')*1;
     }
 
+	/**
+     * Returns the default soft delete trigger name corresponding to the specified table, column, referenced table and referenced column.
+     */
+    public static function softDeleteTriggerName($table, $column, $referencedTable, $referencedColumn)
+    {
+        return static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
+    }
+
     /**
      * Creates a trigger that sets the table row's deleted_at field when the referenced table rows's deleted_at becomes non-null.
      * Undeleting dependent rows must be implemented in code because it's not possible to tell which rows were soft-deleted prior to cascading.
@@ -424,7 +432,7 @@ class DatabaseHelper
     public static function createSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
         if (!isset($triggerName)) {
-            $triggerName = static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
+            $triggerName = static::softDeleteTriggerName($table, $column, $referencedTable, $referencedColumn);
         }
 
         $escapedTable = static::escape($table);
@@ -461,7 +469,7 @@ EOT
     public static function dropSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
         if (!isset($triggerName)) {
-            $triggerName = static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
+            $triggerName = static::softDeleteTriggerName($table, $column, $referencedTable, $referencedColumn);
         }
 
         $escapedTriggerName = static::escape($triggerName);
