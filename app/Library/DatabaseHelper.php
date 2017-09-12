@@ -704,7 +704,7 @@ repeat
     where `###`.`###` is not null
     and `###`.deleted_at is null
     and `\$``###`.deleted_at is not null;
-until (select row_count()) = 0 end repeat;
+until (select row_count()) <= 0 end repeat;
 
 end
 EOT
@@ -776,7 +776,7 @@ repeat
     where $escapedTable.$escapedColumn is not null
     and $escapedTable.deleted_at is null
     and `\$`$escapedReferencedTable.deleted_at is not null;
-until (select row_count()) = 0 end repeat;
+until (select row_count()) <= 0 end repeat;
 
 end
 ;
