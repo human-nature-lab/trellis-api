@@ -44,6 +44,7 @@ class Section extends Model
             ->with('questions', 'skips');
     }
 
+    /*
     public function delete()
     {
         $childSectionQuestionGroups = SectionQuestionGroup::where('section_id', '=', $this->id)->get();
@@ -58,4 +59,5 @@ class Section extends Model
 
         return parent::delete();
     }
+    */
 }

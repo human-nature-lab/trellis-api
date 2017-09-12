@@ -39,6 +39,7 @@ class Respondent extends Model
         ->withTimestamps();
     }
 
+    /*
     public function delete()
     {
         StudyRespondent::where('respondent_id', $this->id)
@@ -55,4 +56,5 @@ class Respondent extends Model
 
         return parent::delete();
     }
+    */
 }

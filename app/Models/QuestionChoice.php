@@ -25,6 +25,7 @@ class QuestionChoice extends Model
         'deleted_at'
     ];
 
+    /*
     public function delete()
     {
 
@@ -41,4 +42,5 @@ class QuestionChoice extends Model
 
         return parent::delete();
     }
+    */
 }

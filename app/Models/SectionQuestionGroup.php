@@ -23,6 +23,7 @@ class SectionQuestionGroup extends Model
         'deleted_at'
     ];
 
+    /*
     public function delete()
     {
         //\Log::info('SectionQuestionGroup->delete()');
@@ -37,4 +38,5 @@ class SectionQuestionGroup extends Model
 
         return parent::delete();
     }
+    */
 }
