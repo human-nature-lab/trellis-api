@@ -464,20 +464,26 @@ class DatabaseHelper
         return (new Carbon($dateTime, 'UTC'))->format('U.u')*1;
     }
 
-	/**
+    /**
      * Returns the default soft delete trigger name corresponding to the specified table, column, referenced table and referenced column.
+     *
+     * @param  string  $table               The table from where the soft delete originates.
+     * @param  string  $column              The column from where the soft delete originates.
+     * @param  string  $referencedTable     The table to where the soft delete cascades.
+     * @param  string  $referencedColumn    The column to where the soft delete cascades.
+     * @return string                       The name of the trigger.
      */
     public static function softDeleteTriggerName($table, $column, $referencedTable, $referencedColumn)
     {
         return static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
     }
 
-	/**
+    /**
      * Inverse of softDeleteTriggerName().  Derives the table, column, referenced table and referenced column based on the naming convention.
      *
      * Returns array of the form:
      *
-	 * [
+     * [
      *     [
      *         'table_name' => ,
      *         'column_name' => ,
@@ -488,6 +494,10 @@ class DatabaseHelper
      * ]
      *
      * Note that multiple candidates might be returned due to ambiguity with abbreviations unless $deriveFromTriggerIfExists is true, the trigger exists and it hasn't been modified.
+     *
+     * @param  string  $triggerName                 The name of the trigger.
+     * @param  boolean $deriveFromTriggerIfExists   (Optional) whether to automatically drop the trigger if it exists.
+     * @return array                                The foreign key fields corresponding to the trigger.
      */
     public static function softDeleteTriggerTableColumns($triggerName, $deriveFromTriggerIfExists = true)
     {
@@ -551,9 +561,17 @@ EOT
     /**
      * Creates a trigger that sets the table row's deleted_at field when the referenced table rows's deleted_at becomes non-null.
      * Undeleting dependent rows must be implemented in code because it's not possible to tell which rows were soft-deleted prior to cascading.
-     * Note that this function requires log_bin_trust_function_creators=1 to prevent "General error: 1419 You do not have the SUPER privilege and binary logging is enabled".
+     * Note that this method requires log_bin_trust_function_creators=1 to prevent "General error: 1419 You do not have the SUPER privilege and binary logging is enabled".
      *
      * Example: createSoftDeleteTrigger('user_addresses', 'user_id', 'users', 'id') soft-deletes any user_addresses where user_addresses.user_id = users.id when users are soft-deleted.
+     *
+     * @param  string  $table               The table from where the soft delete originates.
+     * @param  string  $column              The column from where the soft delete originates.
+     * @param  string  $referencedTable     The table to where the soft delete cascades.
+     * @param  string  $referencedColumn    The column to where the soft delete cascades.
+     * @param  string  $triggerName         (Optional) the name with which to override the default naming convention.
+     * @param  boolean $dropTriggerIfExists (Optional) whether to automatically drop the trigger if it exists.
+     * @return string                       The name of the trigger.
      */
     public static function createSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
@@ -588,12 +606,22 @@ end
 ;
 EOT
         );
+
+        return $triggerName;
     }
 
     /**
      * Drops a trigger that sets the table row's deleted_at field when the referenced table rows's deleted_at becomes non-null.
      * Undeleting dependent rows must be implemented in code because it's not possible to tell which rows were soft-deleted prior to cascading.
-     * Note that this function requires log_bin_trust_function_creators=1 to prevent "General error: 1419 You do not have the SUPER privilege and binary logging is enabled".
+     * Note that this method requires log_bin_trust_function_creators=1 to prevent "General error: 1419 You do not have the SUPER privilege and binary logging is enabled".
+     *
+     * @param  string  $table               The table from where the soft delete originates.
+     * @param  string  $column              The column from where the soft delete originates.
+     * @param  string  $referencedTable     The table to where the soft delete cascades.
+     * @param  string  $referencedColumn    The column to where the soft delete cascades.
+     * @param  string  $triggerName         (Optional) the name with which to override the default naming convention.
+     * @param  boolean $dropTriggerIfExists (Optional) whether to automatically drop the trigger if it exists.
+     * @return string                       The name of the trigger.
      */
     public static function dropSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
@@ -614,22 +642,30 @@ drop trigger $escapedTriggerName;
 EOT
             );
         }
+
+        return $triggerName;
     }
 
-	/**
+    /**
      * Returns the default soft delete procedure name corresponding to the specified table, column, referenced table and referenced column.
+     *
+     * @param  string  $table               The table from where the soft delete originates.
+     * @param  string  $column              The column from where the soft delete originates.
+     * @param  string  $referencedTable     The table to where the soft delete cascades.
+     * @param  string  $referencedColumn    The column to where the soft delete cascades.
+     * @return string                       The name of the procedure.
      */
     public static function softDeleteProcedureName($table, $column, $referencedTable, $referencedColumn)
     {
         return static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
     }
 
-	/**
+    /**
      * Inverse of softDeleteProcedureName().  Derives the table, column, referenced table and referenced column based on the naming convention.
      *
      * Returns array of the form:
      *
-	 * [
+     * [
      *     [
      *         'table_name' => ,
      *         'column_name' => ,
@@ -640,6 +676,10 @@ EOT
      * ]
      *
      * Note that multiple candidates might be returned due to ambiguity with abbreviations unless $deriveFromProcedureIfExists is true, the procedure exists and it hasn't been modified.
+     *
+     * @param  string  $procedureName               The name of the procedure.
+     * @param  boolean $deriveFromProcedureIfExists (Optional) whether to automatically drop the procedure if it exists.
+     * @return array                                The foreign key fields corresponding to the procedure.
      */
     public static function softDeleteProcedureTableColumns($procedureName, $deriveFromProcedureIfExists = true)
     {
@@ -691,10 +731,18 @@ EOT
         return $results;
     }
 
-	/**
+    /**
      * Similar to createSoftDeleteTrigger() but updates any inconsistent rows where deleted_at is null even though the referenced table's deleted_at is not null.
      * This is necessary due to a bug/feature of MySQL that causes "ERROR 1442 (HY000): Can't update table '<your_table>' in stored function/trigger because it is already used by statement which invoked this stored function/trigger."
      * The normal use case is to use `php artisan trellis:show:mysql:foreignkeycycles` to find any triggers having cyclical foreign keys, drop the triggers, and use createSoftDeleteProcedure() instead (calling it periodically or in model events).
+     *
+     * @param  string  $table                   The table from where the soft delete originates.
+     * @param  string  $column                  The column from where the soft delete originates.
+     * @param  string  $referencedTable         The table to where the soft delete cascades.
+     * @param  string  $referencedColumn        The column to where the soft delete cascades.
+     * @param  string  $procedureName           (Optional) the name with which to override the default naming convention.
+     * @param  boolean $dropProcedureIfExists   (Optional) whether to automatically drop the procedure if it exists.
+     * @return string                           The name of the procedure.
      */
     public static function createSoftDeleteProcedure($table, $column, $referencedTable, $referencedColumn, $procedureName = null, $dropProcedureIfExists = true)
     {
@@ -734,10 +782,19 @@ end
 ;
 EOT
         );
+
+        return $procedureName;
     }
 
-	/**
+    /**
      * Calls the soft delete procedure created by createSoftDeleteProcedure() having the same arguments.
+     *
+     * @param  string  $table                   The table from where the soft delete originates.
+     * @param  string  $column                  The column from where the soft delete originates.
+     * @param  string  $referencedTable         The table to where the soft delete cascades.
+     * @param  string  $referencedColumn        The column to where the soft delete cascades.
+     * @param  string  $procedureName           (Optional) the name with which to override the default naming convention.
+     * @return string                           The name of the procedure.
      */
     public static function callSoftDeleteProcedure($table, $column, $referencedTable, $referencedColumn, $procedureName = null)
     {
@@ -748,10 +805,20 @@ EOT
         $escapedProcedureName = static::escape($procedureName);
 
         DB::select("call $escapedProcedureName");
+
+        return $procedureName;
     }
 
     /**
      * Similar to dropSoftDeleteTrigger().  See createSoftDeleteProcedure() for more information.
+     *
+     * @param  string  $table                   The table from where the soft delete originates.
+     * @param  string  $column                  The column from where the soft delete originates.
+     * @param  string  $referencedTable         The table to where the soft delete cascades.
+     * @param  string  $referencedColumn        The column to where the soft delete cascades.
+     * @param  string  $procedureName           (Optional) the name with which to override the default naming convention.
+     * @param  boolean $dropProcedureIfExists   (Optional) whether to automatically drop the procedure if it exists.
+     * @return string                           The name of the procedure.
      */
     public static function dropSoftDeleteProcedure($table, $column, $referencedTable, $referencedColumn, $procedureName = null, $dropProcedureIfExists = true)
     {
@@ -772,5 +839,7 @@ drop procedure $escapedProcedureName;
 EOT
             );
         }
+
+        return $procedureName;
     }
 }
