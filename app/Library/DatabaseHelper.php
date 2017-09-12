@@ -499,7 +499,7 @@ class DatabaseHelper
      * @param  boolean $deriveFromTriggerIfExists   (Optional) whether to automatically drop the trigger if it exists.
      * @return array                                The foreign key fields corresponding to the trigger.
      */
-    public static function softDeleteTriggerTableColumns($triggerName, $deriveFromTriggerIfExists = true)
+    public static function softDeleteTriggerForeignKey($triggerName, $deriveFromTriggerIfExists = true)
     {
 		$foreignKeys = static::foreignKeys();
 
@@ -592,7 +592,7 @@ EOT
             );
         }
 
-        // NOTE if updating this statement, verify that softDeleteTriggerTableColumns() still matches both the old and new versions
+        // NOTE if updating this statement, verify that softDeleteTriggerForeignKey() still matches both the old and new versions
         DB::unprepared(<<<EOT
 create trigger $escapedTriggerName after update on $escapedReferencedTable for each row
 begin
@@ -681,7 +681,7 @@ EOT
      * @param  boolean $deriveFromProcedureIfExists (Optional) whether to automatically drop the procedure if it exists.
      * @return array                                The foreign key fields corresponding to the procedure.
      */
-    public static function softDeleteProcedureTableColumns($procedureName, $deriveFromProcedureIfExists = true)
+    public static function softDeleteProcedureForeignKey($procedureName, $deriveFromProcedureIfExists = true)
     {
 		$foreignKeys = static::foreignKeys();
 		$results = [];
@@ -764,7 +764,7 @@ EOT
         }
 
 		// prefix joined table alias with `$` to prevent ambiguity errors
-		// NOTE if updating this statement, verify that softDeleteProcedureTableColumns() still matches both the old and new versions
+		// NOTE if updating this statement, verify that softDeleteProcedureForeignKey() still matches both the old and new versions
         DB::unprepared(<<<EOT
 create procedure $escapedProcedureName ()
 begin
