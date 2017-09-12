@@ -24,6 +24,7 @@ class RespondentPhoto extends Model
         'deleted_at'
     ];
 
+    /*
     public function delete()
     {
         Photo::where('id', $this->photo_id)
@@ -31,4 +32,5 @@ class RespondentPhoto extends Model
 
         return parent::delete();
     }
+    */
 }
