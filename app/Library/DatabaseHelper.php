@@ -422,6 +422,82 @@ class DatabaseHelper
         return static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
     }
 
+	/**
+     * Inverse of softDeleteTriggerName().  Derives the table, column, referenced table and referenced column based on the naming convention.
+     *
+     * Returns array of the form:
+     *
+	 * [
+     *     [
+     *         'table_name' => ,
+     *         'column_name' => ,
+     *         'referenced_table_name' => ,
+     *         'referenced_column_name' => ,
+     *     ],
+     *     ...
+     * ]
+     *
+     * Note that multiple candidates might be returned due to ambiguity with abbreviations unless $deriveFromTriggerIfExists is true, the trigger exists and it hasn't been modified.
+     */
+    public static function softDeleteTriggerTableColumns($triggerName, $deriveFromTriggerIfExists = true)
+    {
+		$foreignKeys = static::foreignKeys();
+
+        if($deriveFromTriggerIfExists) {
+            $trigger = head(array_filter(static::triggers(), function ($trigger) use ($triggerName) {
+                return $trigger['Trigger'] == $triggerName;
+            })) ?: null;
+
+            if(isset($trigger)) {
+                $foreignKeys = array_filter($foreignKeys, function ($foreignKey) use ($trigger) {
+                    return $foreignKey['referenced_table_name'] == $trigger['Table'];
+                }); // filter foreign keys to only include the matching table name (referenced_table_name corresponds to the trigger's table because soft deletes cascade from referenced table to table)
+            }
+        }
+
+		$results = [];
+
+		foreach($foreignKeys as $foreignKey) {
+			if(static::softDeleteTriggerName($foreignKey['table_name'], $foreignKey['column_name'], $foreignKey['referenced_table_name'], $foreignKey['referenced_column_name']) == $triggerName) {
+				$results []= array_intersect_key($foreignKey, array_flip(['table_name', 'column_name', 'referenced_table_name', 'referenced_column_name']));
+			}
+		}
+
+        // use trigger statement to derive table columns if more than one match found and trigger exists
+        if(count($results) > 1 && isset($trigger)) {
+            $template = '/.*?' . str_replace('###', '(.+?)', preg_replace('/\s+/', '\s+', preg_quote(<<<EOT
+begin
+    if old.deleted_at is null and new.deleted_at is not null then
+        update `###`
+        set deleted_at = new.deleted_at
+        where `###`.`###` = new.`###`
+        and deleted_at is null;
+    end if;
+end
+EOT
+        , '/'))) . '.*?/';
+
+            preg_match_all($template, $trigger['Statement'], $matches);
+
+            $match = [
+                'table_name' => array_get($matches, '1.0'),
+                'column_name' => array_get($matches, '3.0'),
+                'referenced_table_name' => $trigger['Table'],
+                'referenced_column_name' => array_get($matches, '4.0'),
+            ];
+
+            $filteredResults = array_filter($results, function ($foreignKey) use ($match) {
+                return $foreignKey == $match;
+            });
+
+            if(count($filteredResults) >= 1) {
+                $results = $filteredResults;    // only use filtered results if table columns could be derived from trigger statement
+            }
+        }
+
+        return $results;
+    }
+
     /**
      * Creates a trigger that sets the table row's deleted_at field when the referenced table rows's deleted_at becomes non-null.
      * Undeleting dependent rows must be implemented in code because it's not possible to tell which rows were soft-deleted prior to cascading.
@@ -448,15 +524,18 @@ EOT
             );
         }
 
+        // NOTE if updating this statement, verify that softDeleteTriggerTableColumns() still matches both the old and new versions
         DB::unprepared(<<<EOT
-create trigger $escapedTriggerName after update on $escapedReferencedTable for each row begin
+create trigger $escapedTriggerName after update on $escapedReferencedTable for each row
+begin
     if old.deleted_at is null and new.deleted_at is not null then
         update $escapedTable
         set deleted_at = new.deleted_at
         where $escapedTable.$escapedColumn = new.$escapedReferencedColumn
         and deleted_at is null;
     end if;
-end;
+end
+;
 EOT
         );
     }
