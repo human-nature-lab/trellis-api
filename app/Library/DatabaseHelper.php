@@ -8,21 +8,29 @@ use PDO;
 
 class DatabaseHelper
 {
-    /**
+	/**
      * Returns the escaped form of an arbitrary string for safe usage directly in a raw SQL query.
      *
      * Currently alphanumeric characters, underscore and period are allowed.
      *
      * Note that this is not standardized across SQL databases: https://stackoverflow.com/a/1543309/539149
-    */
+     */
     public static function escape($string, $quote = true)
     {
         return ($quote ? '`' : '') . preg_replace('/[^0-9a-zA-Z_\.]/', '', $string) . ($quote ? '`' : '');
     }
 
+	/**
+     * Similar to escape() but abbreviates the string by removing non-first letter vowels and runs of the same character, then truncates the result to 64 characters to fit within a MySQL identifier.
+     */
+	public static function abbreviate($string, $quote = true)
+    {
+        return ($quote ? '`' : '') . substr(static::escape(preg_replace('/(\w)\1+/', '\\1', preg_replace('/(?<=[^_.])\B[aeiouAEIOU]/', '', $string)), false), 0, 64) . ($quote ? '`' : '');
+    }
+
     /**
      * Return the current database.
-    */
+     */
     public static function database()
     {
         return data_get(head(DB::select('select database() from dual')), 'database()');
@@ -30,7 +38,7 @@ class DatabaseHelper
 
     /**
      * Use the specified database (or current database if empty) until callable finishes, then restore the previous one.
-    */
+     */
     public static function useDatabase($database, $callable)
     {
         if (!strlen($database)) {
@@ -54,7 +62,7 @@ class DatabaseHelper
 
     /**
      * Calls DB::setFetchMode($mode) and returns the result of $callable, restoring the old mode afterwards.
-    */
+     */
     public static function fetch($mode, $callable)
     {
         $oldMode = DB::getFetchMode();
@@ -74,7 +82,7 @@ class DatabaseHelper
 
     /**
      * Returns an array of all of the tables in the current database.
-    */
+     */
     public static function tables()
     {
         return static::fetch(PDO::FETCH_ASSOC, function () {
@@ -110,6 +118,36 @@ class DatabaseHelper
             })->toArray();
 
             // return DB::connection(config('database.default'))->getSchemaBuilder()->getColumnListing($table);
+        });
+    }
+
+    /**
+     * Returns array of the form:
+     *
+     * [
+     *     [
+     *         "Trigger" => "<trigger_name>",
+     *         "Event" => "INSERT|UPDATE|DELETE",
+     *         "Table" => "<table_name>",
+     *         "Statement" => """
+     *           begin\n
+     *               -- ...;\n
+     *           end
+     *           """,
+     *         "Timing" => "BEFORE|AFTER",
+     *         "Created" => "Y-m-d H:i:s",
+     *         "sql_mode" => "",
+     *         "Definer" => "user@domain",
+     *         "character_set_client" => "<character_set>",
+     *         "collation_connection" => "<collation>",
+     *         "Database Collation" => "<collation>",
+     *     ]
+     * ]
+     */
+    public static function triggers($table = null)
+    {
+        return static::fetch(PDO::FETCH_ASSOC, function () use ($table) {
+            return isset($table) ? DB::select('show triggers where `Table` = ?', [$table]) : DB::select('show triggers');
         });
     }
 
@@ -262,7 +300,7 @@ class DatabaseHelper
 
     /**
      * Returns current database version.
-    */
+     */
     public static function version()
     {
         preg_match('/^[0-9\.]+/', DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION), $matches);    // extract dotted decimal from versions like '5.6.28-0ubuntu0.14.04.1 (Ubuntu)'
@@ -272,7 +310,7 @@ class DatabaseHelper
 
     /**
      * Returns size of current database in bytes.
-    */
+     */
     public static function sizeInBytes()
     {
         return static::fetch(PDO::FETCH_ASSOC, function () {
@@ -334,7 +372,7 @@ class DatabaseHelper
 
     /**
      * Returns the length portion (in parentheses) of a MySQL type or null if not present.
-    */
+     */
     public static function typeLength($type)
     {
         return ((int) trim(strstr($type, '('), '()')) ?: null;
@@ -342,7 +380,7 @@ class DatabaseHelper
 
     /**
      * Returns true if MySQL type is unsigned or false otherwise.
-    */
+     */
     public static function typeUnsigned($type)
     {
         return strcasecmp(substr($type, -strlen(' unsigned')), ' unsigned') == 0;
@@ -352,7 +390,7 @@ class DatabaseHelper
      * Returns the floating point UTC unix timestamp for when the row was updated.
      *
      * $row can be an associative array or object.
-    */
+     */
     public static function modifiedAt($row)
     {
         return max(array_map(function ($field) use ($row) {
@@ -364,7 +402,7 @@ class DatabaseHelper
 
     /**
      * Returns the floating point UTC unix timestamp for when the database was updated.
-    */
+     */
     public static function databaseModifiedAt($database = null)
     {
         if (!isset($database)) {
@@ -386,14 +424,14 @@ class DatabaseHelper
     public static function createSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
         if (!isset($triggerName)) {
-            $triggerName = $referencedTable . '_' . $table . '_cascade';
+            $triggerName = static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
         }
 
-        $escapedTable = DatabaseHelper::escape($table);
-        $escapedColumn = DatabaseHelper::escape($column);
-        $escapedReferencedTable = DatabaseHelper::escape($referencedTable);
-        $escapedReferencedColumn = DatabaseHelper::escape($referencedColumn);
-        $escapedTriggerName = DatabaseHelper::escape($triggerName);
+        $escapedTable = static::escape($table);
+        $escapedColumn = static::escape($column);
+        $escapedReferencedTable = static::escape($referencedTable);
+        $escapedReferencedColumn = static::escape($referencedColumn);
+        $escapedTriggerName = static::escape($triggerName);
 
         if ($dropTriggerIfExists) {
             DB::unprepared(<<<EOT
@@ -423,10 +461,10 @@ EOT
     public static function dropSoftDeleteTrigger($table, $column, $referencedTable, $referencedColumn, $triggerName = null, $dropTriggerIfExists = true)
     {
         if (!isset($triggerName)) {
-            $triggerName = $referencedTable . '_' . $table . '_cascade';
+            $triggerName = static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
         }
 
-        $escapedTriggerName = DatabaseHelper::escape($triggerName);
+        $escapedTriggerName = static::escape($triggerName);
 
         if ($dropTriggerIfExists) {
             DB::unprepared(<<<EOT

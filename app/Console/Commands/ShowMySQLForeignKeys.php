@@ -5,14 +5,14 @@ namespace App\Console\Commands;
 use App\Library\DatabaseHelper;
 use Illuminate\Console\Command;
 
-class ShowForeignKeys extends Command
+class ShowMySQLForeignKeys extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'trellis:show:foreignkeys';
+    protected $signature = 'trellis:show:mysql:foreignkeys';
 
     /**
      * The console command description.
@@ -28,7 +28,7 @@ class ShowForeignKeys extends Command
      *
      * ob_start();
      *
-     * \Illuminate\Support\Facades\Artisan::call('trellis:show:foreignkeys');
+     * \Illuminate\Support\Facades\Artisan::call('trellis:show:mysql:foreignkeys');
      *
      * $result = json_decode(ob_get_clean(), true);
      *
