@@ -61,6 +61,7 @@ class Study extends Model
         ->with('nameTranslation');
     }
 
+    /*
     public function delete()
     {
         StudyForm::where('study_id', $this->id)
@@ -77,4 +78,5 @@ class Study extends Model
 
         return parent::delete();
     }
+    */
 }

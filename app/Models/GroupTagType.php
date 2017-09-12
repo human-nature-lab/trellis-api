@@ -21,6 +21,7 @@ class GroupTagType extends Model
         'deleted_at'
     ];
 
+    /*
     public function delete()
     {
         $childGroupTags = GroupTag::where('group_tag_type_id', '=', $this->id)->get();
@@ -30,4 +31,5 @@ class GroupTagType extends Model
 
         return parent::delete();
     }
+    */
 }

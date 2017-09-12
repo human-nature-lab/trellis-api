@@ -29,6 +29,7 @@ class Choice extends Model
             ->with('translationText');
     }
 
+    /*
     public function delete()
     {
         $childDatumChoices = DatumChoice::where('choice_id', '=', $this->id)->get();
@@ -38,4 +39,5 @@ class Choice extends Model
 
         return parent::delete();
     }
+    */
 }

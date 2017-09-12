@@ -29,6 +29,7 @@ class Datum extends Model
         'deleted_at'
     ];
 
+    /*
     public function delete()
     {
         $childDatumChoices = DatumChoice::where('datum_id', '=', $this->id)->get();
@@ -38,4 +39,5 @@ class Datum extends Model
 
         return parent::delete();
     }
+    */
 }

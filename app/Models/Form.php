@@ -41,6 +41,7 @@ class Form extends Model
             ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
     }
 
+    /*
     public function delete()
     {
         //\Log::info("Form->delete()");
@@ -61,4 +62,5 @@ class Form extends Model
 
         return parent::delete();
     }
+    */
 }
