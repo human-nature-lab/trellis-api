@@ -151,6 +151,56 @@ class DatabaseHelper
         });
     }
 
+	/**
+     * Returns array of the form:
+     *
+	 * [
+     *     [
+     *         "Db" => "<database_name>",
+     *         "Name" => "<procedure_name>",
+     *         "Type" => "PROCEDURE",
+     *         "Definer" => "user@domain",
+     *         "Modified" => "Y-m-d H:i:s",
+     *         "Created" => "Y-m-d H:i:s",
+     *         "Security_type" => "DEFINER",
+     *         "Comment" => "",
+     *         "character_set_client" => "<character_set>",
+     *         "collation_connection" => "<collation>",
+     *         "Database Collation" => "<collation>",
+     *     ]
+     * ]
+     */
+    public static function procedures()
+    {
+        return static::fetch(PDO::FETCH_ASSOC, function () {
+            return DB::select('SHOW PROCEDURE STATUS where db = (SELECT DATABASE())');
+        });
+    }
+
+	/**
+     * Returns array of the form:
+     *
+	 * [
+     * 	"Db" => "<database_name>",
+     * 	"Name" => "<procedure_name>",
+     * 	"Type" => "PROCEDURE",
+     * 	"Definer" => "user@domain",
+     * 	"Modified" => "Y-m-d H:i:s",
+     * 	"Created" => "Y-m-d H:i:s",
+     * 	"Security_type" => "DEFINER",
+     * 	"Comment" => "",
+     * 	"character_set_client" => "<character_set>",
+     * 	"collation_connection" => "<collation>",
+     * 	"Database Collation" => "<collation>",
+     * ]
+     */
+    public static function procedure($name)
+    {
+        return static::fetch(PDO::FETCH_ASSOC, function () use ($name) {
+            return head(DB::select('SHOW CREATE PROCEDURE ' . static::escape($name))) ?: null;
+        });
+    }
+
     /**
      * Given a column from static::columns(), return schema description compatible with https://github.com/mojopollo/laravel-json-schema of the form:
      *
@@ -561,6 +611,164 @@ EOT
         } else {
             DB::unprepared(<<<EOT
 drop trigger $escapedTriggerName;
+EOT
+            );
+        }
+    }
+
+	/**
+     * Returns the default soft delete procedure name corresponding to the specified table, column, referenced table and referenced column.
+     */
+    public static function softDeleteProcedureName($table, $column, $referencedTable, $referencedColumn)
+    {
+        return static::abbreviate($referencedTable . '.' . $referencedColumn . '.' . $table . '.' . $column . '.cascade', false);
+    }
+
+	/**
+     * Inverse of softDeleteProcedureName().  Derives the table, column, referenced table and referenced column based on the naming convention.
+     *
+     * Returns array of the form:
+     *
+	 * [
+     *     [
+     *         'table_name' => ,
+     *         'column_name' => ,
+     *         'referenced_table_name' => ,
+     *         'referenced_column_name' => ,
+     *     ],
+     *     ...
+     * ]
+     *
+     * Note that multiple candidates might be returned due to ambiguity with abbreviations unless $deriveFromProcedureIfExists is true, the procedure exists and it hasn't been modified.
+     */
+    public static function softDeleteProcedureTableColumns($procedureName, $deriveFromProcedureIfExists = true)
+    {
+		$foreignKeys = static::foreignKeys();
+		$results = [];
+
+		foreach($foreignKeys as $foreignKey) {
+			if(static::softDeleteProcedureName($foreignKey['table_name'], $foreignKey['column_name'], $foreignKey['referenced_table_name'], $foreignKey['referenced_column_name']) == $procedureName) {
+				$results []= array_intersect_key($foreignKey, array_flip(['table_name', 'column_name', 'referenced_table_name', 'referenced_column_name']));
+			}
+		}
+
+        // use procedure statement to derive table columns if more than one match found and procedure exists
+        if(count($results) > 1 && $deriveFromProcedureIfExists && ($procedure = static::procedure($procedureName))) {
+            $template = '/.*?' . str_replace('###', '(.+?)', preg_replace('/\s+/', '\s+', preg_quote(<<<EOT
+begin
+
+repeat
+    update `###`
+    inner join `###` as `\$``###` on `###`.`###` = `\$``###`.`###`
+    set `###`.deleted_at = `\$``###`.deleted_at
+    where `###`.`###` is not null
+    and `###`.deleted_at is null
+    and `\$``###`.deleted_at is not null;
+until (select row_count()) = 0 end repeat;
+
+end
+EOT
+        , '/'))) . '.*?/';
+
+            preg_match_all($template, $procedure['Create Procedure'], $matches);
+
+            $match = [
+                'table_name' => array_get($matches, '1.0'),
+                'column_name' => array_get($matches, '5.0'),
+                'referenced_table_name' => array_get($matches, '2.0'),
+                'referenced_column_name' => array_get($matches, '7.0'),
+            ];
+
+            $filteredResults = array_filter($results, function ($foreignKey) use ($match) {
+                return $foreignKey == $match;
+            });
+
+            if(count($filteredResults) >= 1) {
+                $results = $filteredResults;    // only use filtered results if table columns could be derived from procedure statement
+            }
+        }
+
+        return $results;
+    }
+
+	/**
+     * Similar to createSoftDeleteTrigger() but updates any inconsistent rows where deleted_at is null even though the referenced table's deleted_at is not null.
+     * This is necessary due to a bug/feature of MySQL that causes "ERROR 1442 (HY000): Can't update table '<your_table>' in stored function/trigger because it is already used by statement which invoked this stored function/trigger."
+     * The normal use case is to use `php artisan trellis:show:mysql:foreignkeycycles` to find any triggers having cyclical foreign keys, drop the triggers, and use createSoftDeleteProcedure() instead (calling it periodically or in model events).
+     */
+    public static function createSoftDeleteProcedure($table, $column, $referencedTable, $referencedColumn, $procedureName = null, $dropProcedureIfExists = true)
+    {
+        if (!isset($procedureName)) {
+            $procedureName = static::softDeleteProcedureName($table, $column, $referencedTable, $referencedColumn);
+        }
+
+        $escapedTable = static::escape($table);
+        $escapedColumn = static::escape($column);
+        $escapedReferencedTable = static::escape($referencedTable);
+        $escapedReferencedColumn = static::escape($referencedColumn);
+        $escapedProcedureName = static::escape($procedureName);
+
+        if ($dropProcedureIfExists) {
+            DB::unprepared(<<<EOT
+drop procedure if exists $escapedProcedureName;
+EOT
+            );
+        }
+
+		// prefix joined table alias with `$` to prevent ambiguity errors
+		// NOTE if updating this statement, verify that softDeleteProcedureTableColumns() still matches both the old and new versions
+        DB::unprepared(<<<EOT
+create procedure $escapedProcedureName ()
+begin
+
+repeat
+    update $escapedTable
+    inner join $escapedReferencedTable as `\$`$escapedReferencedTable on $escapedTable.$escapedColumn = `\$`$escapedReferencedTable.$escapedReferencedColumn
+    set $escapedTable.deleted_at = `\$`$escapedReferencedTable.deleted_at
+    where $escapedTable.$escapedColumn is not null
+    and $escapedTable.deleted_at is null
+    and `\$`$escapedReferencedTable.deleted_at is not null;
+until (select row_count()) = 0 end repeat;
+
+end
+;
+EOT
+        );
+    }
+
+	/**
+     * Calls the soft delete procedure created by createSoftDeleteProcedure() having the same arguments.
+     */
+    public static function callSoftDeleteProcedure($table, $column, $referencedTable, $referencedColumn, $procedureName = null)
+    {
+        if (!isset($procedureName)) {
+            $procedureName = static::softDeleteProcedureName($table, $column, $referencedTable, $referencedColumn);
+        }
+
+        $escapedProcedureName = static::escape($procedureName);
+
+        DB::select("call $escapedProcedureName");
+    }
+
+    /**
+     * Similar to dropSoftDeleteTrigger().  See createSoftDeleteProcedure() for more information.
+     */
+    public static function dropSoftDeleteProcedure($table, $column, $referencedTable, $referencedColumn, $procedureName = null, $dropProcedureIfExists = true)
+    {
+        if (!isset($procedureName)) {
+            $procedureName = static::softDeleteProcedureName($table, $column, $referencedTable, $referencedColumn);
+        }
+
+        $escapedProcedureName = static::escape($procedureName);
+
+        if ($dropProcedureIfExists) {
+            DB::unprepared(<<<EOT
+drop procedure if exists $escapedProcedureName;
+EOT
+            );
+        } else {
+            DB::unprepared(<<<EOT
+drop procedure $escapedProcedureName;
 EOT
             );
         }
