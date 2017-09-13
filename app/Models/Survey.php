@@ -25,6 +25,7 @@ class Survey extends Model
         'completed_at'
     ];
 
+    /*
     public function delete()
     {
         $childDatum = Datum::where('survey_id', '=', $this->id)->get();
@@ -34,4 +35,5 @@ class Survey extends Model
 
         return parent::delete();
     }
+    */
 }
