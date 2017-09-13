@@ -199,7 +199,7 @@ class SkipController extends Controller
 
         foreach ($skipModel as $skip) {
             $skipConditionModel = ConditionTag::select('condition_tag.name', 'condition_tag.id')
-                ->join('skip_condition_tag AS sct', 'sct.condition_tag_id', '=', 'condition_tag.id')
+                ->join('skip_condition_tag AS sct', 'sct.condition_tag_name', '=', 'condition_tag.name')
                 ->where('sct.skip_id', $skip->id)
                 ->get();
 
