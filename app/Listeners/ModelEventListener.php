@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use DB;
+use App\Library\DatabaseHelper;
 use App\Models\Log;
 
 class ModelEventListener
@@ -30,6 +31,15 @@ class ModelEventListener
                 'eloquent.deleted: *',
             ],
             Log::class . '@onModelUpdated'
+        );
+
+        $events->listen(
+            [
+                'eloquent.deleted: *',
+            ],
+            function ($model) {
+                DatabaseHelper::callSoftDeleteProcedure();  // cascade soft deletes for any cyclic foreign keys that can't be handled by triggers
+            }
         );
     }
 }
