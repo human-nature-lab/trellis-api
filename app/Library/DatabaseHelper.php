@@ -4,6 +4,7 @@ namespace App\Library;
 
 use Carbon\Carbon;
 use DB;
+use Illuminate\Support\Facades\Artisan;
 use PDO;
 
 class DatabaseHelper
@@ -845,4 +846,69 @@ EOT
 
         return $procedureName;
     }
+
+    /**
+     * Declarative method to generate soft delete triggers and procedures from foreign keys.  Can be called repeatedly.
+     *
+     * $cyclicForeignKeysAsTriggers is an array of foreign keys to be created as triggers instead of procedures.
+     * This allows fine-tuning foreign key cycles so that only specific foreign keys are added to the soft delete procedure.
+     * For example the cycle fk1->fk_pointing_to_same_table->fk2 may only need fk_pointing_to_same_table added to the procedure, so would need $cyclicForeignKeysAsTriggers = [fk1, fk2].
+     * It has the form:
+     *
+     * [
+     *     [
+     *         'table_name' => ,
+     *         'column_name' => ,
+     *         'referenced_table_name' => ,
+     *         'referenced_column_name' => ,
+     *     ],
+     *     ...
+     * ]
+     *
+     * @param  array  $cyclicForeignKeysAsTriggers  Array of foreign keys to be created as triggers instead of added to the soft delete procedure.
+     * @return void
+     */
+	public static function updateSoftDeleteTriggersAndProcedures($cyclicForeignKeysAsTriggers = [])
+	{
+        // ensure that $cyclicForeignKeysAsTriggers elements are in the same order as returned by MySQL (to be order-agnostic, this should perhaps be refactored to use objects instead of arrays)
+        foreach($cyclicForeignKeysAsTriggers as $index => $foreignKey) {
+            $cyclicForeignKeysAsTriggers[$index] = [
+                'table_name' => array_get($foreignKey, 'table_name'),
+                'column_name' => array_get($foreignKey, 'column_name'),
+                'referenced_table_name' => array_get($foreignKey, 'referenced_table_name'),
+                'referenced_column_name' => array_get($foreignKey, 'referenced_column_name'),
+            ];
+        }
+
+        ob_start();
+
+        Artisan::call('trellis:show:mysql:foreignkeycycles');
+
+        // remove any foreign keys from $cyclicForeignKeys that are present in $cyclicForeignKeysAsTriggers so they are added as triggers normally
+        $cyclicForeignKeys = array_udiff(array_map(function ($foreignKey) {
+            return array_intersect_key($foreignKey, array_flip(['table_name', 'column_name', 'referenced_table_name', 'referenced_column_name']));
+        }, array_collapse(json_decode(ob_get_clean(), true))), $cyclicForeignKeysAsTriggers, function ($a, $b) {
+            return strcmp(serialize($a), serialize($b));    // similar to array == array
+        });
+
+        // remove any cyclic foreign keys from $foreignKeys
+        $foreignKeys = array_udiff(array_map(function ($foreignKey) {
+            return array_intersect_key($foreignKey, array_flip(['table_name', 'column_name', 'referenced_table_name', 'referenced_column_name']));
+        }, static::foreignKeys()), $cyclicForeignKeys, function ($a, $b) {
+            return strcmp(serialize($a), serialize($b));    // similar to array == array
+        });
+
+        // drop all existing soft delete triggers
+        foreach(static::softDeleteTriggers() as $trigger) {
+            static::dropSoftDeleteTrigger(null, null, null, null, $trigger);
+        }
+
+        // create new soft delete triggers for foreign keys
+        foreach($foreignKeys as $foreignKey) {
+            static::createSoftDeleteTrigger($foreignKey['table_name'], $foreignKey['column_name'], $foreignKey['referenced_table_name'], $foreignKey['referenced_column_name']);
+        }
+
+        // drop and create soft delete procedure to handle cyclic foreign keys
+        DatabaseHelper::createSoftDeleteProcedure($cyclicForeignKeys);
+	}
 }
