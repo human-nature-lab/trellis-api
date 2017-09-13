@@ -87,6 +87,10 @@ class Kernel extends ConsoleKernel
 
                 echo PHP_EOL;
 
+                $this->getArtisan()->call('trellis:check:mysql:triggersandprocedures');
+
+                echo PHP_EOL;
+
                 $this->getArtisan()->call('trellis:check:models');
                 break;
         }
