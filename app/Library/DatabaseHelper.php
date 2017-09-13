@@ -465,6 +465,20 @@ class DatabaseHelper
     }
 
     /**
+     * Returns the names of all soft delete triggers.
+     *
+     * @return array An array holding the names of all soft delete triggers.
+     */
+    public static function softDeleteTriggers()
+    {
+        $suffix = static::abbreviate('.cascade', false);
+
+        return array_filter(array_pluck(static::triggers(), 'Trigger'), function ($trigger) use ($suffix) {
+            return ends_with($trigger, $suffix);
+        });
+    }
+
+    /**
      * Returns the default soft delete trigger name corresponding to the specified table, column, referenced table and referenced column.
      *
      * @param  string  $table               The table from where the soft delete originates.
