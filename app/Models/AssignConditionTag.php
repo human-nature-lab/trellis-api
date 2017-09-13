@@ -30,6 +30,7 @@ class AssignConditionTag extends Model
             ->belongsTo('App\Models\ConditionTag', 'condition_tag_id');
     }
 
+    /*
     public function delete()
     {
         QuestionAssignConditionTag::where('assign_condition_tag_id', $this->id)
@@ -37,4 +38,5 @@ class AssignConditionTag extends Model
 
         return parent::delete();
     }
+    */
 }

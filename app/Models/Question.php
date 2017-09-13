@@ -64,6 +64,7 @@ class Question extends Model
             ->with('condition');
     }
 
+    /*
     public function delete()
     {
         //\Log::info('Question->delete()');
@@ -78,4 +79,5 @@ class Question extends Model
 
         return parent::delete();
     }
+    */
 }

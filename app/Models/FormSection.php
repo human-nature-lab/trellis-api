@@ -36,6 +36,7 @@ class FormSection extends Model
             ->with('translationText');
     }
 
+    /*
     public function delete()
     {
         //\Log::info('FormSection->delete()');
@@ -50,4 +51,5 @@ class FormSection extends Model
 
         return parent::delete();
     }
+    */
 }

@@ -20,6 +20,7 @@ class QuestionGroup extends Model
         'deleted_at'
     ];
 
+    /*
     public function delete()
     {
         //\Log::info('QuestionGroup->delete()');
@@ -33,6 +34,7 @@ class QuestionGroup extends Model
 
         return parent::delete();
     }
+    */
 
     public function questions()
     {
