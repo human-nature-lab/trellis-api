@@ -30,7 +30,15 @@ class RespondentController extends Controller
 
     public function getAllRespondents(Request $request)
     {
-        $respondents = Respondent::with('photos')->get();
+        // Default to limit = 100 and offset = 0
+        $limit = $request->input('limit', 100);
+        $offset = $request->input('offset', 0);
+
+        $respondents = Respondent::with('photos')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+
 
         return response()->json(
             ['respondents' => $respondents],
@@ -38,12 +46,16 @@ class RespondentController extends Controller
         );
     }
 
-    public function getAllRespondentsByStudyId($study_id)
+    public function getAllRespondentsByStudyId(Request $request, $study_id)
     {
         $validator = Validator::make(
             ['study_id' => $study_id],
             ['study_id' => 'required|string|min:36|exists:study,id']
         );
+
+        // Default to limit = 100 and offset = 0
+        $limit = $request->input('limit', 100);
+        $offset = $request->input('offset', 0);
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -55,7 +67,10 @@ class RespondentController extends Controller
         //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
         $respondents = Respondent::with('photos')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
-        })->get();
+        })
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
 
         return response()->json(
             ['respondents' => $respondents],

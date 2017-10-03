@@ -48,6 +48,10 @@ class GeoController extends Controller
             'localeId' => 'required|string|min:36|exists:locale,id'
         ]);
 
+        // Default to limit = 100 and offset = 0
+        $limit = $request->input('limit', 100);
+        $offset = $request->input('offset', 0);
+
         if ($validator->fails() === true) {
             return response()->json([
                 'msg' => 'Validation failed',
@@ -59,6 +63,8 @@ class GeoController extends Controller
             ->join('translation_text AS tt', 'tt.translation_id', '=', 'geo.name_translation_id')
             ->join('geo_type AS gt', 'gt.id', '=', 'geo.geo_type_id')
             ->where('tt.locale_id', $localeId)
+            ->limit($limit)
+            ->offset($offset)
             ->get();
 
         return response()->json(
@@ -67,12 +73,16 @@ class GeoController extends Controller
         );
     }
 
-    public function getAllGeosByStudyId($studyId)
+    public function getAllGeosByStudyId(Request $request, $studyId)
     {
         $validator = Validator::make(
             ['study_id' => $studyId],
             ['study_id' => 'required|string|min:36|exists:study,id']
         );
+
+        // Default to limit = 100 and offset = 0
+        $limit = $request->input('limit', 100);
+        $offset = $request->input('offset', 0);
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -85,6 +95,8 @@ class GeoController extends Controller
         $geoModel = Geo::with('nameTranslation', 'geoType', 'parent')
             ->whereRaw('geo_type_id in (select id from geo_type where study_id = ?)')
             ->setBindings([$studyId])
+            ->limit($limit)
+            ->offset($offset)
             ->get();
             //->toSql();
 
