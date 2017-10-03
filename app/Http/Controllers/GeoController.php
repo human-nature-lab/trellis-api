@@ -59,6 +59,8 @@ class GeoController extends Controller
             ], $validator->statusCode());
         }
 
+        $count = Geo::count();
+
         $geoModel = Geo::select('geo.id', 'gt.name AS type_name', 'gt.id as geo_type_id', 'geo.parent_id', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'tt.translated_text AS name')
             ->join('translation_text AS tt', 'tt.translation_id', '=', 'geo.name_translation_id')
             ->join('geo_type AS gt', 'gt.id', '=', 'geo.geo_type_id')
@@ -68,7 +70,10 @@ class GeoController extends Controller
             ->get();
 
         return response()->json(
-            ['geos' => $geoModel],
+            ['geos' => $geoModel,
+             'limit' => $limit,
+             'offset' => $offset,
+             'count' => $count],
             Response::HTTP_OK
         );
     }
@@ -92,6 +97,10 @@ class GeoController extends Controller
         }
 
         //$geoModel = DB::table('geo')
+        $count = Geo::where('geo_type_id in (select id from geo_type where study_id = ?)')
+            ->setBindings([$studyId])
+            ->count();
+
         $geoModel = Geo::with('nameTranslation', 'geoType', 'parent')
             ->whereRaw('geo_type_id in (select id from geo_type where study_id = ?)')
             ->setBindings([$studyId])
@@ -105,7 +114,10 @@ class GeoController extends Controller
         //\Log::info('Query: ' . $geoModel);
 
         return response()->json(
-            ['geos' => $geoModel],
+            ['geos' => $geoModel,
+                'limit' => $limit,
+                'offset' => $offset,
+                'count' => $count],
             Response::HTTP_OK
         );
     }
