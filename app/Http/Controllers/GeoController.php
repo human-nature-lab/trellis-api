@@ -97,7 +97,7 @@ class GeoController extends Controller
         }
 
         //$geoModel = DB::table('geo')
-        $count = Geo::where('geo_type_id in (select id from geo_type where study_id = ?)')
+        $count = Geo::whereRaw('geo_type_id in (select id from geo_type where study_id = ?)')
             ->setBindings([$studyId])
             ->count();
 
