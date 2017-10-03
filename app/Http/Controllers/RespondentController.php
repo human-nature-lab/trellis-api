@@ -34,6 +34,7 @@ class RespondentController extends Controller
         $limit = $request->input('limit', 100);
         $offset = $request->input('offset', 0);
 
+        $count = Respondent::count();
         $respondents = Respondent::with('photos')
             ->limit($limit)
             ->offset($offset)
@@ -41,7 +42,10 @@ class RespondentController extends Controller
 
 
         return response()->json(
-            ['respondents' => $respondents],
+            ['respondents' => $respondents,
+             'count' => $count,
+             'limit' => $limit,
+             'offset' => $offset],
             Response::HTTP_OK
         );
     }
@@ -65,6 +69,10 @@ class RespondentController extends Controller
         }
 
         //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
+        $count = Respondent::whereHas('studies', function ($query) use ($study_id) {
+            $query->where('study.id', '=', $study_id);
+        })->count();
+
         $respondents = Respondent::with('photos')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
         })
@@ -73,7 +81,10 @@ class RespondentController extends Controller
             ->get();
 
         return response()->json(
-            ['respondents' => $respondents],
+            ['respondents' => $respondents,
+                'count' => $count,
+                'limit' => $limit,
+                'offset' => $offset],
             Response::HTTP_OK
         );
     }
