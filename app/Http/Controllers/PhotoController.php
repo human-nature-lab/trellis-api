@@ -14,6 +14,8 @@ class PhotoController extends Controller
     {
         $photoModel = Photo::find($id);
         if ($photoModel != null) {
+            // TODO: this hard-coded path should be put in the config
+            // also, this folder will contain geo photos as well
             $adapter = new Local(storage_path() . '/respondent-photos');
             $filesystem = new Filesystem($adapter);
             $exists = $filesystem->has($photoModel->file_name);
