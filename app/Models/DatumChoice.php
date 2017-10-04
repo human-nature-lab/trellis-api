@@ -18,6 +18,7 @@ class DatumChoice extends Model
         'datum_id',
         'choice_id',
         'sort_order',
+		'override_val',
         'created_at',
         'updated_at',
         'deleted_at'

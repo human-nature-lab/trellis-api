@@ -43,6 +43,7 @@
         "datum_id": "string(41):index",
         "choice_id": "string(41):index",
         "sort_order": "tinyInteger(3):unsigned:default(0)",
+        "override_val": "text",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
