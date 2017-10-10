@@ -93,7 +93,7 @@ class CheckMySQLTriggersAndProcedures extends Command
         if($success) {
             echo json_decode('"\u2714"') . ' All foreign keys, triggers and procedures are consistent.' . PHP_EOL;
         } else {
-            echo json_decode('"\u274c"') . ' Please add a migration calling DatabaseHelper::updateSoftDeleteTriggersAndProcedures() or update any inconsistent foreign keys/triggers/procedures.' . PHP_EOL;
+            echo json_decode('"\u274c"') . ' Please add DatabaseHelper::updateSoftDeleteTriggersAndProcedures() to your migration(s) or update any inconsistent foreign keys/triggers/procedures (you may need to roll back and re-run your last migration).' . PHP_EOL;
         }
 
         return $success ? 0 : -1;
