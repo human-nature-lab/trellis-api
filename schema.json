@@ -390,6 +390,14 @@
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
     },
+    "section_skip": {
+        "id": "string(41):primary",
+        "section_id": "string(41):index",
+        "skip_id": "string(41):index",
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
+    },
     "skip": {
         "id": "string(41):primary",
         "show_hide": "tinyInteger(3):unsigned",
