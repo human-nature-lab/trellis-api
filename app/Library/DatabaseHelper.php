@@ -263,7 +263,7 @@ class DatabaseHelper
         $schema = array_get($typeToSchema, $type, $type);
 
         if ($column['extra'] == 'auto_increment') {
-            $schema = str_ireplace('integer', 'Increments');
+            $schema = camel_case(str_ireplace('integer', 'Increments', $schema));
         }
 
         $length = static::typeLength($column['type']);
