@@ -24,6 +24,8 @@ class Datum extends Model
         'parent_datum_id',
         'datum_type_id',
         'sort_order',
+		'opt_out',
+		'opt_out_val',
         'created_at',
         'updated_at',
         'deleted_at'

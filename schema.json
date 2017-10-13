@@ -34,6 +34,8 @@
         "parent_datum_id": "string(41):nullable:index",
         "datum_type_id": "string(41):index:default(0)",
         "sort_order": "integer(10):unsigned:nullable",
+		"opt_out": "string(255):nullable",
+        "opt_out_val": "text:nullable",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
