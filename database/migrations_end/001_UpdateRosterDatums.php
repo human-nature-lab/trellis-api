@@ -55,18 +55,19 @@ select distinct
 	(select now()),
 	null
 from question
+-- inner join any datum that doesn't have a parent
 join datum on question.id = datum.question_id
 and datum.parent_datum_id is null
 and datum.val != 'roster_parent'
 and question.question_type_id = (select id from question_type where name = 'roster' limit 1)
-and question.id not in (
-	select distinct question.id
-	from question
-	join datum on question.id = datum.question_id
-	and datum.parent_datum_id is null
-	and datum.val = 'roster_parent'
-	and question.question_type_id = (select id from question_type where name = 'roster' limit 1)
-);
+-- left join any datum from the same survey that is a parent
+left join datum as parent_datum on datum.survey_id = parent_datum.survey_id
+and datum.question_id = parent_datum.question_id
+and parent_datum.parent_datum_id is null
+and parent_datum.val = 'roster_parent'
+and question.question_type_id = (select id from question_type where name = 'roster' limit 1)
+-- filter so that only datums for which there is no parent datum in the same survey are selected
+where parent_datum.id is null;
 EOT
             );
 
