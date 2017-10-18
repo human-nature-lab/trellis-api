@@ -16,6 +16,7 @@ use Validator;
 use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
+use Log;
 
 class RespondentController extends Controller
 {
@@ -35,7 +36,7 @@ class RespondentController extends Controller
         $offset = $request->input('offset', 0);
 
         $count = Respondent::count();
-        $respondents = Respondent::with('photos')
+        $respondents = Respondent::with('photos', 'conditionTags')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -46,6 +47,79 @@ class RespondentController extends Controller
              'count' => $count,
              'limit' => $limit,
              'offset' => $offset],
+            Response::HTTP_OK
+        );
+    }
+
+    public function searchRespondentsByStudyId(Request $request, $study_id)
+    {
+        $validator = Validator::make(
+            ['study_id' => $study_id],
+            ['study_id' => 'required|string|min:36|exists:study,id']
+        );
+
+        // Default to limit = 100 and offset = 0
+        $limit = $request->input('limit', 50);
+        $offset = $request->input('offset', 0);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
+        $q = $request->query('q');
+        $c = $request->query('c');
+
+        $respondents = Respondent::with('photos', 'conditionTags')
+            ->whereHas('studies', function ($query) use ($study_id) {
+                $query
+                    ->where('study.id', '=', $study_id);
+            });
+        if ($q) {
+            $respondents = $respondents->where('name', 'LIKE', $q . '%');
+        }
+
+        if ($c) {
+            $cArray = explode(",", $c);
+            if (count($cArray) > 0) {
+                $respondents = $respondents
+                    ->whereHas('conditionTags', function ($query) use ($cArray) {
+                        $query
+                            ->whereIn('condition_tag.name', $cArray);
+                    }, '=', count($cArray));
+                $currentQuery = $respondents->toSql();
+                Log::info('$currentQuery: ' . $currentQuery);
+            }
+        }
+
+        $count = $respondents->count();
+
+        $respondents = $respondents->limit($limit)->offset($offset)->get();
+
+        /*
+        $respondents = Respondent::with('photos', 'conditionTags')
+            ->whereHas('studies', function ($query) use ($study_id) {
+                $query->where('study.id', '=', $study_id);
+            })
+            ->whereHas('conditionTags', function ($query) use ($c) {
+                $query
+                    ->where('condition_tag.name', 'in', $c);
+
+            })
+            ->where('name', 'LIKE', $q . '%')
+            ->limit($limit)
+            ->offset($offset)
+            ->get();
+        */
+
+        return response()->json(
+            ['respondents' => $respondents,
+                'count' => $count,
+                'limit' => $limit,
+                'offset' => $offset],
             Response::HTTP_OK
         );
     }
@@ -73,7 +147,7 @@ class RespondentController extends Controller
             $query->where('study.id', '=', $study_id);
         })->count();
 
-        $respondents = Respondent::with('photos')->whereHas('studies', function ($query) use ($study_id) {
+        $respondents = Respondent::with('photos', 'conditionTags')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
         })
             ->limit($limit)
