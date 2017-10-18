@@ -27,17 +27,25 @@ class Respondent extends Model
     public function photos()
     {
         return $this
-        ->belongsToMany('App\Models\Photo', 'respondent_photo')
-        ->whereNull('respondent_photo.deleted_at')
-        ->withTimestamps();
+            ->belongsToMany('App\Models\Photo', 'respondent_photo')
+            ->whereNull('respondent_photo.deleted_at')
+            ->withTimestamps();
     }
 
     public function studies()
     {
         return $this->belongsToMany('App\Models\Study', 'study_respondent')
-        ->whereNull('study_respondent.deleted_at')
-        ->withTimestamps();
+            ->whereNull('study_respondent.deleted_at')
+            ->withTimestamps();
     }
+
+    public function conditionTags()
+    {
+        return $this->belongsToMany('App\Models\ConditionTag', 'respondent_condition_tag')
+            ->whereNull('respondent_condition_tag.deleted_at')
+            ->withTimestamps();
+    }
+
 
     /*
     public function delete()

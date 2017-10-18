@@ -297,6 +297,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'RespondentController@getAllRespondentsByStudyId'
     );
 
+    $app->get(
+        'respondent/{study_id}/search',
+        'RespondentController@searchRespondentsByStudyId'
+    );
+
     $app->put(
         'respondent',
         'RespondentController@createRespondent'
