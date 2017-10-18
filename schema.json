@@ -34,6 +34,8 @@
         "parent_datum_id": "string(41):nullable:index",
         "datum_type_id": "string(41):index:default(0)",
         "sort_order": "integer(10):unsigned:nullable",
+		"opt_out": "string(255):nullable",
+        "opt_out_val": "text:nullable",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
@@ -43,6 +45,7 @@
         "datum_id": "string(41):index",
         "choice_id": "string(41):index",
         "sort_order": "tinyInteger(3):unsigned:default(0)",
+        "override_val": "text:nullable",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
@@ -385,6 +388,14 @@
         "section_id": "string(41):index",
         "question_group_id": "string(41):index",
         "question_group_order": "integer(10):unsigned:default(0)",
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
+    },
+    "section_skip": {
+        "id": "string(41):primary",
+        "section_id": "string(41):index",
+        "skip_id": "string(41):index",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"

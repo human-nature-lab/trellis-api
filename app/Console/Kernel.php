@@ -2,7 +2,6 @@
 
 namespace App\Console;
 
-use App\Library\DatabaseHelper;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Lumen\Console\Kernel as ConsoleKernel;
 
@@ -27,6 +26,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\ImportSnapshot::class,
         \App\Console\Commands\ImportSQLite::class,
         \App\Console\Commands\MergeMigrations::class,
+        \App\Console\Commands\MigrationsBegin::class,
+        \App\Console\Commands\MigrationsEnd::class,
         \App\Console\Commands\ShowMySQLJSON::class,
         \App\Console\Commands\ShowMySQLForeignKeys::class,
         \App\Console\Commands\ShowMySQLForeignKeyCycles::class,
@@ -62,12 +63,7 @@ class Kernel extends ConsoleKernel
         switch (array_get(\Request::server('argv', null), 1)) {
             case 'migrate':
             case 'migrate:refresh': // shame that this doesn't call 'php artisan migrate' internally
-                $databaseConnection = config('database.default');
-                $minDatabaseVersion = config("database.connections.$databaseConnection.version");
-
-                if (version_compare(DatabaseHelper::version(), $minDatabaseVersion) < 0) {
-                    dd("$databaseConnection $minDatabaseVersion is required.");
-                }
+                $this->getArtisan()->call('trellis:migrations:begin');
                 break;
         }
 
@@ -83,15 +79,7 @@ class Kernel extends ConsoleKernel
         switch ($request->getFirstArgument()) {
             case 'migrate':
             case 'migrate:refresh': // shame that this doesn't call 'php artisan migrate' internally
-                $this->getArtisan()->call('trellis:check:mysql:json');
-
-                echo PHP_EOL;
-
-                $this->getArtisan()->call('trellis:check:mysql:triggersandprocedures');
-
-                echo PHP_EOL;
-
-                $this->getArtisan()->call('trellis:check:models');
+                $this->getArtisan()->call('trellis:migrations:end');
                 break;
         }
 
