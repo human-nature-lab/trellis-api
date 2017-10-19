@@ -19,12 +19,17 @@ use App\Models\Study;
 use App\Models\StudyForm;
 use App\Models\Translation;
 use App\Models\TranslationText;
+use App\Services\AssignConditionTagService;
+use App\Services\ConditionTagService;
 use App\Services\FormService;
 use App\Services\SectionService;
 use App\Services\QuestionGroupService;
 use App\Services\QuestionService;
 use App\Services\QuestionChoiceService;
 use App\Services\QuestionTypeService;
+use App\Services\SkipService;
+use App\Services\TranslationService;
+use App\Services\TranslationTextService;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -65,7 +70,7 @@ class FormController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function importForm(Request $request, $studyId, FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService)
+    public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService)
     {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
@@ -86,23 +91,58 @@ class FormController extends Controller
         $formType = $request->input('formType');
 
         // Create the form
-        //$newForm = $formService->createForm($formName, $studyId, $formType);
-
-        // TODO: remove this hard-coded file system location
-        //$adapter = new Local(storage_path() . '/form-import');
-        //$filesystem = new Filesystem($adapter);
+        $importedForm = $formService->createForm($formName, $studyId, $formType);
+        $importedFormId = $importedForm['id'];
 
         $hasFormFile = $request->hasFile('formJsonFile');
         if ($hasFormFile) {
             $formFile = $request->file('formJsonFile');
             $formFileStream = fopen($formFile->getRealPath(), 'r+');
             $formJsonString = stream_get_contents($formFileStream);
-            $formObject = json_decode($formJsonString, true);
-            $testForm = new Form;
-            $testForm->fill($formObject);
+            $jsonObject = json_decode($formJsonString, true);
+            $formObject = $jsonObject["form"];
+
+            foreach ($formObject["sections"] as $sectionObject) {
+                $sectionSortOrder = $sectionObject["form_sections"][0]["sort_order"];
+                $sectionNameTranslationId = $translationService->importTranslation($sectionObject["name_translation"], $translationTextService);
+                $importedSection = $sectionService->createTranslatedSection($importedFormId, $sectionNameTranslationId, $sectionSortOrder);
+
+                foreach ($sectionObject["question_groups"] as $questionGroupObject) {
+                    $questionGroupSortOrder = $questionGroupObject["pivot"]["question_group_order"];
+                    $importedQuestionGroup = $questionGroupService->createQuestionGroup($importedSection["id"], $questionGroupSortOrder);
+
+                    foreach($questionGroupObject["skips"] as $skipObject) {
+                        $importedSkip = $skipService->createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"]);
+
+                        foreach($skipObject["conditions"] as $skipConditionTagObject) {
+                            $skipService->createSkipConditionTag($importedSkip["id"], $skipConditionTagObject["condition_tag_name"]);
+                        }
+                    }
+
+                    foreach($questionGroupObject["questions"] as $questionObject) {
+                        $questionTranslationId = $translationService->importTranslation($questionObject["question_translation"], $translationTextService);
+                        $importedQuestion = $questionService->createTranslatedQuestion($importedQuestionGroup["id"], $questionTranslationId, $questionObject["var_name"], $questionObject["question_type"]["id"], $questionObject["sort_order"]);
+
+                        foreach($questionObject["assign_condition_tags"] as $assignConditionTagObject) {
+                            $importedConditionTag = $conditionTagService->createConditionTag($assignConditionTagObject['condition']['name']);
+                            $assignConditionTagService->createAssignConditionTag($importedQuestion["id"], $importedConditionTag["id"], $assignConditionTagObject["logic"], $assignConditionTagObject["scope"]);
+                        }
+
+                        foreach($questionObject["choices"] as $choiceObject) {
+                            $choiceTranslationId = $translationService->importTranslation($choiceObject['choice_translation'], $translationTextService);
+                            $questionChoiceService->createTranslatedQuestionChoice($importedQuestion["id"], $choiceTranslationId, $choiceObject["val"], $choiceObject["pivot"]["sort_order"]);
+                        }
+                    }
+                }
+            }
+
+            $studyModel = Study::find($studyId);
+            $returnForm = $studyModel->forms()->find($importedFormId);
+            //$returnForm = Form::with('sections', 'nameTranslation')->find($importedFormId);
 
             return response()->json(
-                [ 'testForm' => $formObject ],
+                [ 'importedForm' => $returnForm,
+                  'formObject' => $formObject ],
                 Response::HTTP_OK
             );
         } else {

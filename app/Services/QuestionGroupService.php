@@ -17,14 +17,14 @@ class QuestionGroupService
         return $questionGroups;
     }
 
-    public function createQuestionGroup($sectionId)
+    public function createQuestionGroup($sectionId, $sortOrder = -1)
     {
         $questionGroupId = Uuid::uuid4();
         $sectionQuestionGroupId = Uuid::uuid4();
 
         $questionGroupModel = new QuestionGroup;
 
-        DB::transaction(function () use ($questionGroupId, $sectionQuestionGroupId, $questionGroupModel, $sectionId) {
+        DB::transaction(function () use ($questionGroupId, $sectionQuestionGroupId, $questionGroupModel, $sectionId, $sortOrder) {
             $questionGroupModel->id = $questionGroupId;
             $questionGroupModel->save();
             $questionGroupModel->section_id = $sectionId;
@@ -33,13 +33,19 @@ class QuestionGroupService
             $sectionQuestionGroupModel->id = $sectionQuestionGroupId;
             $sectionQuestionGroupModel->section_id = $sectionId;
             $sectionQuestionGroupModel->question_group_id = $questionGroupId;
-            $maxQuestionGroupOrder = DB::table('section_question_group')
-                ->where('section_id', '=', $sectionId)
-                ->whereNull('deleted_at')
-                ->max('question_group_order');
+            if ($sortOrder < 0) {
+                $maxQuestionGroupOrder = DB::table('section_question_group')
+                    ->where('section_id', '=', $sectionId)
+                    ->whereNull('deleted_at')
+                    ->max('question_group_order');
 
-            //$sectionQuestionGroupModel->question_group_order = 1;
-            $sectionQuestionGroupModel->question_group_order = $maxQuestionGroupOrder + 1;
+                if ($maxQuestionGroupOrder == null) {
+                    $maxQuestionGroupOrder = 0;
+                }
+
+                $sortOrder = $maxQuestionGroupOrder + 1;
+            }
+            $sectionQuestionGroupModel->question_group_order = $sortOrder;
             $sectionQuestionGroupModel->save();
         });
 
