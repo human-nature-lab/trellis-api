@@ -13,8 +13,44 @@ use DB;
 
 class SectionService
 {
+    public function createTranslatedSection($formId, $nameTranslationId, $sortOrder)
+    {
+        $studyModel = Study::select('study.*')
+            ->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
+            ->join('form AS f', 'f.id', '=', 'sf.form_master_id')
+            ->where('f.id', $formId)
+            ->first();
+
+        $studyLocaleId = $studyModel->default_locale_id;
+
+        $newSectionModel = new Section;
+
+        $sectionId = Uuid::uuid4();
+        $formSectionId = Uuid::uuid4();
+
+        DB::transaction(function () use ($formId, $nameTranslationId, $sortOrder, $studyLocaleId, $newSectionModel, $sectionId, $formSectionId) {
+            $newSectionModel->id = $sectionId;
+            $newSectionModel->name_translation_id = $nameTranslationId;
+            $newSectionModel->save();
+
+            $newFormSectionModel = new FormSection;
+            $newFormSectionModel->id = $formSectionId;
+            $newFormSectionModel->form_id = $formId;
+            $newFormSectionModel->section_id = $sectionId;
+            $newFormSectionModel->sort_order = $sortOrder;
+            $newFormSectionModel->save();
+        });
+
+        $returnSection = Form::find($formId)
+            ->sections()
+            ->find($sectionId);
+
+        return $returnSection;
+    }
+
     public function createSection($formId, $sectionName, $sortOrder)
     {
+        // TODO: createSection should create a name translation and then call createTranslatedSection
         $studyModel = Study::select('study.*')
             ->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
             ->join('form AS f', 'f.id', '=', 'sf.form_master_id')

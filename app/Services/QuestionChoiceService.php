@@ -26,6 +26,29 @@ class QuestionChoiceService
         return $newQuestionChoiceModel;
     }
 
+    public function createTranslatedQuestionChoice($questionId, $choiceTranslationId, $val, $sortOrder) {
+        $questionChoiceId = Uuid::uuid4();
+        $choiceId = Uuid::uuid4();
+
+        $newQuestionChoiceModel = new QuestionChoice;
+
+        DB::transaction(function () use ($val, $choiceTranslationId, $sortOrder, $questionId, $questionChoiceId, $choiceId, $newQuestionChoiceModel) {
+            $newChoiceModel = new Choice;
+            $newChoiceModel->id = $choiceId;
+            $newChoiceModel->choice_translation_id = $choiceTranslationId;
+            $newChoiceModel->val = $val;
+            $newChoiceModel->save();
+
+            $newQuestionChoiceModel->id = $questionChoiceId;
+            $newQuestionChoiceModel->question_id = $questionId;
+            $newQuestionChoiceModel->choice_id = $choiceId;
+            $newQuestionChoiceModel->sort_order = $sortOrder;
+            $newQuestionChoiceModel->save();
+        });
+
+        return $newQuestionChoiceModel;
+    }
+
     public function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId)
     {
         $questionChoiceId = Uuid::uuid4();

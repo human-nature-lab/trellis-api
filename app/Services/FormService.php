@@ -164,8 +164,18 @@ class FormService
             $newStudyFormModel->id = $studyFormId;
             $newStudyFormModel->study_id = $studyId;
             $newStudyFormModel->form_master_id = $formMasterId;
-            // TODO: Pass in and set sort_order
-            $newStudyFormModel->sort_order = 0;
+
+            $maxSortOrder = DB::table('study_form')
+                ->where('study_id', '=', $studyId)
+                ->whereNull('deleted_at')
+                ->max('sort_order');
+
+            if ($maxSortOrder == null) {
+                $maxSortOrder = 0;
+            }
+
+            $newStudyFormModel->sort_order = $maxSortOrder + 1;
+
             $newStudyFormModel->form_type = 1*$formType;
             $newStudyFormModel->save();
         });

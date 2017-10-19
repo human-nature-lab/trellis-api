@@ -46,6 +46,26 @@ class QuestionService
         return $question;
     }
 
+    public function createTranslatedQuestion($questionGroupId, $questionTranslationId, $varName, $questionTypeId, $sortOrder) {
+        $newQuestionModel = new Question;
+        $questionId = Uuid::uuid4();
+
+        DB::transaction(function () use ($questionId, $questionTranslationId, $questionTypeId, $questionGroupId, $varName, $newQuestionModel, $sortOrder) {
+            $newQuestionModel->id = $questionId;
+            $newQuestionModel->question_type_id = $questionTypeId;
+            $newQuestionModel->question_translation_id = $questionTranslationId;
+            $newQuestionModel->question_group_id = $questionGroupId;
+            $newQuestionModel->sort_order = $sortOrder;
+            $newQuestionModel->var_name = $varName;
+            $newQuestionModel->save();
+        });
+
+        $returnQuestion = Question::with('choices', 'questionTranslation', 'questionType', 'questionParameters', 'assignConditionTags')
+            ->find($questionId);
+
+        return $returnQuestion;
+    }
+
     public function createQuestion($questionText, $localeId, $questionTypeId, $questionGroupId, $varName)
     {
         // TODO: handle error when locale tag is not found.

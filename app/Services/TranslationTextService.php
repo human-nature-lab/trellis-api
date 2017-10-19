@@ -20,4 +20,20 @@ class TranslationTextService
 
         return $translationText;
     }
+
+    public static function createTranslationText($translationId, $translatedText, $localeId)
+    {
+        $translationText = new TranslationText();
+
+        $translationText->id = Uuid::uuid4();
+        $translationText->translation_id = $translationId;
+        $translationText->translated_text = $translatedText;
+        $translationText->locale_id = $localeId;
+
+        $translationText->save();
+
+        return $translationText;
+    }
+    
+    
 }
