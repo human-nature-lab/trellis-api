@@ -163,6 +163,30 @@ class RespondentController extends Controller
         );
     }
 
+    public function getRespondentCountByStudyId(Request $request, $study_id)
+    {
+        $validator = Validator::make(
+            ['study_id' => $study_id],
+            ['study_id' => 'required|string|min:36|exists:study,id']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $count = Respondent::whereHas('studies', function ($query) use ($study_id) {
+            $query->where('study.id', '=', $study_id);
+        })->count();
+
+        return response()->json(
+            ['count' => $count],
+            Response::HTTP_OK
+        );
+    }
+
     public function addPhoto(Request $request, $respondentId)
     {
         $validator = Validator::make([

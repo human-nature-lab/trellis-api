@@ -298,6 +298,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     );
 
     $app->get(
+        'respondent/{study_id}/count',
+        'RespondentController@getRespondentCountByStudyId'
+    );
+
+    $app->get(
         'respondent/{study_id}/search',
         'RespondentController@searchRespondentsByStudyId'
     );
@@ -656,6 +661,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     $app->get(
         'study/{study_id}/geo',
         'GeoController@getAllGeosByStudyId'
+    );
+
+    $app->get(
+        'study/{study_id}/geo/count',
+        'GeoController@getGeoCountByStudyId'
     );
 
     $app->get(
