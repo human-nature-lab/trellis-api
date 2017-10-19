@@ -65,6 +65,54 @@ class FormController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function importForm(Request $request, $studyId, FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'studyId' => $studyId
+        ]), [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'formName' => 'required|string',
+            'formType' => 'required|integer'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $formName = $request->input('formName');
+        $formType = $request->input('formType');
+
+        // Create the form
+        //$newForm = $formService->createForm($formName, $studyId, $formType);
+
+        // TODO: remove this hard-coded file system location
+        //$adapter = new Local(storage_path() . '/form-import');
+        //$filesystem = new Filesystem($adapter);
+
+        $hasFormFile = $request->hasFile('formJsonFile');
+        if ($hasFormFile) {
+            $formFile = $request->file('formJsonFile');
+            $formFileStream = fopen($formFile->getRealPath(), 'r+');
+            $formJsonString = stream_get_contents($formFileStream);
+            $formObject = json_decode($formJsonString, true);
+            $testForm = new Form;
+            $testForm->fill($formObject);
+
+            return response()->json(
+                [ 'testForm' => $formObject ],
+                Response::HTTP_OK
+            );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a JSON file exported from Trellis'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
     public function importSection(Request $request, $formId, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService)
     {
         $validator = Validator::make(array_merge($request->all(), [

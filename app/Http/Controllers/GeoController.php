@@ -78,6 +78,30 @@ class GeoController extends Controller
         );
     }
 
+    public function getGeoCountByStudyId(Request $request, $studyId)
+    {
+        $validator = Validator::make(
+            ['study_id' => $studyId],
+            ['study_id' => 'required|string|min:36|exists:study,id']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $count = Geo::whereRaw('geo_type_id in (select id from geo_type where study_id = ?)')
+            ->setBindings([$studyId])
+            ->count();
+
+        return response()->json(
+            ['count' => $count],
+            Response::HTTP_OK
+        );
+    }
+
     public function getAllGeosByStudyId(Request $request, $studyId)
     {
         $validator = Validator::make(
