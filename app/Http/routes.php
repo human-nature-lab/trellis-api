@@ -736,4 +736,22 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
             'form/section/group/question/{question_id}/type/datetime',
             'QuestionParamController@updateQuestionDateTime'
     );
+
+
+    // Web app
+    $app->get(
+            'form/parameter/types',
+            'QuestionParamController@getParameterTypes'
+    );
+
+    $app->post(
+            'form/section/group/question/{question_id}/parameter',
+            'QuestionParamController@createOrUpdateParameter'
+    );
+
+    $app->delete(
+            'parameter/{parameter_id}',
+            'QuestionParamController@deleteQuestionParameter'
+    );
+
 });
