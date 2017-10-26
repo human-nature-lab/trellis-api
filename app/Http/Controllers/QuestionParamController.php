@@ -16,7 +16,76 @@ use Validator;
 use DB;
 
 class QuestionParamController extends Controller
-{
+{   
+    public function getParameterTypes(Request $request){
+
+        return response()->json([
+            'parameters' => Parameter::all()
+        ], Response::HTTP_OK);
+
+    }
+
+
+    public function createOrUpdateParameter(Request $request, $questionId){
+
+        // TODO: validate question id, id, parameter name, parameter value
+
+        $questionModel = Question::find($questionId);
+
+        if($questionModel === null){
+            return response()->json([
+                'msg' => 'Question id is not valid'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+
+        // Create a new QuestionParameter model if it doesn't exist
+        if($request->id === null){
+
+            $questionParameterModel = new QuestionParameter;
+            $questionParameterModel->id = Uuid::uuid4();
+            $questionParameterModel->question_id = $questionId;
+
+        } else {
+
+            $questionParameterModel = QuestionParameter::find($request->id);
+
+        }
+
+
+       // Check if the parameter exists
+        $parameterModel = Parameter::where('name', $request->name)->first();
+
+        if($parameterModel === null){
+            return response()->json([
+                'msg' => "Parameter name is invalid"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+
+        $questionParameterModel->parameter_id = $parameterModel->id;
+        $questionParameterModel->val = $request->val;
+        $questionParameterModel->save();
+
+        return response()->json([
+            'parameter' => $questionParameterModel
+        ], Response::HTTP_OK);
+
+    }
+
+
+    public function deleteQuestionParameter(Request $request, $parameterId){
+
+        QuestionParameter::destroy($parameterId);
+
+        return response()->json([
+            'msg' => "$parameterId deleted successfully"
+        ], Response::HTTP_OK);
+
+
+    }
+
+
     public function updateQuestionNumeric(Request $request, $questionId)
     {
         $validator = Validator::make(array_merge($request->all(), [
