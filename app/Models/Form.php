@@ -41,6 +41,16 @@ class Form extends Model
             ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
     }
 
+    public function skips()
+    {
+        return $this
+            ->belongsToMany('App\Models\Skip', 'form_skip')
+            ->whereNull('form_skip.deleted_at')
+            ->withPivot('form_id')
+            ->withTimestamps()
+            ->with('conditions');
+    }
+
     /*
     public function delete()
     {

@@ -58,7 +58,7 @@ class Study extends Model
         ->whereNull('study_form.deleted_at')
         ->withPivot('sort_order', 'form_type')
         ->withTimestamps()
-        ->with('nameTranslation');
+        ->with('nameTranslation', 'skips');
     }
 
     /*
