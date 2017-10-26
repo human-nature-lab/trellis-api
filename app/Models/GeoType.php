@@ -18,6 +18,8 @@ class GeoType extends Model
 
     protected $table = 'geo_type';
 
+    protected $casts = ['can_enumerator_add' => 'string', 'can_contain_respondent' => 'string'];
+
     protected $fillable = [
         'id',
         'parent_id',
