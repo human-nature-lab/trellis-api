@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AssignSkipTag;
 use App\Models\ConditionTag;
+use App\Models\FormSkip;
 use App\Models\QuestionGroup;
 use App\Models\QuestionGroupSkip;
+use App\Models\SectionSkip;
 use App\Models\Skip;
 use App\Models\SkipConditionTag;
 use App\Models\SkipTag;
@@ -19,6 +21,54 @@ use DB;
 
 class SkipController extends Controller
 {
+
+    public function deleteSkipGeneralized(Request $request, $id)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $id
+        ]), [
+            'id' => 'required|string|min:36|exists:skip'
+        ]);
+
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+
+        $skipModel = Skip::find($id);
+
+        if ($skipModel === null) {
+            return response()->json([
+                'msg' => 'URL resource was not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $formSkipModel = FormSkip::where('skip_id', $id);
+        if ($formSkipModel !== null) {
+            $formSkipModel->delete();
+        }
+
+        $sectionSkipModel = SectionSkip::where('skip_id', $id);
+        if ($sectionSkipModel !== null) {
+            $sectionSkipModel->delete();
+        }
+
+        $questionGroupSkipModel = QuestionGroupSkip::where('skip_id', $id);
+        if ($questionGroupSkipModel !== null) {
+            $questionGroupSkipModel->delete();
+        }
+
+        $skipModel->delete();
+
+        return response()->json([
+
+        ]);
+    }
+
     public function deleteQuestionGroupSkip(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
@@ -117,6 +167,92 @@ class SkipController extends Controller
         });
 
         $returnSkipModel = Skip::with('conditions')->find($skipId);
+
+        return response()->json([
+            'skip' => $returnSkipModel
+        ], Response::HTTP_OK);
+    }
+
+    public function createSkipGeneralized(Request $request)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+        ]), [
+            'show_hide' => 'required|boolean',
+            'any_all' => 'required|boolean',
+            'parent_id' => 'required|string|min:36',
+            'conditions.*.condition_tag_name' => 'string|min:1',
+            'precedence' => 'required|integer',
+            'skip_type' => 'required|integer'
+        ]);
+
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        $newSkipModel = new Skip;
+        $newSkipModelId = Uuid::uuid4();
+
+        $parentId = $request->input('parent_id');
+        $skipType = $request->input('skip_type');  // 0: form skip, 1: section skip, 2: question group skip
+        DB::transaction(function () use ($request, $newSkipModel, $newSkipModelId, $parentId, $skipType) {
+
+            $newSkipModel->id = $newSkipModelId;
+            $newSkipModel->show_hide = $request->input('show_hide');
+            $newSkipModel->any_all = $request->input('any_all');
+            $newSkipModel->precedence = $request->input('precedence');
+            $newSkipModel->save();
+
+            switch($skipType) {
+                case 0:
+                    // Form Skip
+                    $newFormSkip = new FormSkip;
+
+                    $newFormSkip->id = Uuid::uuid4();
+                    $newFormSkip->form_id = $parentId;
+                    $newFormSkip->skip_id = $newSkipModelId;
+                    $newFormSkip->save();
+                    break;
+                case 1:
+                    // Section Skip
+                    $newSectionSkip = new SectionSkip;
+
+                    $newSectionSkip->id = Uuid::uuid4();
+                    $newSectionSkip->section_id = $parentId;
+                    $newSectionSkip->skip_id = $newSkipModelId;
+                    $newSectionSkip->save();
+                    break;
+                case 2:
+                    // Question Group Skip
+                    $newQuestionGroupSkip = new QuestionGroupSkip;
+
+                    $newQuestionGroupSkip->id = Uuid::uuid4();
+                    $newQuestionGroupSkip->question_group_id = $parentId;
+                    $newQuestionGroupSkip->skip_id = $newSkipModelId;
+                    $newQuestionGroupSkip->save();
+                    break;
+            }
+
+            foreach ($request->input('conditions') as $condition) {
+                $newSkipConditionTag = new SkipConditionTag;
+
+                $newSkipConditionTag->id = Uuid::uuid4();
+                $newSkipConditionTag->skip_id = $newSkipModelId;
+                $newSkipConditionTag->condition_tag_name = $condition['condition_tag_name'];
+                $newSkipConditionTag->save();
+            }
+        });
+
+        if ($newSkipModel === null) {
+            return response()->json([
+                'msg' => 'Skip creation failed.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        };
+
+        $returnSkipModel = Skip::with('conditions')->find($newSkipModelId);
 
         return response()->json([
             'skip' => $returnSkipModel

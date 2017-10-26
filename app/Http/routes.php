@@ -505,6 +505,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     //**************************//
 
     $app->put(
+        'form/skip/',
+        'SkipController@createSkipGeneralized'
+    );
+
+    $app->put(
         'form/section/group/skip/',
         'SkipController@createQuestionGroupSkip'
     );
