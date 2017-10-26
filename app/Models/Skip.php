@@ -14,6 +14,8 @@ class Skip extends Model
 
     protected $table = 'skip';
 
+    protected $casts = ['show_hide' => 'string', 'any_all' => 'string'];
+
     protected $fillable = [
         'id',
         'show_hide',

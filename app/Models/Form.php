@@ -13,6 +13,8 @@ class Form extends Model
 
     protected $table = 'form';
 
+    protected $casts = ['is_published' => 'string'];
+
     protected $fillable = [
         'id',
         'form_master_id',

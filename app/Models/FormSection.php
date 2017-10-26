@@ -15,6 +15,8 @@ class FormSection extends Model
 
     protected $with = ['repeatPromptTranslation'];
 
+    protected $casts = ['is_repeatable' => 'string'];
+
     protected $fillable = [
         'id',
         'form_id',
