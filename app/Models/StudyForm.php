@@ -13,6 +13,8 @@ class StudyForm extends Model
 
     protected $table = 'study_form';
 
+    protected $casts = ['sort_order' => 'integer'];
+
     protected $fillable = [
         'id',
         'study_id',

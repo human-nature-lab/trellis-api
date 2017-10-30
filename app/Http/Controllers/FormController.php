@@ -460,6 +460,43 @@ class FormController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function reorderForms(Request $request)
+    {
+        // PATCH method for updating multiple study_form rows at once
+        // Should be provided an array of objects with form_id, section_id, and one or more fields to be updated
+        // TODO: Validate that each question provided has a valid ID, easier when upgrading to laravel 5.3+
+        $validator = Validator::make($request->all(), [
+            'study_forms' => 'required|array',
+            'study_id' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $studyForms = $request->input('study_forms');
+        $studyId = $request->input('study_id');
+
+        DB::transaction(function () use ($studyForms) {
+            foreach ($studyForms as $studyForm) {
+                DB::table('study_form')
+                    ->where('id', $studyForm['id'])
+                    ->update(['sort_order' => $studyForm['sort_order']]);
+            }
+        });
+
+        $studyModel = Study::find($studyId);
+        $formModel = $studyModel->forms()->get();
+
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK],
+            'forms' => $formModel
+        ], Response::HTTP_OK);
+    }
+
     /*
     public function createCensusForm(Request $request, FormService $formService) {
 
