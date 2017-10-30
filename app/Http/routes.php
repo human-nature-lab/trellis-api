@@ -97,6 +97,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'FormController@createForm'
     );
 
+    $app->patch(
+        'form/reorder',
+        'FormController@reorderForms'
+    );
+
     /*
     $app->put(
         'census_form',
