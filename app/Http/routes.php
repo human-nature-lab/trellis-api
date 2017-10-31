@@ -764,4 +764,19 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
             'QuestionParamController@deleteQuestionParameter'
     );
 
+
+    //**********************//
+    //* Data Export Routes *//
+    //**********************//
+    $app->post(
+        'export/form/{form_id}',
+        'ExportController@exportFormData'
+    );
+
+    $app->get(
+        'export/download/{file_name}',
+        'ExportController@downloadFile'
+    );
+
+
 });
