@@ -778,5 +778,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'ExportController@downloadFile'
     );
 
+    $app->post(
+        'export/study/{study_id}/respondents',
+        'ExportController@exportRespondentData'
+    );
+
 
 });

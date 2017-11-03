@@ -13,7 +13,6 @@ class FileService{
      */
     public static function writeCsv($colMap, $rowMaps, $filePath){
 
-        // TODO: make sure that the columns line up correctly
         $emptyValue = '';
 
         $headerIds = array();
@@ -31,7 +30,8 @@ class FileService{
         foreach ($rowMaps as $rowMap){
             $row = array();
             foreach ($headerIds as $id){
-                if(array_key_exists($id, $rowMap) && $rowMap[$id] != ''){
+                if(array_key_exists($id, $rowMap)
+                    && $rowMap[$id] !== ''){
                     array_push($row, $rowMap[$id]);
                 } else {
                     // Value doesn't exist or the string is empty
