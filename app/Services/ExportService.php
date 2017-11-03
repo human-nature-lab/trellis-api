@@ -14,6 +14,61 @@ use App\Services\FileService;
 class ExportService
 {
 
+    public static function createEdgesExport($studyId){
+
+        $edges = DB::table('edge')
+            ->join('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
+            ->join('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
+            ->join('edge_datum', 'edge_datum.edge_id', '=', 'edge.id')
+            ->join('datum', 'datum.id', '=', 'edge_datum.datum_id')
+            ->join('survey', 'survey.id', '=', 'datum.survey_id')
+            ->join('geo as sGeo', 'sGeo.id', '=', 'sourceR.geo_id')
+            ->join('geo as tGeo', 'tGeo.id', '=', 'targetR.geo_id')
+            ->join('question', 'question.id', '=', 'datum.question_id')
+            ->where('survey.study_id', '=', $studyId)
+            ->select(
+                'sourceR.id as sId',
+                'targetR.id as rId',
+                'question.var_name',
+                'sGeo.latitude as sLat',
+                'sGeo.longitude as sLong',
+                'sGeo.altitude as sAlt',
+                'tGeo.latitude as tLat',
+                'tGeo.longitude as tLong',
+                'tGeo.altitude as tAlt'
+            )
+            ->get();
+
+        $headers = array(
+            'sId' => 'Ego',
+            'rId' => 'Alter',
+            'var_name' => 'Question',
+            'sLat' => 'Source Latitude',
+            'sLong' => 'Source Longitude',
+            'sAlt' => 'Source Altitude',
+            'tLat' => 'Target Latitude',
+            'tLong' => 'Target Longitude',
+            'tAlt' => 'Target Altitude'
+        );
+
+        $rows = array_map(function ($r) use ($headers) {
+            $newRow = array();
+            foreach ($headers as $key => $name){
+                $newRow[$key] = $r->$key;
+            }
+            return $newRow;
+        }, $edges);
+
+        $uuid = Uuid::uuid4();
+        $fileName = "$uuid.csv";
+        $filePath = storage_path() ."/app/". $fileName;
+
+        FileService::writeCsv($headers, $rows, $filePath);
+
+        return $fileName;
+
+    }
+
     public static function createRespondentExport($studyId){
 
         $respondents = DB::table('respondent')
@@ -33,6 +88,7 @@ class ExportService
             ->get();
 
         $headers = array(
+            'id' => "Respondent id",
             'rname' => "Respondent name",
             'created_at' => "Created at",
             'updated_at' => "Updated at",
