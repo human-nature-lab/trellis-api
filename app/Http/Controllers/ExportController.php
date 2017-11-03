@@ -18,25 +18,27 @@ class ExportController extends Controller {
 			], Response::HTTP_NOT_FOUND);
 		}
 
-//        return response()->json([
-//            'version' => phpversion()
-//        ], Response::HTTP_OK);
-		
 		// Generate the report csv contents and store is with a unique filename
-		$fileName = ExportService::createExport($formId);
+		$fileName = ExportService::createFormExport($formId);
+//		$fileName = ExportService::createFormExportBranching($formId);
 
-
-
-		// TODO: return the file id to be downloaded
+		// Return the file id that can be downloaded
 		return response()->json([
 			'fileUrl' => $fileName
 		], Response::HTTP_OK);
 
 	}
 
+
+    /**
+     * Responds with a file encoded as a string in the 'contents' of a JSON response.
+     * @param Request $request
+     * @param $fileName - The name of the file. Files are stored in storage/app.
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
 	public function downloadFile(Request $request, $fileName){
 
-		// This is a security issue if php reads relative file paths
+		// This is a security issue if php reads relative file paths. I'm not sure if it will.
 		$filePath = storage_path("app/") . $fileName;
 
 		// Validate that the export exists
