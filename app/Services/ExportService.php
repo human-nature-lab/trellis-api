@@ -9,103 +9,296 @@ use App\Models\Survey;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
 use App\Models\Question;
+use App\Services\FileService;
 
 class ExportService
 {
-    public static function createExport($formId)
+    /**
+     * Create an csv file with one row per survey filled out for a single formId
+     * @param $formId - Id of the form to export
+     * @return string - The name of the file that was exported. The file is stored in 'storage/app'
+     */
+    public static function createFormExport($formId)
     {
         
         // Get all of the form questions (including unanswered questions)
         $form = Form::find($formId);
 
+        $defaultColumns = array(
+            'id' => 'survey_id',
+            'respondent_id' => 'respondent_id',
+            'completed_at' => 'completed_at'
+        );
 
-        $headersMap = DB::table('question')
+        $questions = DB::table('question')
             ->join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
             ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
             ->join('form', 'form_section.form_id', '=', 'form.id')
+            ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
             ->where('form.id', '=', $form->id)
-            ->lists('question.var_name','question.id');
+            ->whereNull('question.deleted_at')
+            ->select('question.id', 'question.var_name', 'question_type.name as qtype', 'form_section.follow_up_question_id')
+            ->get();
 
-        $headersMap['survey_id'] = 'survey_id';
-        $headersMap['respondent_id'] = 'respondent_id';
+        $questionsMap = array_reduce($questions, function($agg, $q){
+            $agg[$q->id] = $q;
+            return $agg;
+        }, array());
+
+        // Create the base headers for each question
+        $headersMap = array();
+        foreach ($questions as $q){
+            if($q->qtype !== 'geo' && $q->qtype !== 'roster' && $q->qtype!=='multiple_select') {
+                $headersMap[$q->id] = &$q->var_name;
+            }
+        }
+
+
+
+        $multiSelectQuestions = array_filter($questions, function($q){
+            return $q->qtype === 'multiple_select';
+        });
+
+
+        $geoQuestions = array_reduce(array_filter($questions, function($q){
+            return $q->qtype === 'geo' ;
+        }), function($agg, $q){
+            $agg[$q->id] = &$q;
+            return $agg;
+        }, array());
+
+
+        $rosterQuestions = array_reduce(array_filter($questions, function($q){
+            return $q->qtype === 'roster';
+        }), function($agg, $q){
+            $agg[$q->id] = &$q;
+            return $agg;
+        }, array());
+
+
+        $multiSelectQuestionsMap = array();
+        foreach ($multiSelectQuestions as $q){
+            $multiSelectQuestionsMap[$q->id] = true;
+//            Log::debug("removing multi_select $q->id");
+//            unset($headersMap[$q->id]);
+        }
+
+        // Add all possible options to header values for multi select type questions
+        foreach ($multiSelectQuestions as $mq){
+            $choices = DB::table('question_choice')
+                        ->join('choice', 'question_choice.choice_id', '=', 'choice.id')
+                        ->where('question_choice.question_id', '=', $mq->id)
+                        ->whereNull('choice.deleted_at')
+                        ->get();
+            foreach ($choices as $choice){
+                $key = $mq->id . "___" . $choice->val;
+                $name = $mq->var_name . '_' . $choice->val;
+                $headersMap[$key] = $name;
+            }
+        }
+
 
         $allSurveys = DB::table('survey')
-                        ->where('survey.form_id', '=', $form->id)
-                        ->get();
+            ->where('survey.form_id', '=', $form->id)
+            ->get();
+
 
 
         $rows = array();
         foreach ($allSurveys as $survey){
             Log::debug("survey $survey->id");
-            $datums = DB::table('datum_choice')
-                ->join('datum', 'datum.id', '=', 'datum_choice.datum_id')
-                ->join('choice', 'datum_choice.choice_id', '=', 'choice.id')
-                ->join('question', 'datum.question_id', '=', 'question.id')
-                ->where('datum.survey_id', '=', $survey->id)
-                ->get();
             $row = array();
-            foreach ($datums as $datum){
-                $row[$datum->question_id] = $datum->val;
-//                Log::debug("key $datum->question_id, val $datum->val");
+            // TODO: add zero padding
+
+            foreach($rosterQuestions as $rosterQuestion){
+
+                // Get all the data referencing this question
+                $rosterRows = DB::table('datum')
+                    ->where('datum.question_id', '=', $rosterQuestion->id)
+                    ->where('datum.survey_id', '=', $survey->id)
+                    ->orderBy('sort_order', 'ASC')
+                    ->get();
+
+                // Filter out the parent value
+                $rosterRows = array_filter($rosterRows, function($row){
+                    return $row->parent_datum_id !== null;
+                });
+
+
+                // Add a column for each roster row first
+                foreach ($rosterRows as $index => $rosterRow){
+                    $key = $rosterQuestion->id . $index;
+                    $name = $rosterQuestion->var_name . '_r' . $index;
+                    $headersMap[$key] = $name;
+                    $row[$key] = $rosterRow->val;
+                }
+
+                // Then add a column for each follow up question
+                foreach ($rosterRows as $rosterRow){
+
+                    $followUpAnswers = DB::table('datum')
+                        ->where('datum.parent_datum_id', '=', $rosterRow->id)
+                        ->orderBy('sort_order', 'ASC')
+                        ->get();
+
+                    foreach ($followUpAnswers as $index => $answer){
+                        $key = $answer->question_id . $index;
+                        $name = $questionsMap[$answer->question_id]->var_name . '_r' . $index;
+                        $headersMap[$key] = $name;
+                        $row[$key] = $answer->val;
+                    }
+
+                }
+
+
             }
 
-            $row['survey_id'] = $survey->id;
-            $row['respondent_id'] = $survey->respondent_id;
+
+            // Multiple select
+            // 1. Get all multiple select parent data
+            // 2. Get all of the possible choices for this question
+            // 3. Get all of the selected choice values
+            // 4. Convert the choices into columns
+
+             // Add any single answer data
+            $datums = DB::table('datum')
+                ->where('datum.survey_id', '=', $survey->id)
+                ->get();
+            foreach ($datums as $datum) {
+                Log::debug("adding $datum->question_id, $datum->val to row");
+                if (array_key_exists($datum->question_id, $multiSelectQuestionsMap)) {
+                    ExportService::handleMultiSelect($datum, $row);
+                } else if(array_key_exists($datum->question_id, $geoQuestions)){
+                    $geoQuestion = $geoQuestions[$datum->question_id];
+                    ExportService::handleGeo($datum, $row, $headersMap, $geoQuestion);
+                } else {
+                    $row[$datum->question_id] = $datum->val;
+                }
+            }
+
+
+            // Add the default column values to the row
+            foreach ($defaultColumns as $colId => $colName){
+                $row[$colId] = $survey->{$colId};
+            }
 
             array_push($rows, $row);
         }
 
 
-        // TODO:
 
-
-        // TODO: Format as csv string
-        // TODO: Write file to disk
         $uuid = Uuid::uuid4();
         $fileName = "$uuid.csv";
         $filePath = storage_path() ."/app/". $fileName;
 
-		ExportService::writeCsv($headersMap, $rows, $filePath);
+        // Sort non default columns first then add default columns
+        ksort($headersMap);
+        $headersMap = $defaultColumns + $headersMap; // add at the beginning of the array
+
+		FileService::writeCsv($headersMap, $rows, $filePath);
 
 		return $fileName;
 
     }
 
 
-    public static function writeCsv($colMap, $rowMaps, $filePath){
-
-    	// TODO: make sure that the columns line up correctly
-    	$empty = 'n/a';
-
-    	$headerIds = array();
-    	$headerNames = array();
-    	foreach ($colMap as $id => $name){
-    	    Log::debug("colMap $id, $name");
-    		array_push($headerIds, $id);
-    		array_push($headerNames, $name);
-    	}
 
 
-     	$file = fopen($filePath, 'w');
 
-     	// Write headers
-     	fputcsv($file, $headerNames);
-    	foreach ($rowMaps as $rowMap){
-    		$row = array();
-    		foreach ($headerIds as $id){
-    			if(array_key_exists($id, $rowMap)){
-	    			array_push($row, $rowMap[$id]);
-	    		} else {
-	    			array_push($row, $empty);
-	    		}
-    		}
-    		// Write row
-        	fputcsv($file, $row);
-    	}
-    	
+    public static function handleRoster($surveyId, $rosterParent, &$row, &$headersMap, $baseKey=''){
 
-        fclose($file);
+        $rosterRows = DB::table('datum')
+            ->where('datum.question_id', '=', $rosterParent->question_id)
+            ->where('datum.survey_id', '=', $surveyId)
+            ->orderBy('sort_order', 'ASC')
+            ->get();
+
+        // Filter out the parent value
+        $rosterRows = array_filter($rosterRows, function($row){
+            return $row->parent_datum_id !== null;
+        });
+
+
+        // Add a column for each roster row first
+        foreach ($rosterRows as $index => $rosterRow){
+            $key = $baseKey . $rosterParent->question_id . $index;
+            $name = $headersMap[$rosterParent->question_id] . '_r' . $index;
+            $headersMap[$key] = $name;
+            $row[$key] = $rosterRow->val;
+        }
+
+        // Then add a column for each follow up question
+        foreach ($rosterRows as $rosterRow){
+
+            $followUpAnswers = DB::table('datum')
+                ->where('datum.parent_datum_id', '=', $rosterRow->id)
+                ->orderBy('sort_order', 'ASC')
+                ->get();
+
+            foreach ($followUpAnswers as $index => $answer){
+                $key = $answer->question_id . $index;
+                $name = $headersMap[$answer->question_id] . '_r' . $index;
+                $headersMap[$key] = $name;
+                $row[$key] = $answer->val;
+            }
+
+        }
+
 
     }
+
+
+
+    public static function handleDatum($datum, &$row, &$headersMap, &$multiSelectQuestionsMap, &$geoQuestions, &$rosterQuestions){
+
+        if(array_key_exists($datum->question_id, $rosterQuestions)){
+            ExportService::handleRoster($datum, $row);
+        } else if (array_key_exists($datum->question_id, $multiSelectQuestionsMap)) {
+            ExportService::handleMultiSelect($datum, $row);
+        } else if(array_key_exists($datum->question_id, $geoQuestions)){
+            $geoQuestion = $geoQuestions[$datum->question_id];
+            ExportService::handleGeo($datum, $row, $headersMap, $geoQuestion);
+        } else {
+            $row[$datum->question_id] = $datum->val;
+        }
+
+    }
+
+
+    public static function handleMultiSelect($parentDatum, &$row){
+        $selectedChoices = DB::table('datum_choice')
+            ->join('choice', 'datum_choice.choice_id', '=', 'choice.id')
+            ->join('question_choice', 'choice.id', '=', 'question_choice.choice_id')
+            ->where('datum_id', '=', $parentDatum->id)
+            ->get();
+
+        foreach ($selectedChoices as $choice) {
+            $key = $parentDatum->question_id . '___' . $choice->val;
+            $row[$key] = true;
+        }
+    }
+
+
+    public static function handleGeo($datum, &$row, &$headersMap, $geoQuestion){
+
+        $geoDatum = DB::table('datum_geo')
+            ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
+            ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
+            ->where('datum_geo.datum_id', '=', $datum->id)
+            ->select('geo_type.name', 'geo.latitude', 'geo.longitude', 'geo.altitude')
+            ->get();
+
+        foreach ($geoDatum as $index=>$geo) {
+            foreach (array('name', 'latitude', 'longitude', 'altitude') as $name) {
+                $key = $datum->question_id . '_' . $index . '_' . $name;
+                $headersMap[$key] = $geoQuestion->var_name . '_' . $index . '_' . $name;
+                $row[$key] = $geo->$name;
+            }
+        }
+
+    }
+
+
+
 
 }
