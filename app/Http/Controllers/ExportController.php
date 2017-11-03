@@ -10,6 +10,36 @@ use App\Services\ExportService;
 
 class ExportController extends Controller {
 
+    public function exportEdgesData(Request $request, $studyId){
+
+        $validator = Validator::make(
+            ['id' => $studyId],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Form id invalid',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        if(Study::where('id', $studyId)->count() === 0){
+            return response()->json([
+                'msg' => "Study with id, $studyId doesn't exist"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Generate the report csv contents and store is with a unique filename
+        $fileName = ExportService::createEdgesExport($studyId);
+
+        // Return the file id that can be downloaded
+        return response()->json([
+            'fileUrl' => $fileName
+        ], Response::HTTP_OK);
+
+    }
+
 
     public function exportRespondentData(Request $request, $studyId){
         $validator = Validator::make(
