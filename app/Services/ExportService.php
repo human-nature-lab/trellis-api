@@ -13,6 +13,54 @@ use App\Services\FileService;
 
 class ExportService
 {
+
+    public static function createRespondentExport($studyId){
+
+        $respondents = DB::table('respondent')
+            ->join('study_respondent', 'study_respondent.respondent_id', '=', 'respondent.id')
+            ->join('geo', 'geo.id', '=', 'respondent.geo_id')
+            ->join('geo_type', 'geo_type.id', '=', 'geo_type_id')
+            ->where('study_respondent.study_id', '=', $studyId)
+            ->whereNull('respondent.deleted_at')
+            ->select('respondent.id',
+                'respondent.name as rname',
+                'respondent.created_at',
+                'respondent.updated_at',
+                'geo.altitude',
+                'geo.latitude',
+                'geo.longitude',
+                'geo_type.name as gname')
+            ->get();
+
+        $headers = array(
+            'rname' => "Respondent name",
+            'created_at' => "Created at",
+            'updated_at' => "Updated at",
+            'gname' => "Location name",
+            'latitude' => "Location latitude",
+            'longitude' => "Location longitude"
+        );
+
+        $rows = array_map(function ($r) use ($headers) {
+            $newRow = array();
+            foreach ($headers as $key => $name){
+                $newRow[$key] = $r->$key;
+            }
+            return $newRow;
+        }, $respondents);
+
+        $uuid = Uuid::uuid4();
+        $fileName = "$uuid.csv";
+        $filePath = storage_path() ."/app/". $fileName;
+
+        FileService::writeCsv($headers, $rows, $filePath);
+
+        return $fileName;
+
+
+    }
+
+
     /**
      * Create an csv file with one row per survey filled out for a single formId
      * @param $formId - Id of the form to export
@@ -149,7 +197,6 @@ class ExportService
                     }
 
                 }
-
 
             }
 
