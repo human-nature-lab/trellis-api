@@ -118,6 +118,13 @@ class ExportService
 
 
     /**
+     * Zero padded numbers
+     */
+    public static function zeroPad($n){
+        return str_pad($n, 2, "0", STR_PAD_LEFT);
+    }
+
+    /**
      * Create an csv file with one row per survey filled out for a single formId
      * @param $formId - Id of the form to export
      * @return string - The name of the file that was exported. The file is stored in 'storage/app'
@@ -131,6 +138,7 @@ class ExportService
         $defaultColumns = array(
             'id' => 'survey_id',
             'respondent_id' => 'respondent_id',
+            'created_at' => 'created_at',
             'completed_at' => 'completed_at'
         );
 
@@ -212,7 +220,6 @@ class ExportService
         foreach ($allSurveys as $survey){
             Log::debug("survey $survey->id");
             $row = array();
-            // TODO: add zero padding
 
             foreach($rosterQuestions as $rosterQuestion){
 
@@ -232,7 +239,7 @@ class ExportService
                 // Add a column for each roster row first
                 foreach ($rosterRows as $index => $rosterRow){
                     $key = $rosterQuestion->id . $index;
-                    $name = $rosterQuestion->var_name . '_r' . $index;
+                    $name = $rosterQuestion->var_name . '_r' . ExportService::zeroPad($index);
                     $headersMap[$key] = $name;
                     $row[$key] = $rosterRow->val;
                 }
@@ -247,7 +254,7 @@ class ExportService
 
                     foreach ($followUpAnswers as $index => $answer){
                         $key = $answer->question_id . $index;
-                        $name = $questionsMap[$answer->question_id]->var_name . '_r' . $index;
+                        $name = $questionsMap[$answer->question_id]->var_name . '_r' . ExportService::zeroPad($index);
                         $headersMap[$key] = $name;
                         $row[$key] = $answer->val;
                     }
@@ -268,7 +275,7 @@ class ExportService
                 ->where('datum.survey_id', '=', $survey->id)
                 ->get();
             foreach ($datums as $datum) {
-                Log::debug("adding $datum->question_id, $datum->val to row");
+//                Log::debug("adding $datum->question_id, $datum->val to row");
                 if (array_key_exists($datum->question_id, $multiSelectQuestionsMap)) {
                     ExportService::handleMultiSelect($datum, $row);
                 } else if(array_key_exists($datum->question_id, $geoQuestions)){
@@ -282,7 +289,8 @@ class ExportService
 
             // Add the default column values to the row
             foreach ($defaultColumns as $colId => $colName){
-                $row[$colId] = $survey->{$colId};
+                Log::debug("adding $colId to row");
+                $row[$colId] = $survey->$colId;
             }
 
             array_push($rows, $row);
@@ -325,7 +333,7 @@ class ExportService
         // Add a column for each roster row first
         foreach ($rosterRows as $index => $rosterRow){
             $key = $baseKey . $rosterParent->question_id . $index;
-            $name = $headersMap[$rosterParent->question_id] . '_r' . $index;
+            $name = $headersMap[$rosterParent->question_id] . '_r' . ExportService::zeroPad($index);
             $headersMap[$key] = $name;
             $row[$key] = $rosterRow->val;
         }
@@ -340,7 +348,7 @@ class ExportService
 
             foreach ($followUpAnswers as $index => $answer){
                 $key = $answer->question_id . $index;
-                $name = $headersMap[$answer->question_id] . '_r' . $index;
+                $name = $headersMap[$answer->question_id] . '_r' . ExportService::zeroPad($index);
                 $headersMap[$key] = $name;
                 $row[$key] = $answer->val;
             }
@@ -394,7 +402,7 @@ class ExportService
         foreach ($geoDatum as $index=>$geo) {
             foreach (array('name', 'latitude', 'longitude', 'altitude') as $name) {
                 $key = $datum->question_id . '_' . $index . '_' . $name;
-                $headersMap[$key] = $geoQuestion->var_name . '_' . $index . '_' . $name;
+                $headersMap[$key] = $geoQuestion->var_name . '_' . ExportService::zeroPad($index) . '_' . $name;
                 $row[$key] = $geo->$name;
             }
         }
