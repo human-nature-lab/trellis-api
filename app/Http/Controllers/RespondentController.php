@@ -58,7 +58,7 @@ class RespondentController extends Controller
             ['study_id' => 'required|string|min:36|exists:study,id']
         );
 
-        // Default to limit = 100 and offset = 0
+        // Default to limit = 50 and offset = 0
         $limit = $request->input('limit', 50);
         $offset = $request->input('offset', 0);
 
@@ -69,59 +69,98 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
         $q = $request->query('q');
         $c = $request->query('c');
 
-        $respondents = Respondent::with('photos', 'conditionTags')
-            ->whereHas('studies', function ($query) use ($study_id) {
-                $query
-                    ->where('study.id', '=', $study_id);
-            });
         if ($q) {
-            $respondents = $respondents->where('name', 'LIKE', $q . '%');
-        }
+            $searchTerms = explode(" ", $q);
+            $r1 = Respondent::with('photos', 'conditionTags')
+                ->selectRaw("*, 1 as score")
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
 
-        if ($c) {
-            $cArray = explode(",", $c);
-            if (count($cArray) > 0) {
-                $respondents = $respondents
-                    ->whereHas('conditionTags', function ($query) use ($cArray) {
-                        $query
-                            ->whereIn('condition_tag.name', $cArray);
-                    }, '=', count($cArray));
-                $currentQuery = $respondents->toSql();
-                Log::info('$currentQuery: ' . $currentQuery);
+            $r2 = Respondent::with('photos', 'conditionTags')
+                ->selectRaw("*, 2 as score")
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+
+            if ($c) {
+                $cArray = explode(",", $c);
+                if (count($cArray) > 0) {
+                    $r1 = $r1
+                        ->whereHas('conditionTags', function ($query) use ($cArray) {
+                            $query
+                                ->whereIn('condition_tag.name', $cArray);
+                        }, '=', count($cArray));
+                    $r2 = $r2
+                        ->whereHas('conditionTags', function ($query) use ($cArray) {
+                            $query
+                                ->whereIn('condition_tag.name', $cArray);
+                        }, '=', count($cArray));
+                    //$currentQuery = $respondents->toSql();
+                    //Log::info('$currentQuery: ' . $currentQuery);
+                }
             }
+
+            for ($i = 0; $i < count($searchTerms); $i++) {
+                $searchTerm = $searchTerms[$i];
+                if ($i == 0) {
+                    $searchString = $searchTerm . '%';
+                    $r1 = $r1->whereRaw("name like ?", [$searchString]);
+                    $searchString = '% ' . $searchTerm . '%';
+                    $r2 = $r2->whereRaw("name like ?", [$searchString]);
+                } else {
+                    $searchString = '% ' . $searchTerm . '%';
+                    $r1 = $r1->whereRaw("concat(' ', name) like ?", [$searchString]);
+                    $r2 = $r2->whereRaw("concat(' ', name) like ?", [$searchString]);
+                }
+            }
+
+            $respondents = $r1->union($r2)->orderBy('score', 'asc');
+
+            //$currentQuery = $respondents->toSql();
+            //Log::info('$currentQuery: ' . $currentQuery);
+
+
+            $respondents = $respondents->limit($limit)->offset($offset)->get();
+            $count = count($respondents);
+
+            return response()->json(
+                ['respondents' => $respondents,
+                    'count' => $count,
+                    'limit' => $limit,
+                    'offset' => $offset],
+                Response::HTTP_OK
+            );
+        } else {
+            $respondents = Respondent::with('photos', 'conditionTags')
+                ->selectRaw("*, 1 as score")
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+
+            if ($c) {
+                $cArray = explode(",", $c);
+                if (count($cArray) > 0) {
+                    $respondents = $respondents
+                        ->whereHas('conditionTags', function ($query) use ($cArray) {
+                            $query
+                                ->whereIn('condition_tag.name', $cArray);
+                        }, '=', count($cArray));
+                    //$currentQuery = $respondents->toSql();
+                    //Log::info('$currentQuery: ' . $currentQuery);
+                }
+            }
+
+            $respondents = $respondents->limit($limit)->offset($offset)->get();
+            $count = count($respondents);
+
+            return response()->json(
+                ['respondents' => $respondents,
+                    'count' => $count,
+                    'limit' => $limit,
+                    'offset' => $offset],
+                Response::HTTP_OK
+            );
+
+
         }
-
-        $count = $respondents->count();
-
-        $respondents = $respondents->limit($limit)->offset($offset)->get();
-
-        /*
-        $respondents = Respondent::with('photos', 'conditionTags')
-            ->whereHas('studies', function ($query) use ($study_id) {
-                $query->where('study.id', '=', $study_id);
-            })
-            ->whereHas('conditionTags', function ($query) use ($c) {
-                $query
-                    ->where('condition_tag.name', 'in', $c);
-
-            })
-            ->where('name', 'LIKE', $q . '%')
-            ->limit($limit)
-            ->offset($offset)
-            ->get();
-        */
-
-        return response()->json(
-            ['respondents' => $respondents,
-                'count' => $count,
-                'limit' => $limit,
-                'offset' => $offset],
-            Response::HTTP_OK
-        );
     }
 
     public function getAllRespondentsByStudyId(Request $request, $study_id)
