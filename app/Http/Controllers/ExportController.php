@@ -95,7 +95,7 @@ class ExportController extends Controller {
 		}
 
 		// Generate the report csv contents and store is with a unique filename
-		$fileName = ExportService::createFormExport2($formId);
+		$fileName = ExportService::createFormExport($formId);
 
 		// Return the file id that can be downloaded
 		return response()->json([
