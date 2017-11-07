@@ -284,23 +284,25 @@ class ExportService
 
     public static function handleGeo($surveyId, $question, $repeatString){
 
-        $geoDatum = ExportService::firstDatum($surveyId, $question->id);
-
-        $geoDatum = DB::table('datum_geo')
-            ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
-            ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
-            ->where('datum_geo.datum_id', '=', $geoDatum->id)
-            ->select('geo_type.name', 'geo.latitude', 'geo.longitude', 'geo.altitude')
-            ->get();
-
         $headers = array();
         $data = array();
+        $geoDatum = ExportService::firstDatum($surveyId, $question->id);
 
-        foreach ($geoDatum as $index=>$geo) {
-            foreach (array('name', 'latitude', 'longitude', 'altitude') as $name) {
-                $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
-                $headers[$key] = $question->var_name . $repeatString . '_g' . ExportService::zeroPad($index) . '_' . $name;
-                $data[$key] = $geo->$name;
+        if($geoDatum) {
+            $geoData = DB::table('datum_geo')
+                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
+                ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
+                ->where('datum_geo.datum_id', '=', $geoDatum->id)
+                ->select('geo_type.name', 'geo.latitude', 'geo.longitude', 'geo.altitude')
+                ->get();
+
+
+            foreach ($geoData as $index => $geo) {
+                foreach (array('name', 'latitude', 'longitude', 'altitude') as $name) {
+                    $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
+                    $headers[$key] = $question->var_name . $repeatString . '_g' . ExportService::zeroPad($index) . '_' . $name;
+                    $data[$key] = $geo->$name;
+                }
             }
         }
 
