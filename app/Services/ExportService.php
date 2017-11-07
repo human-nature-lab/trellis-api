@@ -1,15 +1,11 @@
 <?php
-
 namespace App\Services;
 
 use Log;
-use App\Models\Form;
-use App\Models\Datum;
-use App\Models\Survey;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
-use App\Models\Question;
 use App\Services\FileService;
+use App\Classes\Memoization;
 
 class ExportService
 {
@@ -69,22 +65,19 @@ class ExportService
 
     }
 
-    public static function createRespondentExport($studyId){
+    public static function createRespondentExport($studyId, $maxGeoTreeDepth=4){
+
+        $startTime = microtime(true);
 
         $respondents = DB::table('respondent')
             ->join('study_respondent', 'study_respondent.respondent_id', '=', 'respondent.id')
-            ->join('geo', 'geo.id', '=', 'respondent.geo_id')
-            ->join('geo_type', 'geo_type.id', '=', 'geo_type_id')
             ->where('study_respondent.study_id', '=', $studyId)
             ->whereNull('respondent.deleted_at')
             ->select('respondent.id',
                 'respondent.name as rname',
                 'respondent.created_at',
                 'respondent.updated_at',
-                'geo.altitude',
-                'geo.latitude',
-                'geo.longitude',
-                'geo_type.name as gname')
+                'respondent.geo_id')
             ->get();
 
         $defaultHeaders = array(
@@ -92,40 +85,82 @@ class ExportService
             'rname' => "Respondent name",
             'created_at' => "Created at",
             'updated_at' => "Updated at",
-            'gname' => "Location name",
-            'latitude' => "Location latitude",
-            'longitude' => "Location longitude"
         );
+
+        $getGeoParent = Memoization::memoize(function($id){
+            return DB::table('geo')
+                ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
+                ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
+                ->where('geo.id', '=', $id)
+                ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id')
+                ->first();
+        });
+
+        $traverseGeoTree = function ($startingId, $maxDepth) use ($getGeoParent){
+            $tree = array();
+            $id = $startingId;
+            while(count($tree) < $maxDepth && $id !== null){
+                $parent = $getGeoParent($id);
+                if($parent !== null) {
+                    array_push($tree, $parent);
+                    $id = $parent->parent_id;
+                } else {
+                    break;
+                }
+            }
+            return $tree;
+        };
+
         $headers = array();
         $headers = array_replace($headers, $defaultHeaders);
 
-        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers) {
+        $conditionsGroupedByRespondentId = DB::table('respondent_condition_tag')
+            ->join('respondent', 'respondent.id', '=', 'respondent_condition_tag.respondent_id')
+            ->join('condition_tag', 'condition_tag.id', '=', 'respondent_condition_tag.condition_tag_id')
+            ->select('respondent.id', DB::raw("group_concat(condition_tag.name SEPARATOR ';') as conditions"))
+            ->groupBy('respondent.id');
+
+        $respondent_conditions = array_reduce($conditionsGroupedByRespondentId->get(), function($agg, $r){
+            $agg[$r->id] = explode(';', $r->conditions);
+            return $agg;
+        }, array());
+
+        // map each respondent to a single row of the csv
+        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers, &$respondent_conditions, $maxGeoTreeDepth, $traverseGeoTree) {
             $newRow = array();
             foreach ($defaultHeaders as $key => $name){
                 $newRow[$key] = $respondent->$key;
             }
-            $assigned_conditions = DB::table('respondent_condition_tag')
-                ->join('respondent', 'respondent.id', '=', 'respondent_condition_tag.respondent_id')
-                ->join('condition_tag', 'condition_tag.id', '=', 'respondent_condition_tag.condition_tag_id')
-                ->where('respondent.id', '=', $respondent->id)
-                ->select('condition_tag.id', 'condition_tag.name')
-                ->get();
-            foreach($assigned_conditions as $condition){
-                $key = $condition->id;
-                $headers[$key] = $condition->name;
-                $newRow[$key] = true;
+
+            $geoTree = $traverseGeoTree($respondent->geo_id, $maxGeoTreeDepth);
+            foreach($geoTree as $level => $geo){
+                $key = "geo_level_" . $level;
+                $headers[$key] = $key;
+                $newRow[$key] = $geo->name;
             }
+
+            // Add conditions if there are any for this respondent
+            if(array_key_exists($respondent->id, $respondent_conditions)) {
+                $conditions = $respondent_conditions[$respondent->id];
+                foreach ($conditions as $condition) {
+                    $headers[$condition] = $condition;
+                    $newRow[$condition] = true;
+                }
+            }
+
             return $newRow;
         }, $respondents);
 
         $uuid = Uuid::uuid4();
         $fileName = "$uuid.csv";
-        $filePath = storage_path("app") . $fileName;
+        $filePath = storage_path("app/") . $fileName;
 
         FileService::writeCsv($headers, $rows, $filePath);
 
-        return $fileName;
+        $duration = microtime(true) - $startTime;
+        Log::debug("createRespondentExport took $duration seconds");
 
+        return $fileName;
 
     }
 
