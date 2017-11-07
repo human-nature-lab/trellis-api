@@ -355,7 +355,7 @@ class ExportService
      * @param $formId - Id of the form to export
      * @return string - The name of the file that was exported. The file is stored in 'storage/app'
      */
-    public static function createFormExport2($formId){
+    public static function createFormExport($formId){
 
         $questions = ExportService::getFormQuestions($formId);
 
