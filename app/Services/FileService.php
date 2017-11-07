@@ -9,11 +9,10 @@ class FileService{
      * the column keys to the row value for that column.
      * @param $colMap - A hashmap of id => name. The name is what ends up in the column header.
      * @param $rowMaps - An array of hashmaps for each row. Hashmap keys should correspond to the $colMap keys.
+     * @param $nullValue - The string to use in place of null and empty strings.
      * @param $filePath - The path to the csv file.
      */
-    public static function writeCsv($colMap, $rowMaps, $filePath){
-
-        $emptyValue = '';
+    public static function writeCsv($colMap, $rowMaps, $filePath, $nullValue='NA'){
 
         $headerIds = array();
         $headerNames = array();
@@ -35,7 +34,7 @@ class FileService{
                     array_push($row, $rowMap[$id]);
                 } else {
                     // Value doesn't exist or the string is empty
-                    array_push($row, $emptyValue);
+                    array_push($row, $nullValue);
                 }
             }
             // Write row
