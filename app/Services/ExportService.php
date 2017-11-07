@@ -87,7 +87,7 @@ class ExportService
                 'geo_type.name as gname')
             ->get();
 
-        $headers = array(
+        $defaultHeaders = array(
             'id' => "Respondent id",
             'rname' => "Respondent name",
             'created_at' => "Created at",
@@ -96,18 +96,31 @@ class ExportService
             'latitude' => "Location latitude",
             'longitude' => "Location longitude"
         );
+        $headers = array();
+        $headers = array_replace($headers, $defaultHeaders);
 
-        $rows = array_map(function ($r) use ($headers) {
+        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers) {
             $newRow = array();
-            foreach ($headers as $key => $name){
-                $newRow[$key] = $r->$key;
+            foreach ($defaultHeaders as $key => $name){
+                $newRow[$key] = $respondent->$key;
+            }
+            $assigned_conditions = DB::table('respondent_condition_tag')
+                ->join('respondent', 'respondent.id', '=', 'respondent_condition_tag.respondent_id')
+                ->join('condition_tag', 'condition_tag.id', '=', 'respondent_condition_tag.condition_tag_id')
+                ->where('respondent.id', '=', $respondent->id)
+                ->select('condition_tag.id', 'condition_tag.name')
+                ->get();
+            foreach($assigned_conditions as $condition){
+                $key = $condition->id;
+                $headers[$key] = $condition->name;
+                $newRow[$key] = true;
             }
             return $newRow;
         }, $respondents);
 
         $uuid = Uuid::uuid4();
         $fileName = "$uuid.csv";
-        $filePath = storage_path() ."/app/". $fileName;
+        $filePath = storage_path("app") . $fileName;
 
         FileService::writeCsv($headers, $rows, $filePath);
 
@@ -121,7 +134,7 @@ class ExportService
      * Zero padded numbers
      */
     public static function zeroPad($n){
-        return str_pad($n, 2, "0", STR_PAD_LEFT);
+        return str_pad($n + 1, 2, "0", STR_PAD_LEFT);
     }
 
 
@@ -251,7 +264,7 @@ class ExportService
         // Add headers for all possible choices
         foreach ($possibleChoices as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
-            $headers[$key] = $question->var_name . $repeatString . '_' . $choice->val;
+            $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
         }
 
 
@@ -402,7 +415,7 @@ class ExportService
         $filePath = storage_path() ."/app/". $fileName;
 
         // Sort non default columns first then add default columns
-        ksort($headers);
+        asort($headers);
         $headers = $defaultColumns + $headers; // add at the beginning of the array
 
         FileService::writeCsv($headers, $rows, $filePath);
