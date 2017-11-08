@@ -24,6 +24,7 @@ use App\Services\ConditionTagService;
 use App\Services\FormService;
 use App\Services\SectionService;
 use App\Services\QuestionGroupService;
+use App\Services\QuestionParameterService;
 use App\Services\QuestionService;
 use App\Services\QuestionChoiceService;
 use App\Services\QuestionTypeService;
@@ -70,7 +71,7 @@ class FormController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService)
+    public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService, QuestionParameterService $questionParameterService)
     {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
@@ -122,6 +123,10 @@ class FormController extends Controller
                     foreach($questionGroupObject["questions"] as $questionObject) {
                         $questionTranslationId = $translationService->importTranslation($questionObject["question_translation"], $translationTextService);
                         $importedQuestion = $questionService->createTranslatedQuestion($importedQuestionGroup["id"], $questionTranslationId, $questionObject["var_name"], $questionObject["question_type"]["id"], $questionObject["sort_order"]);
+
+                        foreach($questionObject["question_parameters"] as $questionParameterObject) {
+                            $questionParameterService->createQuestionParameter($importedQuestion["id"], $questionParameterObject["parameter_id"], $questionParameterObject["val"]);
+                        }
 
                         foreach($questionObject["assign_condition_tags"] as $assignConditionTagObject) {
                             $importedConditionTag = $conditionTagService->createConditionTag($assignConditionTagObject['condition']['name']);
