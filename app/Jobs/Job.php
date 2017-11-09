@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 
 abstract class Job implements SelfHandling, ShouldQueue
 {
+
     /*
     |--------------------------------------------------------------------------
     | Queueable Jobs
@@ -22,4 +23,5 @@ abstract class Job implements SelfHandling, ShouldQueue
     */
 
     use InteractsWithQueue, Queueable, SerializesModels;
+
 }
