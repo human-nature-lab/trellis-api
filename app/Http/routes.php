@@ -788,5 +788,15 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'ExportController@exportEdgesData'
     );
 
+    $app->get(
+        'export/completed',
+        'ExportController@getAllCompletedExports'
+    );
+
+    $app->get(
+        'export/{export_id}/status',
+        'ExportController@getExportStatus'
+    );
+
 
 });

@@ -10,7 +10,7 @@ use App\Classes\Memoization;
 class ExportService
 {
 
-    public static function createEdgesExport($studyId){
+    public static function createEdgesExport($studyId, $fileId){
 
         $edges = DB::table('edge')
             ->join('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
@@ -55,17 +55,13 @@ class ExportService
             return $newRow;
         }, $edges);
 
-        $uuid = Uuid::uuid4();
-        $fileName = "$uuid.csv";
-        $filePath = storage_path() ."/app/". $fileName;
+         $filePath = storage_path() ."/app/". $fileId . '.csv';
 
         FileService::writeCsv($headers, $rows, $filePath);
 
-        return $fileName;
-
     }
 
-    public static function createRespondentExport($studyId, $maxGeoTreeDepth=4){
+    public static function createRespondentExport($studyId, $fileId, $maxGeoTreeDepth=4){
 
         $startTime = microtime(true);
 
@@ -151,16 +147,11 @@ class ExportService
             return $newRow;
         }, $respondents);
 
-        $uuid = Uuid::uuid4();
-        $fileName = "$uuid.csv";
-        $filePath = storage_path("app/") . $fileName;
 
+        $filePath = storage_path("app/") . $fileId . '.csv';
         FileService::writeCsv($headers, $rows, $filePath);
-
         $duration = microtime(true) - $startTime;
         Log::debug("createRespondentExport took $duration seconds");
-
-        return $fileName;
 
     }
 
@@ -403,7 +394,7 @@ class ExportService
      * @param $formId - Id of the form to export
      * @return string - The name of the file that was exported. The file is stored in 'storage/app'
      */
-    public static function createFormExport($formId){
+    public static function createFormExport($formId, $fileId){
 
         $questions = ExportService::getFormQuestions($formId);
 
@@ -445,17 +436,12 @@ class ExportService
 
         }
 
-        $uuid = Uuid::uuid4();
-        $fileName = "$uuid.csv";
-        $filePath = storage_path() ."/app/". $fileName;
-
         // Sort non default columns first then add default columns
         asort($headers);
         $headers = $defaultColumns + $headers; // add at the beginning of the array
 
+        $filePath = storage_path() ."/app/". $fileId . '.csv';
         FileService::writeCsv($headers, $rows, $filePath);
-
-        return $fileName;
 
     }
 

@@ -1,11 +1,16 @@
 <?php namespace App\Http\Controllers;
 
-// use Illuminate\Routing\Controller;
+use App\Jobs\FormExportJob;
+use App\Jobs\RespondentExportJob;
+use App\Jobs\EdgeExportJob;
+use App\Models\Edge;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\Form;
 use App\Models\Study;
+use App\Models\Export;
 use App\Services\ExportService;
 
 class ExportController extends Controller {
@@ -31,11 +36,14 @@ class ExportController extends Controller {
         }
 
         // Generate the report csv contents and store is with a unique filename
-        $fileName = ExportService::createEdgesExport($studyId);
+        $fileId = Uuid::uuid4();
+        $exportJob = new EdgeExportJob($studyId, $fileId);
+        $this->dispatch($exportJob);
+//        ExportService::createEdgesExport($studyId);
 
         // Return the file id that can be downloaded
         return response()->json([
-            'fileUrl' => $fileName
+            'exportId' => $fileId
         ], Response::HTTP_OK);
 
     }
@@ -63,11 +71,13 @@ class ExportController extends Controller {
 
 
         // Generate the report csv contents and store is with a unique filename
-        $fileName = ExportService::createRespondentExport($studyId);
-
+        $exportId = Uuid::uuid4();
+        $exportJob = new RespondentExportJob($studyId, $exportId);
+//        ExportService::createRespondentExport($studyId);
+        $this->dispatch($exportJob);
         // Return the file id that can be downloaded
         return response()->json([
-            'fileUrl' => $fileName
+            'exportId' => $exportId
         ], Response::HTTP_OK);
 
     }
@@ -95,11 +105,15 @@ class ExportController extends Controller {
 		}
 
 		// Generate the report csv contents and store is with a unique filename
-		$fileName = ExportService::createFormExport($formId);
+//		$fileName = ExportService::createFormExport($formId);
+        $exportId = Uuid::uuid4();
+        $exportJob = new FormExportJob($formId, $exportId);
+
+		$this->dispatch($exportJob);
 
 		// Return the file id that can be downloaded
 		return response()->json([
-			'fileUrl' => $fileName
+			'exportId' => $exportId
 		], Response::HTTP_OK);
 
 	}
@@ -129,5 +143,47 @@ class ExportController extends Controller {
 		], Response::HTTP_OK);
 
 	}
+
+
+	public function getAllFinishedExports(Request $request){
+
+	    $exports = Export::where('status', '=', 'saved')->get();
+
+	    return response()->json([
+	        'exports' => $exports
+        ], Response::HTTP_OK);
+
+    }
+
+
+    public function getExportStatus(Request $request, $exportId){
+
+	    // TODO: validate the exportId
+        $validator = Validator::make(
+            ['id' => $exportId],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Export id is invalid',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+	    $export = Export::find($exportId);
+
+        if($export === null){
+            return response()->json([
+                'msg' => "Export matching $exportId not found",
+                'err' => "Export matching $exportId not found"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+	    return response()->json([
+	        'status' => $export->status
+        ], Response::HTTP_OK);
+
+    }
 
 }
