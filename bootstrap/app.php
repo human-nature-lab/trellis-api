@@ -110,7 +110,7 @@ $app->singleton(
         Illuminate\Session\Middleware\StartSession::class,
 //	    Barryvdh\Cors\HandleCors::class,
         App\Http\Middleware\KeyMiddleware::class,
-
+        App\Http\Middleware\UserMiddleware::class
  ]);
 
  $app->routeMiddleware([
