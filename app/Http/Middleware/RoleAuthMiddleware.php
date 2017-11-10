@@ -8,22 +8,28 @@ use Illuminate\Http\Response;
 class RoleAuthMiddleware
 {
 
-    public function handle($request, Closure $next, ...$roleWhitelist)
+    public function handle($request, Closure $next, $type, ...$roles)
     {
-        $token = $request->headers->get('X-Token');
-
-        $tokenModel = Token::where('token_hash', $token)
-            ->where('created_at', '>=', DB::raw('now() - interval '.$_ENV['TOKEN_EXPIRE'].' minute'))
-            ->first();
-
-        $user = $tokenModel->user();
-
-        if(!in_array($user->role, $roleWhitelist)){
+        $user = $request->user();
+        if($user === null){
             return response()->json([
-                'err' => "This method is unavailable",
+                'err' => "Unauthorized"
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $isAuthorized = in_array($user->role, $roles);
+        if($type === 'blacklist'){
+            $isAuthorized = !$isAuthorized;
+        }
+
+        if(!$isAuthorized){
+            return response()->json([
+                'err' => "Unauthorized"
             ], Response::HTTP_UNAUTHORIZED);
         }
 
         return $next($request);
+
     }
+
 }
