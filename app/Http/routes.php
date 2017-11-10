@@ -768,10 +768,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 });
 
 
-$app->group(['namespace' => 'App\Http\Controllers',
-        'middleware' => ['token', "roleAuth:ADMIN"]
-    ],
-    function ($app) {
+$app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'role:whitelist,ADMIN']], function ($app) {
 
     //**********************//
     //* Data Export Routes *//
