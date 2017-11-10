@@ -109,12 +109,12 @@ $app->singleton(
         App\Http\Middleware\CorsMiddleware::class,
         Illuminate\Session\Middleware\StartSession::class,
 //	    Barryvdh\Cors\HandleCors::class,
-        App\Http\Middleware\KeyMiddleware::class,
-        App\Http\Middleware\UserMiddleware::class
+        App\Http\Middleware\KeyMiddleware::class
  ]);
 
  $app->routeMiddleware([
-    'token' => 'App\Http\Middleware\TokenMiddleware'
+     'token' => 'App\Http\Middleware\TokenMiddleware',
+     'roleAuth' => 'App\Http\Middleware\ExportAuthMiddleware'
  ]);
 
 /*
