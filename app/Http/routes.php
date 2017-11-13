@@ -773,6 +773,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
     //**********************//
     //* Data Export Routes *//
     //**********************//
+    $app->get(
+        'export/completed',
+        'ExportController@getAllSavedExports'
+    );
+
     $app->post(
         'export/form/{form_id}',
         'ExportController@exportFormData'
@@ -791,11 +796,6 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
     $app->post(
         'export/study/{study_id}/edges',
         'ExportController@exportEdgesData'
-    );
-
-    $app->get(
-        'export/completed',
-        'ExportController@getAllCompletedExports'
     );
 
     $app->get(
