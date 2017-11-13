@@ -145,9 +145,11 @@ class ExportController extends Controller {
 	}
 
 
-	public function getAllFinishedExports(Request $request){
+	public function getAllSavedExports(Request $request){
 
-	    $exports = Export::where('status', '=', 'saved')->get();
+	    $exports = Export::where('status', '=', 'saved')
+            ->orderBy('updated_at', 'desc')
+            ->get();
 
 	    return response()->json([
 	        'exports' => $exports
