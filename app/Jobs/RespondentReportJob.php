@@ -17,6 +17,7 @@ class RespondentReportJob extends Job implements SelfHandling, ShouldQueue
 
     protected $studyId;
     protected $report;
+    protected $config;
 
     /**
      * Create a new job instance.
@@ -24,9 +25,10 @@ class RespondentReportJob extends Job implements SelfHandling, ShouldQueue
      * @param  $formId
      * @return void
      */
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $fileId, $config)
     {
-        Log::debug("StudyExportJob - constructing: $studyId");
+        Log::debug("RespondentReportJob - constructing: $studyId");
+        $this->config = $config;
         $this->studyId = $studyId;
         $this->report = new Report();
         $this->report->id = $fileId;
@@ -46,7 +48,7 @@ class RespondentReportJob extends Job implements SelfHandling, ShouldQueue
         $startTime = microtime(true);
         Log::debug("RespondentReportJob - handling: $this->studyId, $this->report->id");
         try{
-            ReportService::createRespondentExport($this->studyId, $this->report->id);
+            ReportService::createRespondentReport($this->studyId, $this->report->id);
             $this->report->status = 'saved';
         } catch(Exception $e){
             $this->report->status = 'failed';
