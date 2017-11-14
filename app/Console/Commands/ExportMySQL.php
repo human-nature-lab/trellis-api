@@ -21,7 +21,7 @@ class ExportMySQL extends Command
      *
      * @var string
      */
-    protected $description = 'Export MySQL database to storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
+    protected $description = 'Report MySQL database to storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
 
     /**
      * Execute the console command.

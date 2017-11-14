@@ -771,36 +771,36 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'role:whitelist,ADMIN']], function ($app) {
 
     //**********************//
-    //* Data Export Routes *//
+    //* Report Routes *//
     //**********************//
     $app->get(
-        'export/completed',
-        'ExportController@getAllSavedExports'
-    );
-
-    $app->post(
-        'export/form/{form_id}',
-        'ExportController@exportFormData'
+        'report/completed',
+        'ReportController@getAllSavedReports'
     );
 
     $app->get(
-        'export/download/{file_name}',
-        'ExportController@downloadFile'
+        'report/download/{file_name}',
+        'ReportController@downloadFile'
     );
 
     $app->post(
-        'export/study/{study_id}/respondents',
-        'ExportController@exportRespondentData'
+        'report/form/{form_id}',
+        'ReportController@dispatchFormReport'
     );
 
     $app->post(
-        'export/study/{study_id}/edges',
-        'ExportController@exportEdgesData'
+        'report/study/{study_id}/respondents',
+        'ReportController@dispatchRespondentReport'
+    );
+
+    $app->post(
+        'report/study/{study_id}/edges',
+        'ReportController@dispatchEdgesReport'
     );
 
     $app->get(
-        'export/{export_id}/status',
-        'ExportController@getExportStatus'
+        'report/{report_id}/status',
+        'ReportController@getReportStatus'
     );
 
 });

@@ -29,7 +29,7 @@ class ExportSnapshot extends Command
      *
      * @var string
      */
-    protected $description = "Export snapshot, throttled to every env('SNAPSHOT_SECONDS_MIN') unless --force is used";
+    protected $description = "Report snapshot, throttled to every env('SNAPSHOT_SECONDS_MIN') unless --force is used";
 
     const DUMP_PREFIX = 'dump_';
 
