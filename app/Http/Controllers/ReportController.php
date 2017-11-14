@@ -1,8 +1,8 @@
 <?php namespace App\Http\Controllers;
 
-use App\Jobs\FormExportJob;
-use App\Jobs\RespondentExportJob;
-use App\Jobs\EdgeExportJob;
+use App\Jobs\FormReportJob;
+use App\Jobs\RespondentReportJob;
+use App\Jobs\EdgeReportJob;
 use App\Models\Edge;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -10,12 +10,12 @@ use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\Form;
 use App\Models\Study;
-use App\Models\Export;
-use App\Services\ExportService;
+use App\Models\Report;
+use App\Services\ReportService;
 
-class ExportController extends Controller {
+class ReportController extends Controller {
 
-    public function exportEdgesData(Request $request, $studyId){
+    public function dispatchEdgesReport(Request $request, $studyId){
 
         $validator = Validator::make(
             ['id' => $studyId],
@@ -36,20 +36,20 @@ class ExportController extends Controller {
         }
 
         // Generate the report csv contents and store is with a unique filename
-        $fileId = Uuid::uuid4();
-        $exportJob = new EdgeExportJob($studyId, $fileId);
-        $this->dispatch($exportJob);
-//        ExportService::createEdgesExport($studyId);
+        $reportId = Uuid::uuid4();
+        $reportJob = new EdgeReportJob($studyId, $reportId);
+        $this->dispatch($reportJob);
+//        ReportService::createEdgesExport($studyId);
 
         // Return the file id that can be downloaded
         return response()->json([
-            'exportId' => $fileId
+            'reportId' => $reportId
         ], Response::HTTP_OK);
 
     }
 
 
-    public function exportRespondentData(Request $request, $studyId){
+    public function dispatchRespondentReport(Request $request, $studyId){
         $validator = Validator::make(
             ['id' => $studyId],
             ['id' => 'required|string|min:36']
@@ -71,19 +71,19 @@ class ExportController extends Controller {
 
 
         // Generate the report csv contents and store is with a unique filename
-        $exportId = Uuid::uuid4();
-        $exportJob = new RespondentExportJob($studyId, $exportId);
-//        ExportService::createRespondentExport($studyId);
-        $this->dispatch($exportJob);
+        $reportId = Uuid::uuid4();
+        $reportJob = new RespondentReportJob($studyId, $reportId);
+//        ReportService::createRespondentExport($studyId);
+        $this->dispatch($reportJob);
         // Return the file id that can be downloaded
         return response()->json([
-            'exportId' => $exportId
+            'reportId' => $reportId
         ], Response::HTTP_OK);
 
     }
 
 
-	public function exportFormData(Request $request, $formId){
+	public function dispatchFormReport(Request $request, $formId){
 
         $validator = Validator::make(
             ['id' => $formId],
@@ -105,15 +105,15 @@ class ExportController extends Controller {
 		}
 
 		// Generate the report csv contents and store is with a unique filename
-//		$fileName = ExportService::createFormExport($formId);
-        $exportId = Uuid::uuid4();
-        $exportJob = new FormExportJob($formId, $exportId);
+//		$fileName = ReportService::createFormExport($formId);
+        $reportId = Uuid::uuid4();
+        $reportJob = new FormReportJob($formId, $reportId);
 
-		$this->dispatch($exportJob);
+		$this->dispatch($reportJob);
 
 		// Return the file id that can be downloaded
 		return response()->json([
-			'exportId' => $exportId
+			'reportId' => $reportId
 		], Response::HTTP_OK);
 
 	}
@@ -133,7 +133,7 @@ class ExportController extends Controller {
 		// Validate that the export exists
 		if(!file_exists($filePath)){
 			return response()->json([
-				'msg' => "Export $fileName doesn't exist"
+				'msg' => "Report $fileName doesn't exist"
 			], Response::HTTP_NOT_FOUND);
 		}
 
@@ -145,45 +145,45 @@ class ExportController extends Controller {
 	}
 
 
-	public function getAllSavedExports(Request $request){
+	public function getAllSavedReports(Request $request){
 
-	    $exports = Export::where('status', '=', 'saved')
+	    $reports = Report::where('status', '=', 'saved')
             ->orderBy('updated_at', 'desc')
             ->get();
 
 	    return response()->json([
-	        'exports' => $exports
+	        'reports' => $reports
         ], Response::HTTP_OK);
 
     }
 
 
-    public function getExportStatus(Request $request, $exportId){
+    public function getReportStatus(Request $request, $reportId){
 
 	    // TODO: validate the exportId
         $validator = Validator::make(
-            ['id' => $exportId],
+            ['id' => $reportId],
             ['id' => 'required|string|min:36']
         );
 
         if ($validator->fails() === true) {
             return response()->json([
-                'msg' => 'Export id is invalid',
+                'msg' => 'Report id is invalid',
                 'err' => $validator->errors()
             ], $validator->statusCode());
         }
 
-	    $export = Export::find($exportId);
+	    $report = Report::find($reportId);
 
-        if($export === null){
+        if($report === null){
             return response()->json([
-                'msg' => "Export matching $exportId not found",
-                'err' => "Export matching $exportId not found"
+                'msg' => "Report matching $reportId not found",
+                'err' => "Report matching $reportId not found"
             ], Response::HTTP_NOT_FOUND);
         }
 
 	    return response()->json([
-	        'status' => $export->status
+	        'status' => $report->status
         ], Response::HTTP_OK);
 
     }

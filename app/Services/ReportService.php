@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\FileService;
 use App\Classes\Memoization;
 
-class ExportService
+class ReportService
 {
 
     public static function createEdgesExport($studyId, $fileId){
@@ -218,28 +218,28 @@ class ExportService
 
             $question = $questionsMap[$qId];
             if($question->qtype === 'roster'){
-                $rosterRows = ExportService::getRosterRows($survey->id, $qId);
+                $rosterRows = ReportService::getRosterRows($survey->id, $qId);
 
                 // Add each roster row
                 foreach($rosterRows as $index=>$row){
                     $key = $qId . '___' . $index;
-                    $headers[$key] = $question->var_name . '_r' . ExportService::zeroPad($index);
+                    $headers[$key] = $question->var_name . '_r' . ReportService::zeroPad($index);
                     $data[$key] = $row->val;
                 }
 
                 foreach($children as $cId => $cChildren){
                     $alreadyHandledQuestions[$cId] = true;
                     foreach($rosterRows as $index => $rosterRow){
-                        $repeatString = '_r' . ExportService::zeroPad($index);
+                        $repeatString = '_r' . ReportService::zeroPad($index);
                         $childQuestion = $questionsMap[$cId];
-                        list($newHeaders, $newData) = ExportService::handleQuestion($survey->id, $childQuestion, $repeatString);
+                        list($newHeaders, $newData) = ReportService::handleQuestion($survey->id, $childQuestion, $repeatString);
                         $headers = array_replace($headers, $newHeaders);
                         $data = array_replace($data, $newData);
                     }
                 }
 
             } else {
-                list($newHeaders, $newData) = ExportService::handleQuestion($survey->id, $question);
+                list($newHeaders, $newData) = ReportService::handleQuestion($survey->id, $question);
                 $headers = array_replace($headers, $newHeaders);
                 $data = array_replace($data, $newData);
             }
@@ -254,18 +254,18 @@ class ExportService
 
         switch($question->qtype){
             case 'multiple_select':
-                return ExportService::handleMultiSelect($studyId, $question, $repeatString);
+                return ReportService::handleMultiSelect($studyId, $question, $repeatString);
             case 'geo':
-                return ExportService::handleGeo($studyId, $question, $repeatString);
+                return ReportService::handleGeo($studyId, $question, $repeatString);
             default:
-                return ExportService::handleDefault($studyId, $question, $repeatString);
+                return ReportService::handleDefault($studyId, $question, $repeatString);
         }
 
     }
 
     public static function handleDefault($surveyId, $question, $repeatString){
 
-        $datum = ExportService::firstDatum($surveyId, $question->id);
+        $datum = ReportService::firstDatum($surveyId, $question->id);
         $key = $question->id . $repeatString;
         $name = $question->var_name . $repeatString;
 
@@ -281,7 +281,7 @@ class ExportService
         $headers = array();
         $data = array();
 
-        $parentDatum = ExportService::firstDatum($surveyId, $question->id);
+        $parentDatum = ReportService::firstDatum($surveyId, $question->id);
         $possibleChoices = DB::table('question_choice')
             ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
             ->where('question_choice.question_id', '=', $question->id)
@@ -325,7 +325,7 @@ class ExportService
 
         $headers = array();
         $data = array();
-        $geoDatum = ExportService::firstDatum($surveyId, $question->id);
+        $geoDatum = ReportService::firstDatum($surveyId, $question->id);
 
         if($geoDatum) {
             $geoData = DB::table('datum_geo')
@@ -339,7 +339,7 @@ class ExportService
             foreach ($geoData as $index => $geo) {
                 foreach (array('name', 'latitude', 'longitude', 'altitude') as $name) {
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
-                    $headers[$key] = $question->var_name . $repeatString . '_g' . ExportService::zeroPad($index) . '_' . $name;
+                    $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
                     $data[$key] = $geo->$name;
                 }
             }
@@ -396,7 +396,7 @@ class ExportService
      */
     public static function createFormExport($formId, $fileId){
 
-        $questions = ExportService::getFormQuestions($formId);
+        $questions = ReportService::getFormQuestions($formId);
 
         $questionsMap = array_reduce($questions, function($agg, &$q){
             $agg[$q->id] = $q;
@@ -414,16 +414,16 @@ class ExportService
         // 2. Add any questions without follow ups
         // 3. Flatten the tree into a single
 
-        list($tree, $treeMap) = ExportService::buildFormTree($questions);
+        list($tree, $treeMap) = ReportService::buildFormTree($questions);
 
         $headers = array();
         $rows = array();
 
-        $surveys = ExportService::getFormSurveys($formId);
+        $surveys = ReportService::getFormSurveys($formId);
 
         foreach($surveys as $survey){
 
-            list($surveyHeaders, $data) = ExportService::formatSurveyData($survey, $tree, $treeMap, $questionsMap);
+            list($surveyHeaders, $data) = ReportService::formatSurveyData($survey, $tree, $treeMap, $questionsMap);
 
             $headers = array_replace($headers, $surveyHeaders);
 
@@ -449,12 +449,12 @@ class ExportService
     public static function handleDatum($datum, &$row, &$headersMap, &$multiSelectQuestionsMap, &$geoQuestions, &$rosterQuestions){
 
         if(array_key_exists($datum->question_id, $rosterQuestions)){
-            ExportService::handleRoster($datum, $row);
+            ReportService::handleRoster($datum, $row);
         } else if (array_key_exists($datum->question_id, $multiSelectQuestionsMap)) {
-            ExportService::handleMultiSelect($datum, $row);
+            ReportService::handleMultiSelect($datum, $row);
         } else if(array_key_exists($datum->question_id, $geoQuestions)){
             $geoQuestion = $geoQuestions[$datum->question_id];
-            ExportService::handleGeo($datum, $row, $headersMap, $geoQuestion);
+            ReportService::handleGeo($datum, $row, $headersMap, $geoQuestion);
         } else {
             $row[$datum->question_id] = $datum->val;
         }
