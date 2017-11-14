@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use ZipArchive;
+
 class FileService{
 
     /**
@@ -43,6 +45,28 @@ class FileService{
 
 
         fclose($file);
+
+    }
+
+    /**
+     * Add all files supplied to the base level of the specified zip file.
+     * @param $filename - Full path to the zip archive. This is created if it doesn't already exist.
+     * @param $files - Array of file paths
+     * @return string - [saved|failed]
+     */
+    public static function addToZipArchive($filename, $files){
+
+        // This works with the correct build of php
+        $zip = new ZipArchive;
+        if ($zip->open($filename,ZipArchive::CREATE) === TRUE){
+            foreach($files as $filepath){
+                $zip->addFile($filepath, basename($filepath));
+            }
+            $zip->close();
+            return 'saved';
+        } else {
+            return 'failed';
+        }
 
     }
 
