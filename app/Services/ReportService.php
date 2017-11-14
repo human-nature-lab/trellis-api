@@ -10,7 +10,7 @@ use App\Classes\Memoization;
 class ReportService
 {
 
-    public static function createEdgesExport($studyId, $fileId){
+    public static function createEdgesReport($studyId, $fileId){
 
         $edges = DB::table('edge')
             ->join('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
@@ -61,7 +61,7 @@ class ReportService
 
     }
 
-    public static function createRespondentExport($studyId, $fileId, $maxGeoTreeDepth=4){
+    public static function createRespondentReport($studyId, $fileId, $maxGeoTreeDepth=4){
 
         $startTime = microtime(true);
 
@@ -210,7 +210,6 @@ class ReportService
         $data = array();
         $alreadyHandledQuestions = array();
 
-
         foreach($treeMap as $qId => $children){
 
             if(array_key_exists($qId, $alreadyHandledQuestions))
@@ -320,6 +319,31 @@ class ReportService
             ->first();
     }
 
+    public static function handleImage($surveyId, $question, $repeatString){
+        $headers = array();
+        $data = array();
+        $images = array();
+        // This is flawed because it will use the same datum for 2 rows in a roster. The imageDatum needs to reference the
+        // parent datum that is the roster row as well. This is likely flawed in all of these exports and will need to be
+        // changed.
+        $imageDatum = ReportService::firstDatum($surveyId, $question->id);
+        if($imageDatum !== null){
+            $imageData = DB::table('datum_photo')
+                ->join('photo', 'datum_photo.photo_id', '=', 'photo.id')
+                ->where('datum_photo.datum_id', '=', $imageDatum->id)
+                ->whereNull('datum_photo.deleted_at')
+                ->select('photo.file_name')
+                ->get();
+            foreach($imageData as $index => $datum){
+                $key = $question->id.$repeatString.$imageDatum->id.'_p'.$index;
+                $headers[$key] = $question->var_name.$repeatString.'_p'.ReportService::zeroPad($index);
+                $data[$key] = $datum->file_name;
+                array_push($images, $datum->file_name);
+            }
+        }
+
+        return array($headers, $data, $images);
+    }
 
     public static function handleGeo($surveyId, $question, $repeatString){
 
@@ -332,6 +356,7 @@ class ReportService
                 ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
                 ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
                 ->where('datum_geo.datum_id', '=', $geoDatum->id)
+                ->whereNull('datum_geo.deleted_at')
                 ->select('geo_type.name', 'geo.latitude', 'geo.longitude', 'geo.altitude')
                 ->get();
 
@@ -394,7 +419,7 @@ class ReportService
      * @param $formId - Id of the form to export
      * @return string - The name of the file that was exported. The file is stored in 'storage/app'
      */
-    public static function createFormExport($formId, $fileId){
+    public static function createFormReport($formId, $fileId, $config){
 
         $questions = ReportService::getFormQuestions($formId);
 

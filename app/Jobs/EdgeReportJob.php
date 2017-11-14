@@ -46,7 +46,7 @@ class EdgeReportJob extends Job implements SelfHandling, ShouldQueue
         $startTime = microtime(true);
         Log::debug("EdgeReportJob - handling: $this->studyId, $this->export->id");
         try{
-            ReportService::createEdgesExport($this->studyId, $this->export->id);
+            ReportService::createEdgesReport($this->studyId, $this->export->id);
             $this->export->status = 'saved';
         } catch(Exception $e){
             $this->export->status = 'failed';

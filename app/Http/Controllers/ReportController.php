@@ -85,6 +85,11 @@ class ReportController extends Controller {
 
 	public function dispatchFormReport(Request $request, $formId){
 
+        // TODO: grab configuration options from the request parameters and validate them
+        $config = new \stdClass();
+        $config->useChoiceNames = $request->input('shouldUseChoiceNames');
+        $config->language = $request->input('language');
+
         $validator = Validator::make(
             ['id' => $formId],
             ['id' => 'required|string|min:36']
@@ -107,9 +112,9 @@ class ReportController extends Controller {
 		// Generate the report csv contents and store is with a unique filename
 //		$fileName = ReportService::createFormExport($formId);
         $reportId = Uuid::uuid4();
-        $reportJob = new FormReportJob($formId, $reportId);
-
-		$this->dispatch($reportJob);
+        $reportJob = new FormReportJob($formId, $reportId, $config);
+        $reportJob->handle();
+//		$this->dispatch($reportJob);
 
 		// Return the file id that can be downloaded
 		return response()->json([
