@@ -799,6 +799,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
     );
 
     $app->get(
+        'report/{report_id}',
+        'ReportController@getReport'
+    );
+
+    $app->get(
         'report/{report_id}/status',
         'ReportController@getReportStatus'
     );

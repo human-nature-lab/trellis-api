@@ -100,17 +100,10 @@ class FormReportJob extends Job implements SelfHandling, ShouldQueue
         asort($this->headers);
         $this->headers = $this->defaultColumns + $this->headers; // add at the beginning of the array
 
-        $csvReportFile = new ReportFile();
-        $csvReportFile->id = Uuid::uuid4();
-        $csvReportFile->report_id = $this->report->id;
-        $csvReportFile->file_type = 'data';
-        $csvReportFile->file_name = $this->report->id . '.csv';
+        ReportService::saveDataFile($this->report, $this->headers, $this->rows);
 
-        $filePath = storage_path("app/") . $csvReportFile->file_name;
-        FileService::writeCsv($this->headers, $this->rows, $filePath);
-        $csvReportFile->save();
-
-        $this->generateImagesZip();
+        ReportService::saveImagesFile($this->report, $this->images);
+//        $this->generateImagesZip();
 
     }
 
@@ -123,7 +116,7 @@ class FormReportJob extends Job implements SelfHandling, ShouldQueue
         $reportFile = new ReportFile();
         $reportFile->id = Uuid::uuid4();
         $reportFile->report_id = $this->report->id;
-        $reportFile->file_type="images";
+        $reportFile->file_type="image";
         $reportFile->file_name=$this->report->id . '.zip';
 
         $zipPath = storage_path("app/". $reportFile->file_name);
