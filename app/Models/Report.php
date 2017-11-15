@@ -27,4 +27,9 @@ class Report extends Model
 
     protected $table = 'report';
 
+
+    public function files(){
+        return $this->hasMany('App\Models\ReportFile');
+    }
+
 }

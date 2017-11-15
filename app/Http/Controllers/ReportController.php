@@ -11,6 +11,7 @@ use Validator;
 use App\Models\Form;
 use App\Models\Study;
 use App\Models\Report;
+use App\Models\ReportFile;
 use App\Services\ReportService;
 
 class ReportController extends Controller {
@@ -38,7 +39,8 @@ class ReportController extends Controller {
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
         $reportJob = new EdgeReportJob($studyId, $reportId);
-        $this->dispatch($reportJob);
+//        $this->dispatch($reportJob);
+        $reportJob->handle();
 //        ReportService::createEdgesExport($studyId);
 
         // Return the file id that can be downloaded
@@ -50,6 +52,10 @@ class ReportController extends Controller {
 
 
     public function dispatchRespondentReport(Request $request, $studyId){
+
+        // TODO: add configuration options
+        $config = new \stdClass();
+
         $validator = Validator::make(
             ['id' => $studyId],
             ['id' => 'required|string|min:36']
@@ -72,9 +78,10 @@ class ReportController extends Controller {
 
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
-        $reportJob = new RespondentReportJob($studyId, $reportId);
+        $reportJob = new RespondentReportJob($studyId, $reportId, $config);
 //        ReportService::createRespondentExport($studyId);
-        $this->dispatch($reportJob);
+        $reportJob->handle();
+//        $this->dispatch($reportJob);
         // Return the file id that can be downloaded
         return response()->json([
             'reportId' => $reportId
@@ -142,6 +149,13 @@ class ReportController extends Controller {
 			], Response::HTTP_NOT_FOUND);
 		}
 
+		$headers = [
+		    "Content-Type: application/zip",
+            "Content-Length: " . filesize($filePath)
+        ];
+
+        return response()->download($filePath, $fileName);
+
 		$fileContents = file_get_contents($filePath);
 		return response()->json([
 			'contents' => $fileContents
@@ -155,6 +169,11 @@ class ReportController extends Controller {
 	    $reports = Report::where('status', '=', 'saved')
             ->orderBy('updated_at', 'desc')
             ->get();
+
+	    foreach($reports as &$report){
+            $report->files = ReportFile::where('report_id', '=', $report->id)
+                ->get();
+        }
 
 	    return response()->json([
 	        'reports' => $reports
@@ -190,6 +209,33 @@ class ReportController extends Controller {
 	    return response()->json([
 	        'status' => $report->status
         ], Response::HTTP_OK);
+
+    }
+
+
+    public function getReport(Request $request, $reportId){
+        $validator = Validator::make(
+            ['id' => $reportId],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Report id is invalid',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $report = Report::find($reportId);
+
+        if($report === null){
+            return response()->json([
+                'msg' => "Report matching $reportId not found",
+                'err' => "Report matching $reportId not found"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return response()->json($report, Response::HTTP_OK);
 
     }
 

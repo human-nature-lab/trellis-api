@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use Log;
+use App\Models\ReportFile;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
 use App\Services\FileService;
@@ -10,149 +11,24 @@ use App\Classes\Memoization;
 class ReportService
 {
 
-    public static function createEdgesReport($studyId, $fileId){
-
-        $edges = DB::table('edge')
-            ->join('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
-            ->join('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
-            ->join('edge_datum', 'edge_datum.edge_id', '=', 'edge.id')
-            ->join('datum', 'datum.id', '=', 'edge_datum.datum_id')
-            ->join('survey', 'survey.id', '=', 'datum.survey_id')
-            ->join('geo as sGeo', 'sGeo.id', '=', 'sourceR.geo_id')
-            ->join('geo as tGeo', 'tGeo.id', '=', 'targetR.geo_id')
-            ->join('question', 'question.id', '=', 'datum.question_id')
-            ->where('survey.study_id', '=', $studyId)
-            ->select(
-                'sourceR.id as sId',
-                'targetR.id as rId',
-                'question.var_name',
-                'sGeo.latitude as sLat',
-                'sGeo.longitude as sLong',
-                'sGeo.altitude as sAlt',
-                'tGeo.latitude as tLat',
-                'tGeo.longitude as tLong',
-                'tGeo.altitude as tAlt'
-            )
-            ->get();
-
-        $headers = array(
-            'sId' => 'Ego',
-            'rId' => 'Alter',
-            'var_name' => 'Question',
-            'sLat' => 'Source Latitude',
-            'sLong' => 'Source Longitude',
-            'sAlt' => 'Source Altitude',
-            'tLat' => 'Target Latitude',
-            'tLong' => 'Target Longitude',
-            'tAlt' => 'Target Altitude'
-        );
-
-        $rows = array_map(function ($r) use ($headers) {
-            $newRow = array();
-            foreach ($headers as $key => $name){
-                $newRow[$key] = $r->$key;
-            }
-            return $newRow;
-        }, $edges);
-
-         $filePath = storage_path() ."/app/". $fileId . '.csv';
-
-        FileService::writeCsv($headers, $rows, $filePath);
-
+    public static function saveImagesFile(&$report, &$images){
+        $images = array_map(function($image){
+            return array(
+                'id' => $image->id
+            );
+        }, $images);
+        ReportService::saveDataFile($report, array('id'=>'image'), $images, 'image');
     }
 
-    public static function createRespondentReport($studyId, $fileId, $maxGeoTreeDepth=4){
-
-        $startTime = microtime(true);
-
-        $respondents = DB::table('respondent')
-            ->join('study_respondent', 'study_respondent.respondent_id', '=', 'respondent.id')
-            ->where('study_respondent.study_id', '=', $studyId)
-            ->whereNull('respondent.deleted_at')
-            ->select('respondent.id',
-                'respondent.name as rname',
-                'respondent.created_at',
-                'respondent.updated_at',
-                'respondent.geo_id')
-            ->get();
-
-        $defaultHeaders = array(
-            'id' => "Respondent id",
-            'rname' => "Respondent name",
-            'created_at' => "Created at",
-            'updated_at' => "Updated at",
-        );
-
-        $getGeoParent = Memoization::memoize(function($id){
-            return DB::table('geo')
-                ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
-                ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
-                ->where('geo.id', '=', $id)
-                ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id')
-                ->first();
-        });
-
-        $traverseGeoTree = function ($startingId, $maxDepth) use ($getGeoParent){
-            $tree = array();
-            $id = $startingId;
-            while(count($tree) < $maxDepth && $id !== null){
-                $parent = $getGeoParent($id);
-                if($parent !== null) {
-                    array_push($tree, $parent);
-                    $id = $parent->parent_id;
-                } else {
-                    break;
-                }
-            }
-            return $tree;
-        };
-
-        $headers = array();
-        $headers = array_replace($headers, $defaultHeaders);
-
-        $conditionsGroupedByRespondentId = DB::table('respondent_condition_tag')
-            ->join('respondent', 'respondent.id', '=', 'respondent_condition_tag.respondent_id')
-            ->join('condition_tag', 'condition_tag.id', '=', 'respondent_condition_tag.condition_tag_id')
-            ->select('respondent.id', DB::raw("group_concat(condition_tag.name SEPARATOR ';') as conditions"))
-            ->groupBy('respondent.id');
-
-        $respondent_conditions = array_reduce($conditionsGroupedByRespondentId->get(), function($agg, $r){
-            $agg[$r->id] = explode(';', $r->conditions);
-            return $agg;
-        }, array());
-
-        // map each respondent to a single row of the csv
-        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers, &$respondent_conditions, $maxGeoTreeDepth, $traverseGeoTree) {
-            $newRow = array();
-            foreach ($defaultHeaders as $key => $name){
-                $newRow[$key] = $respondent->$key;
-            }
-
-            $geoTree = $traverseGeoTree($respondent->geo_id, $maxGeoTreeDepth);
-            foreach($geoTree as $level => $geo){
-                $key = "geo_level_" . $level;
-                $headers[$key] = $key;
-                $newRow[$key] = $geo->name;
-            }
-
-            // Add conditions if there are any for this respondent
-            if(array_key_exists($respondent->id, $respondent_conditions)) {
-                $conditions = $respondent_conditions[$respondent->id];
-                foreach ($conditions as $condition) {
-                    $headers[$condition] = $condition;
-                    $newRow[$condition] = true;
-                }
-            }
-
-            return $newRow;
-        }, $respondents);
-
-
-        $filePath = storage_path("app/") . $fileId . '.csv';
+    public static function saveDataFile($report, $headers, $rows, $type='data'){
+        $csvReportFile = new ReportFile();
+        $csvReportFile->id = Uuid::uuid4();
+        $csvReportFile->report_id = $report->id;
+        $csvReportFile->file_type = $type;
+        $csvReportFile->file_name = $report->id . '.csv';
+        $filePath = storage_path("app/".$csvReportFile->file_name);
         FileService::writeCsv($headers, $rows, $filePath);
-        $duration = microtime(true) - $startTime;
-        Log::debug("createRespondentExport took $duration seconds");
-
+        $csvReportFile->save();
     }
 
 
@@ -332,13 +208,13 @@ class ReportService
                 ->join('photo', 'datum_photo.photo_id', '=', 'photo.id')
                 ->where('datum_photo.datum_id', '=', $imageDatum->id)
                 ->whereNull('datum_photo.deleted_at')
-                ->select('photo.file_name')
+                ->select('photo.file_name', 'photo.id')
                 ->get();
             foreach($imageData as $index => $datum){
                 $key = $question->id.$repeatString.$imageDatum->id.'_p'.$index;
                 $headers[$key] = $question->var_name.$repeatString.'_p'.ReportService::zeroPad($index);
                 $data[$key] = $datum->file_name;
-                array_push($images, $datum->file_name);
+                array_push($images, $datum);
             }
         }
 
