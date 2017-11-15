@@ -14,10 +14,11 @@ class ReportService
     public static function saveImagesFile(&$report, &$images){
         $images = array_map(function($image){
             return array(
-                'id' => $image->id
+                'id' => $image->id,
+                'file_name' => $image->file_name
             );
         }, $images);
-        ReportService::saveDataFile($report, array('id'=>'image'), $images, 'image');
+        ReportService::saveDataFile($report, array('id'=>'id', 'file_name'=>'file_name'), $images, 'image');
     }
 
     public static function saveDataFile($report, $headers, $rows, $type='data'){
@@ -25,7 +26,7 @@ class ReportService
         $csvReportFile->id = Uuid::uuid4();
         $csvReportFile->report_id = $report->id;
         $csvReportFile->file_type = $type;
-        $csvReportFile->file_name = $report->id . '.csv';
+        $csvReportFile->file_name = $csvReportFile->id . '.csv';
         $filePath = storage_path("app/".$csvReportFile->file_name);
         FileService::writeCsv($headers, $rows, $filePath);
         $csvReportFile->save();
