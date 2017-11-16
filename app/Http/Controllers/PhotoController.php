@@ -43,7 +43,7 @@ class PhotoController extends Controller
             ->lists('file_name');
 
         $response = new StreamedResponse(function() use ($fileNames) {
-            $zip = \Barracuda\ArchiveStream\Archive::instance_by_useragent('photos');
+            $zip = new \Barracuda\ArchiveStream\ZipArchive('photos.zip');
             foreach($fileNames as $fileName){
                 $zip->add_file_from_path($fileName, storage_path("respondent-photos/$fileName"));
             }
