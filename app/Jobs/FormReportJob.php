@@ -35,6 +35,7 @@ class FormReportJob extends Job implements SelfHandling, ShouldQueue
     public function __construct($formId, $fileId, $config)
     {
         Log::debug("FormReportJob - constructing: $formId");
+        $this->config = $config;
         $this->formId = $formId;
         $this->report = new Report();
         $this->report->id = $fileId;
@@ -186,7 +187,7 @@ class FormReportJob extends Job implements SelfHandling, ShouldQueue
 
         switch($question->qtype){
             case 'multiple_select':
-                list($headers, $vals) = ReportService::handleMultiSelect($studyId, $question, $repeatString);
+                list($headers, $vals) = ReportService::handleMultiSelect($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale);
                 break;
             case 'geo':
                 list($headers, $vals) = ReportService::handleGeo($studyId, $question, $repeatString);
