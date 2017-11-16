@@ -152,7 +152,7 @@ class ReportService
 
     }
 
-    public static function handleMultiSelect($surveyId, $question, $repeatString){
+    public static function handleMultiSelect($surveyId, $question, $repeatString, $useChoiceNames=false, $locale){
 
         $headers = array();
         $data = array();
@@ -160,13 +160,24 @@ class ReportService
         $parentDatum = ReportService::firstDatum($surveyId, $question->id);
         $possibleChoices = DB::table('question_choice')
             ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
+            ->leftJoin('translation_text', function($join) use ($locale)
+            {
+                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
+                    ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
             ->where('question_choice.question_id', '=', $question->id)
-            ->get();
+            ->select('translation_text.translated_text as name', 'choice.val', 'choice.id');
+
+
 
         // Add headers for all possible choices
-        foreach ($possibleChoices as $choice){
+        foreach ($possibleChoices->get() as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
-            $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
+            if($useChoiceNames){
+                $headers[$key] = $question->var_name . '_' . $choice->name . $repeatString;
+            } else {
+                $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
+            }
         }
 
 
@@ -176,6 +187,7 @@ class ReportService
                 ->join('choice', 'datum_choice.choice_id', '=', 'choice.id')
                 ->join('question_choice', 'choice.id', '=', 'question_choice.choice_id')
                 ->where('datum_choice.datum_id', '=', $parentDatum->id)
+                ->select('choice.val', 'choice.id')
                 ->get();
 
             // Add data for all selected choices
