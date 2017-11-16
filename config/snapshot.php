@@ -39,6 +39,9 @@ return [
             'report' => [
                 '*' => null,
             ],
+            'report_file' => [
+                '*' => null,
+            ],
             'jobs' => [
                 '*' => null,
             ],
