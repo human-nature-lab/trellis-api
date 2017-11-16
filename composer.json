@@ -13,7 +13,8 @@
 	    "league/flysystem": "~1.0",
 		"league/csv": "^8.2",
 		"illuminated/console-mutex": "^1.4",
-		"phpmyadmin/sql-parser": "^4.1"
+		"phpmyadmin/sql-parser": "^4.1",
+		"barracudanetworks/archivestream-php": "^1.0"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "^4.8",
