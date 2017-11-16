@@ -808,4 +808,9 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
         'ReportController@getReportStatus'
     );
 
+    $app->post(
+        'report/images',
+        'PhotoController@getZipPhotos'
+    );
+
 });

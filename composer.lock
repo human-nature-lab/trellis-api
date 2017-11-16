@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "5a01765f00ac8940b44d3d703405b5c4",
+    "content-hash": "b0d379d4f49373a7c80f6cd779417af0",
     "packages": [
         {
             "name": "arvenil/ninja-mutex",
@@ -111,6 +111,46 @@
                 "stack"
             ],
             "time": "2014-07-28T07:22:35+00:00"
+        },
+        {
+            "name": "barracudanetworks/archivestream-php",
+            "version": "1.0.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/barracudanetworks/ArchiveStream-php.git",
+                "reference": "1bf98097d1e9b137fd40081f26abb0a17b097ef7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/barracudanetworks/ArchiveStream-php/zipball/1bf98097d1e9b137fd40081f26abb0a17b097ef7",
+                "reference": "1bf98097d1e9b137fd40081f26abb0a17b097ef7",
+                "shasum": ""
+            },
+            "require": {
+                "ext-gmp": "*",
+                "ext-mbstring": "*",
+                "php": ">=5.1.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Barracuda\\ArchiveStream\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A library for dynamically streaming dynamic tar or zip files without the need to have the complete file stored on the server.",
+            "homepage": "https://github.com/barracudanetworks/ArchiveStream-php",
+            "keywords": [
+                "archive",
+                "php",
+                "stream",
+                "tar",
+                "zip"
+            ],
+            "time": "2017-01-13T14:52:38+00:00"
         },
         {
             "name": "barryvdh/laravel-cors",

@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Photo;
 use Laravel\Lumen\Routing\Controller;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PhotoController extends Controller
 {
@@ -31,5 +33,25 @@ class PhotoController extends Controller
         }
 
         return Response::HTTP_NOT_FOUND;
+    }
+
+
+    public function getZipPhotos(Request $request){
+
+        $imageIds = $request->input('ids');
+        $fileNames = Photo::whereIn('id', $imageIds)
+            ->lists('file_name');
+
+        $response = new StreamedResponse(function() use ($fileNames) {
+            $zip = \Barracuda\ArchiveStream\Archive::instance_by_useragent('photos');
+            foreach($fileNames as $fileName){
+                $zip->add_file_from_path($fileName, storage_path("respondent-photos/$fileName"));
+            }
+            $zip->finish();
+        });
+
+
+        return $response;
+
     }
 }
