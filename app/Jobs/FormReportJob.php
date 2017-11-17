@@ -55,7 +55,6 @@ class FormReportJob extends Job
         } catch(Exception $e){
             $this->report->status = 'failed';
             Log::debug("Form export $this->formId failed");
-            throw $e;
         } finally{
             $this->report->save();
             $duration = microtime(true) - $startTime;
@@ -173,6 +172,9 @@ class FormReportJob extends Job
                 break;
             case 'image':
                 list($headers, $vals, $images) = ReportService::handleImage($studyId, $question, $repeatString);
+                break;
+            case 'multiple_choice':
+                list($headers, $vals) = ReportService::handleMultiChoice($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale);
                 break;
             default:
                 list($headers, $vals) = ReportService::handleDefault($studyId, $question, $repeatString);

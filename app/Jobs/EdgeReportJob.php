@@ -52,11 +52,11 @@ class EdgeReportJob extends Job
         } catch(Exception $e){
             $this->report->status = 'failed';
             Log::debug("Edge report $this->studyId failed");
-            throw $e;
+        } finally{
+            $this->report->save();
+            $duration = microtime(true) - $startTime;
+            Log::debug("EdgeReportJob - finished: $this->studyId in $duration seconds");
         }
-        $this->report->save();
-        $duration = microtime(true) - $startTime;
-        Log::debug("EdgeReportJob - finished: $this->studyId in $duration seconds");
     }
 
 
