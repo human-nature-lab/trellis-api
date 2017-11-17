@@ -1,5 +1,6 @@
 <?php namespace App\Http\Controllers;
 
+use App\Jobs\CleanReportsJob;
 use App\Jobs\FormReportJob;
 use App\Jobs\RespondentReportJob;
 use App\Jobs\EdgeReportJob;
@@ -266,6 +267,14 @@ class ReportController extends Controller {
         }
 
         return response()->json($report, Response::HTTP_OK);
+
+    }
+
+
+    public function cleanReports(Request $request){
+
+        $job = new CleanReportsJob(date_default_timezone_get());
+        $this->dispatch($job);
 
     }
 

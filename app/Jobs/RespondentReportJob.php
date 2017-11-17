@@ -59,11 +59,11 @@ class RespondentReportJob extends Job
         } catch(Exception $e){
             $this->report->status = 'failed';
             Log::debug("RespondentReportJob:  $this->studyId failed");
-            throw $e;
+        } finally{
+            $this->report->save();
+            $duration = microtime(true) - $startTime;
+            Log::debug("RespondentReportJob - finished: $this->studyId in $duration seconds");
         }
-        $this->report->save();
-        $duration = microtime(true) - $startTime;
-        Log::debug("RespondentReportJob - finished: $this->studyId in $duration seconds");
     }
 
 

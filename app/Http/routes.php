@@ -813,4 +813,9 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
         'PhotoController@getZipPhotos'
     );
 
+    $app->post(
+        'report/clean',
+        'ReportController@cleanReports'
+    );
+
 });

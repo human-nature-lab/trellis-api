@@ -5,6 +5,7 @@ use Log;
 use App\Models\ReportFile;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
+use App\Models\Datum;
 use App\Services\FileService;
 use App\Classes\Memoization;
 
@@ -21,7 +22,17 @@ class ReportService
         ReportService::saveDataFile($report, array('id'=>'id', 'file_name'=>'file_name'), $images, 'image');
     }
 
+    /**
+     * Save the $headers and $rows data to a file and then add an entry in the report_file table.
+     * @param $report - The report object returned from the report table
+     * @param $headers - Column key => Column name associative array
+     * @param $rows - Array of associative arrays for each row where row indexes match header keys
+     * @param string $type - The type of the report_file entry
+     * @return bool - Whether or not the file was created. The file won't be created if there aren't any headers or rows.
+     */
     public static function saveDataFile($report, $headers, $rows, $type='data'){
+        if(count($headers) === 0 || count($rows) === 0)
+            return false;
         $csvReportFile = new ReportFile();
         $csvReportFile->id = Uuid::uuid4();
         $csvReportFile->report_id = $report->id;
@@ -30,6 +41,8 @@ class ReportService
         $filePath = storage_path("app/".$csvReportFile->file_name);
         FileService::writeCsv($headers, $rows, $filePath);
         $csvReportFile->save();
+
+        return true;
     }
 
 
@@ -152,6 +165,34 @@ class ReportService
 
     }
 
+    public static function handleMultiChoice($surveyId, $question, $repeatString, $useChoiceNames=false, $locale){
+        $query = DB::table('datum_choice')
+            ->join('datum', 'datum.id', '=', 'datum_choice.datum_id')
+            ->join('choice', 'choice.id', '=', 'datum_choice.choice_id')
+            ->leftJoin('translation_text', function($join) use ($locale) {
+                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id');
+                $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
+            ->where('datum.survey_id', '=', $surveyId)
+            ->where('datum.question_id', '=', $question->id)
+            ->whereNull('datum.deleted_at')
+            ->select('datum.val', 'translation_text.translated_text as name');
+
+        $datum = $query->first();
+        $key = $question->id . $repeatString;
+        $name = $question->var_name . $repeatString;
+        $headers = [$key=>$name];
+        $data = [];
+        if($datum){
+            if($useChoiceNames){
+                $data[$key] = $datum->name;
+            } else {
+                $data[$key] = $datum->val;
+            }
+        }
+        return [$headers, $data];
+    }
+
     public static function handleMultiSelect($surveyId, $question, $repeatString, $useChoiceNames=false, $locale){
 
         $headers = array();
@@ -160,24 +201,15 @@ class ReportService
         $parentDatum = ReportService::firstDatum($surveyId, $question->id);
         $possibleChoices = DB::table('question_choice')
             ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
-            ->leftJoin('translation_text', function($join) use ($locale)
-            {
-                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
-                    ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
-            })
             ->where('question_choice.question_id', '=', $question->id)
-            ->select('translation_text.translated_text as name', 'choice.val', 'choice.id');
+            ->select('choice.val', 'choice.id');
 
 
 
         // Add headers for all possible choices
         foreach ($possibleChoices->get() as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
-            if($useChoiceNames){
-                $headers[$key] = $question->var_name . '_' . $choice->name . $repeatString;
-            } else {
-                $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
-            }
+            $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
         }
 
 
@@ -186,14 +218,23 @@ class ReportService
             $selectedChoices = DB::table('datum_choice')
                 ->join('choice', 'datum_choice.choice_id', '=', 'choice.id')
                 ->join('question_choice', 'choice.id', '=', 'question_choice.choice_id')
+                ->leftJoin('translation_text', function($join) use ($locale)
+                {
+                    $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
+                        ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+                })
                 ->where('datum_choice.datum_id', '=', $parentDatum->id)
-                ->select('choice.val', 'choice.id')
+                ->select('choice.val', 'choice.id', 'translation_text.translated_text as name')
                 ->get();
 
             // Add data for all selected choices
             foreach ($selectedChoices as $choice) {
                 $key = $question->id . '___' . $repeatString . $choice->val;
-                $data[$key] = true;
+                if($useChoiceNames){
+                    $data[$key] = $choice->name;
+                } else{
+                    $data[$key] = true;
+                }
             }
         }
 
@@ -205,6 +246,7 @@ class ReportService
         return DB::table('datum')
             ->where('datum.survey_id', '=', $surveyId)
             ->where('datum.question_id', '=', $questionId)
+            ->whereNull('datum.deleted_at')
             ->first();
     }
 
@@ -262,10 +304,6 @@ class ReportService
         return array($headers, $data);
 
     }
-
-
-
-
 
 
     public static function buildFormTree($questions){
