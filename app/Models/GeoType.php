@@ -26,6 +26,7 @@ class GeoType extends Model
         'study_id',
         'name',
         'can_enumerator_add',
+		'can_enumerator_add_child',
         'can_contain_respondent',
         'created_at',
         'updated_at',

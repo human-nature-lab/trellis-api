@@ -172,6 +172,7 @@
         "study_id": "string(41):index",
         "name": "string(255)",
         "can_enumerator_add": "tinyInteger(1):default(0)",
+        "can_enumerator_add_child": "tinyInteger(1):default(0)",
         "can_contain_respondent": "tinyInteger(1):default(0)",
         "created_at": "dateTime",
         "updated_at": "dateTime",
