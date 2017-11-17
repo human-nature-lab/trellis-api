@@ -50,7 +50,9 @@
   * [Database Administration](#database-administration)
       - [Update local database schema](#update-local-database-schema)
       - [Import live database into local development database](#import-live-database-into-local-development-database)
-
+  * [Job Queue](#job-queue)
+      - [Configuration](#configuration)
+  * [Bulk File Downloads](#bulk-file-downloads)
 ------
 
 # Trellis API
@@ -753,3 +755,8 @@ The easiest way to setup a queue listener is to run `php artisan queue:listen`. 
     sudo supervisorctl update
     sudo supervisorctl restart all
     ```
+
+## Bulk file downloads
+Bulk image downloads are sent as a compressed stream which is done via [ArchiveStream-php](https://github.com/barracudanetworks/ArchiveStream-php). This requires the gmp extension.
+    - `sudo apt-get install php5.6-gmp` or `sudo apt-get install php7.1-gmp`
+    - `composer install`

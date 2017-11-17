@@ -108,27 +108,6 @@ class FormReportJob extends Job
 
     }
 
-    /**
-     * Create a zip file containing all of the images in $this->images. The filename will be the
-     * same as the report id.
-     */
-    private function generateImagesZip(){
-
-        $reportFile = new ReportFile();
-        $reportFile->id = Uuid::uuid4();
-        $reportFile->report_id = $this->report->id;
-        $reportFile->file_type="image";
-        $reportFile->file_name=$this->report->id . '.zip';
-
-        $zipPath = storage_path("app/". $reportFile->file_name);
-        $images = array_map(function($i){
-            return storage_path('respondent-photos/'.$i);
-        }, $this->images);
-        FileService::addToZipArchive($zipPath, $images);
-
-        $reportFile->save();
-
-    }
 
     private function formatSurveyData($survey, $tree, $treeMap, $questionsMap){
 
