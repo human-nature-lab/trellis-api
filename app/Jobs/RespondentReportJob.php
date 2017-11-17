@@ -15,7 +15,7 @@ use App\Services\FileService;
 use App\Classes\Memoization;
 use Ramsey\Uuid\Uuid;
 
-class RespondentReportJob extends Job implements SelfHandling, ShouldQueue
+class RespondentReportJob extends Job
 {
     use InteractsWithQueue, SerializesModels;
 

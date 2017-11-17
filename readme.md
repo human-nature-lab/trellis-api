@@ -280,6 +280,7 @@ CACHE_DRIVER=file
 SESSION_DRIVER=file
 QUEUE_DRIVER=database
 TOKEN_EXPIRE=60
+USE_JOB_QUEUE=0
 ```
 
 #### Create database within Homestead
@@ -720,3 +721,35 @@ The following workflow was used to convert the previous Trellis development data
      php artisan trellis:check:mysql
      ```
 
+## Job Queue
+Setting up the job queue worker isn't necessary unless you don't want jobs to run in your current process. The default behavior is for the queue to not be used for jobs. This can be changed by adding `USE_JOB_QUEUE=1` to the .env file.
+More information about the queue workers can be found [here](https://laravel.com/docs/5.1/queues#running-the-queue-listener).
+### Configuration
+
+#### Simple
+The easiest way to setup a queue listener is to run `php artisan queue:listen`. This process will be killed if there is an error in one of the jobs.
+
+#### Still simple (use supervisor)
+- Install supervisor (Linux)
+
+    ```sudo apt-get install supervisor```
+    
+- Create a supervisor configuration for laravel workers called *laravel-worker.conf* in /etc/supervisor/conf.d
+
+    [program:laravel-queue-worker]
+    process_name=%(program_name)s_%(process_num)02d
+    command=php /home/vagrant/code/trellis-api/artisan queue:work --sleep=10 --tries=3
+    autostart=true
+    autorestart=true
+    user=vagrant
+    numprocs=2
+    redirect_stderr=true
+    stdout_logfile=/home/vagrant/code/trellis-api/storage/logs/laravel-queue-worker.log
+    
+- Update supervisor
+
+    ```
+    sudo supervisorctl reread
+    sudo supervisorctl update
+    sudo supervisorctl restart all
+    ```
