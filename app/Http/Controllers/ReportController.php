@@ -41,9 +41,7 @@ class ReportController extends Controller {
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
         $reportJob = new EdgeReportJob($studyId, $reportId);
-//        $this->dispatch($reportJob);
-        $reportJob->handle();
-//        ReportService::createEdgesExport($studyId);
+        $this->dispatch($reportJob);
 
         // Return the file id that can be downloaded
         return response()->json([
@@ -81,9 +79,9 @@ class ReportController extends Controller {
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
         $reportJob = new RespondentReportJob($studyId, $reportId, $config);
-//        ReportService::createRespondentExport($studyId);
-        $reportJob->handle();
-//        $this->dispatch($reportJob);
+
+        $this->dispatch($reportJob);
+
         // Return the file id that can be downloaded
         return response()->json([
             'reportId' => $reportId
@@ -152,8 +150,8 @@ class ReportController extends Controller {
 		// Run the FormReportJob
         $reportId = Uuid::uuid4();
         $reportJob = new FormReportJob($formId, $reportId, $config);
-        $reportJob->handle();
-//		$this->dispatch($reportJob);
+//        $reportJob->handle();
+		$this->dispatch($reportJob);
 
 		// Return the file id that can be downloaded
 		return response()->json([

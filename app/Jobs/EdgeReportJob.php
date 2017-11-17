@@ -11,7 +11,7 @@ use Illuminate\Contracts\Bus\SelfHandling;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
 
-class EdgeReportJob extends Job implements SelfHandling, ShouldQueue
+class EdgeReportJob extends Job
 {
     use InteractsWithQueue, SerializesModels;
 
