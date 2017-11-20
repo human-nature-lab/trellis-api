@@ -30,6 +30,7 @@ class User extends Model
         return $this
             ->belongsToMany('App\Models\Study', 'user_study')
             ->whereNull('user_study.deleted_at')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->with('locales', 'defaultLocale');
     }
 }
