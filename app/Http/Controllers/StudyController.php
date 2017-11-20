@@ -44,14 +44,12 @@ class StudyController extends Controller
 
     public function getAllStudies(Request $request)
     {
-
-//		$studyModel = Study::select('study.id', 'study.name', 'study.photo_quality', 'l.language_name', 'study.default_locale_id')
-//			->join('locale AS l', 'l.id', '=', 'default_locale_id')
-//			->get();
-        $studyModel = Study::with('locales', 'defaultLocale')->get();
+        // Only return studies assigned to the logged in user
+        $user = $request->user();
+        $studies = $user->studies()->get();
 
         return response()->json(
-            ['studies' => $studyModel],
+            ['studies' => $studies],
             Response::HTTP_OK
         );
     }
