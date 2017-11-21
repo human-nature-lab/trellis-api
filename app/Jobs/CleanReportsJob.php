@@ -11,6 +11,11 @@ class CleanReportsJob extends Job
 
     protected $oldestDate;
 
+    /**
+     * Creates the Job for cleaning reports before the $oldestDate supplied. Defaults to cleaning reports that are older
+     * than one week.
+     * @param $oldestDate
+     */
     public function __construct($oldestDate)
     {
         if($oldestDate) {

@@ -13,13 +13,23 @@ class ReportService
 {
 
     public static function saveImagesFile(&$report, &$images){
+        // Make sure that each image id is unique
+        $uniqueSieve = [];
+        $images = array_filter($images, function($img) use ($uniqueSieve){
+            $res =array_key_exists($img->id, $uniqueSieve);
+            $uniqueSieve['id'] = true;
+            return $res;
+        });
+
+        // Map stdClass to associative array
         $images = array_map(function($image){
             return array(
                 'id' => $image->id,
                 'file_name' => $image->file_name
             );
         }, $images);
-        ReportService::saveDataFile($report, array('id'=>'id', 'file_name'=>'file_name'), $images, 'image');
+
+        return self::saveDataFile($report, array('id'=>'id', 'file_name'=>'file_name'), $images, 'image');
     }
 
     /**
@@ -43,6 +53,27 @@ class ReportService
         $csvReportFile->save();
 
         return true;
+    }
+
+
+    /**
+     * Save the meta file. This interperates the file headers based on unique values in each row.
+     */
+    public static function saveMetaFile($report, $rows){
+
+        $headers = ['column'=>'column'];
+        $newRows = [];
+        foreach($rows as $column=>$row){
+            $newRow = ['column'=>$column];
+            foreach($row as $name=>$val){
+                $headers[$name] = $name;
+                $newRow[$name] = $val;
+            }
+            array_push($newRows, $newRow);
+        }
+
+        return self::saveDataFile($report, $headers, $newRows, 'meta');
+
     }
 
 
@@ -158,8 +189,13 @@ class ReportService
         $key = $question->id . $repeatString;
         $name = $question->var_name . $repeatString;
 
-        $headers = array($key=>$name);
-        $data = $datum !== null ? array($key=>$datum->val) : array();
+        $headers = [$key=>$name];
+        $data = [];
+        if($datum !== null && $datum->opt_out !== null) {
+            $data[$key] = $datum->val;
+        } else if($datum !== null){
+            $data[$key] = $datum->val;
+        }
 
         return array($headers, $data);
 
@@ -176,7 +212,7 @@ class ReportService
             ->where('datum.survey_id', '=', $surveyId)
             ->where('datum.question_id', '=', $question->id)
             ->whereNull('datum.deleted_at')
-            ->select('datum.val', 'translation_text.translated_text as name');
+            ->select('datum.val', 'translation_text.translated_text as name', 'datum.opt_out');
 
         $datum = $query->first();
         $key = $question->id . $repeatString;
@@ -184,25 +220,35 @@ class ReportService
         $headers = [$key=>$name];
         $data = [];
         if($datum){
-            if($useChoiceNames){
+            if($datum->opt_out !== null){
+                $data[$key] = $datum->opt_out;
+            } else if($useChoiceNames){
                 $data[$key] = $datum->name;
             } else {
                 $data[$key] = $datum->val;
             }
         }
+
         return [$headers, $data];
+
     }
 
     public static function handleMultiSelect($surveyId, $question, $repeatString, $useChoiceNames=false, $locale){
 
-        $headers = array();
-        $data = array();
+        $headers = [];
+        $data = [];
+        $metaRows = [];
 
         $parentDatum = ReportService::firstDatum($surveyId, $question->id);
         $possibleChoices = DB::table('question_choice')
             ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
+            ->leftJoin('translation_text', function($join) use ($locale)
+            {
+                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
+                    ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
             ->where('question_choice.question_id', '=', $question->id)
-            ->select('choice.val', 'choice.id');
+            ->select('choice.val', 'choice.id', 'translation_text.translated_text as name');
 
 
 
@@ -210,8 +256,14 @@ class ReportService
         foreach ($possibleChoices->get() as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
             $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
+            $metaRows[$headers[$key]] = [
+                'column' => $headers[$key],
+                'question.var_name' => $question->var_name,
+                'choice.val' => $choice->val,
+                'choice.id' => $choice->id,
+                'choice.name' => $choice->name
+            ];
         }
-
 
         // Add selected choices if there is a parent datum
         if($parentDatum !== null){
@@ -238,7 +290,14 @@ class ReportService
             }
         }
 
-        return array($headers, $data);
+        // Handle opted_out questions
+        if($parentDatum !== null && $parentDatum->opt_out !== null){
+            $key = $question->id . '___' . $repeatString;
+            $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
+            $data[$key] = $parentDatum->opt_out;
+        }
+
+        return [$headers, $data, $metaRows];
 
     }
 
@@ -251,9 +310,9 @@ class ReportService
     }
 
     public static function handleImage($surveyId, $question, $repeatString){
-        $headers = array();
-        $data = array();
-        $images = array();
+        $headers = [];
+        $data = [];
+        $images = [];
         // This is flawed because it will use the same datum for 2 rows in a roster. The imageDatum needs to reference the
         // parent datum that is the roster row as well. This is likely flawed in all of these exports and will need to be
         // changed.
@@ -265,18 +324,27 @@ class ReportService
                 ->whereNull('datum_photo.deleted_at')
                 ->select('photo.file_name', 'photo.id')
                 ->get();
+            // TODO: Check if you can omit the $imageDatum and maybe consider doing a semi-colon delimited lsit instead
+            $imageList = [];
             foreach($imageData as $index => $datum){
-                $key = $question->id.$repeatString.$imageDatum->id.'_p'.$index;
-                $headers[$key] = $question->var_name.$repeatString.'_p'.ReportService::zeroPad($index);
-                $data[$key] = $datum->file_name;
+                array_push($imageList, $datum->file_name);
                 array_push($images, $datum);
             }
+            $key = $question->id.$repeatString;
+            $headers[$key] = $question->var_name.$repeatString;
+            $data[$key] = implode(';', $imageList);
+        }
+
+        // handle opted out questions
+        if($imageDatum !== null && $imageDatum->opt_out !== null){
+            $key = $question->id.$repeatString;
+            $data[$key] = $imageDatum->opt_out;
         }
 
         return array($headers, $data, $images);
     }
 
-    public static function handleGeo($surveyId, $question, $repeatString){
+    public static function handleGeo($surveyId, $question, $repeatString, $locale){
 
         $headers = array();
         $data = array();
@@ -285,15 +353,18 @@ class ReportService
         if($geoDatum) {
             $geoData = DB::table('datum_geo')
                 ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
-                ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
+                ->leftJoin('translation_text', function($join) use ($locale)
+                {
+                    $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
+                        ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+                })
                 ->where('datum_geo.datum_id', '=', $geoDatum->id)
                 ->whereNull('datum_geo.deleted_at')
-                ->select('geo_type.name', 'geo.latitude', 'geo.longitude', 'geo.altitude')
+                ->select('translation_text.translated_text as name', 'geo.id')
                 ->get();
 
-
             foreach ($geoData as $index => $geo) {
-                foreach (array('name', 'latitude', 'longitude', 'altitude') as $name) {
+                foreach (['name', 'id'] as $name) {
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
                     $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
                     $data[$key] = $geo->$name;
