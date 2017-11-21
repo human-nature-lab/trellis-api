@@ -85,6 +85,7 @@ class RespondentReportJob extends Job
             'rname' => "Respondent name",
             'created_at' => "Created at",
             'updated_at' => "Updated at",
+            'geo_id' => "Geo Id",
         );
 
         $getGeoParent = Memoization::memoize(function($id){

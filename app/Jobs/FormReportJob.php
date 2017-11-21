@@ -21,24 +21,26 @@ class FormReportJob extends Job
     protected $formId;
     protected $report;
     protected $config;
-    protected $images=array();
-    protected $rows=array();
-    protected $headers=array();
+    protected $images=[];
+    protected $rows=[];
+    protected $headers=[];
+    protected $metaHeaders=[];
+    protected $metaRows=[];
     protected $defaultColumns;
 
     /**
-     * Create a new job instance.
-     *
-     * @param  $formId
-     * @return void
+     * FormReportJob constructor.
+     * @param $formId - ID of the form we're exporting
+     * @param $reportId - The id of the report we're generating. This is used on the client side to check if the report has finished exporting
+     * @param $config - Any configuration options used to generate this report
      */
-    public function __construct($formId, $fileId, $config)
+    public function __construct($formId, $reportId, $config)
     {
         Log::debug("FormReportJob - constructing: $formId");
         $this->config = $config;
         $this->formId = $formId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = $reportId;
         $this->report->type = 'form';
         $this->report->status = 'queued';
         $this->report->report_id = $this->formId;
@@ -101,9 +103,8 @@ class FormReportJob extends Job
         $this->headers = $this->defaultColumns + $this->headers; // add at the beginning of the array
 
         ReportService::saveDataFile($this->report, $this->headers, $this->rows);
-
+        ReportService::saveMetaFile($this->report, $this->metaRows);
         ReportService::saveImagesFile($this->report, $this->images);
-//        $this->generateImagesZip();
 
     }
 
@@ -134,8 +135,9 @@ class FormReportJob extends Job
                     foreach($rosterRows as $index => $rosterRow){
                         $repeatString = '_r' . ReportService::zeroPad($index);
                         $childQuestion = $questionsMap[$cId];
-                        list($headers, $vals) = $this->handleQuestion($survey->id, $childQuestion, $repeatString);
+                        list($headers, $vals, $metaRows) = $this->handleQuestion($survey->id, $childQuestion, $repeatString);
                         $this->headers = array_replace($this->headers, $headers);
+                        $this->metaRows = array_merge($this->metaRows, $metaRows);
                         $row = array_replace($row, $vals);
                     }
                 }
@@ -161,14 +163,15 @@ class FormReportJob extends Job
 
     private function handleQuestion($studyId, $question, $repeatString=''){
 
-        $images = array();
+        $images = [];
+        $metaRows = [];
 
         switch($question->qtype){
             case 'multiple_select':
-                list($headers, $vals) = ReportService::handleMultiSelect($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale);
+                list($headers, $vals, $metaRows) = ReportService::handleMultiSelect($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale);
                 break;
             case 'geo':
-                list($headers, $vals) = ReportService::handleGeo($studyId, $question, $repeatString);
+                list($headers, $vals) = ReportService::handleGeo($studyId, $question, $repeatString, $this->config->locale);
                 break;
             case 'image':
                 list($headers, $vals, $images) = ReportService::handleImage($studyId, $question, $repeatString);
@@ -183,7 +186,7 @@ class FormReportJob extends Job
 
         $this->images = array_merge($this->images, $images);
 
-        return array($headers, $vals);
+        return array($headers, $vals, $metaRows);
 
     }
 
