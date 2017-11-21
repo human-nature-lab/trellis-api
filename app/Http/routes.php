@@ -764,4 +764,58 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
             'QuestionParamController@deleteQuestionParameter'
     );
 
+
+});
+
+
+$app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'role:whitelist,ADMIN']], function ($app) {
+
+    //**********************//
+    //* Report Routes *//
+    //**********************//
+    $app->get(
+        'report/completed',
+        'ReportController@getAllSavedReports'
+    );
+
+    $app->get(
+        'report/download/{file_name}',
+        'ReportController@downloadFile'
+    );
+
+    $app->post(
+        'report/form/{form_id}',
+        'ReportController@dispatchFormReport'
+    );
+
+    $app->post(
+        'report/study/{study_id}/respondents',
+        'ReportController@dispatchRespondentReport'
+    );
+
+    $app->post(
+        'report/study/{study_id}/edges',
+        'ReportController@dispatchEdgesReport'
+    );
+
+    $app->get(
+        'report/{report_id}',
+        'ReportController@getReport'
+    );
+
+    $app->get(
+        'report/{report_id}/status',
+        'ReportController@getReportStatus'
+    );
+
+    $app->post(
+        'report/images',
+        'PhotoController@getZipPhotos'
+    );
+
+    $app->post(
+        'report/clean',
+        'ReportController@cleanReports'
+    );
+
 });

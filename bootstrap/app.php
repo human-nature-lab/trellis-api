@@ -114,7 +114,8 @@ $app->singleton(
  ]);
 
  $app->routeMiddleware([
-    'token' => 'App\Http\Middleware\TokenMiddleware'
+     'token' => 'App\Http\Middleware\TokenMiddleware',
+     'role' => 'App\Http\Middleware\RoleAuthMiddleware'
  ]);
 
 /*
