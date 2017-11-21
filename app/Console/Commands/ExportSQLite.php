@@ -22,7 +22,7 @@ class ExportSQLite extends Command
      *
      * @var string
      */
-    protected $description = 'Report SQLite database to storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
+    protected $description = 'Export SQLite database to storage_path (or stdout if not specified). --exclude=<table> can be specified multiple times to exclude table(s) from the dump';
 
     const MYSQL_2_SQLITE = 'app/Console/Scripts/mysql2sqlite/mysql2sqlite';
 
