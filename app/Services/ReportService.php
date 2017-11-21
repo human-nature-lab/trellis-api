@@ -16,7 +16,7 @@ class ReportService
         // Make sure that each image id is unique
         $uniqueSieve = [];
         $images = array_filter($images, function($img) use ($uniqueSieve){
-            $res =array_key_exists($img->id, $uniqueSieve);
+            $res = !array_key_exists($img->id, $uniqueSieve);
             $uniqueSieve['id'] = true;
             return $res;
         });
@@ -85,15 +85,20 @@ class ReportService
     }
 
 
-    public static function getFormQuestions($formId){
+    public static function getFormQuestions($formId, $locale){
         return DB::table('question')
             ->join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
             ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
             ->join('form', 'form_section.form_id', '=', 'form.id')
             ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
+            ->leftJoin('translation_text', function($join) use ($locale) {
+                $join->on('translation_text.translation_id', '=', 'question.question_translation_id');
+                $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
             ->where('form.id', '=', $formId)
             ->whereNull('question.deleted_at')
             ->select('question.id',
+                'translation_text.translated_text as name',
                 'question.var_name',
                 'question_type.name as qtype',
                 'form_section.follow_up_question_id')
@@ -143,6 +148,7 @@ class ReportService
 
         $metaData = [$headers[$key] => [
             'column' => $headers[$key],
+            'question.name' => $question->name,
             'question.type' => $question->qtype,
             'question.var_name' => $question->var_name
         ]];
@@ -176,6 +182,7 @@ class ReportService
         $metaData[$headers[$key]] = [
             'column' => $headers[$key],
             'question.type' => $question->qtype,
+            'question.name' => $question->name,
             'question.var_name' => $question->var_name
         ];
         if($datum){
@@ -217,6 +224,7 @@ class ReportService
             $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
             $metaData[$headers[$key]] = [
                 'column' => $headers[$key],
+                'question.name' => $question->name,
                 'question.var_name' => $question->var_name,
                 'question.type' => $question->qtype,
                 'choice.val' => $choice->val,
@@ -305,6 +313,7 @@ class ReportService
             $data[$key] = implode(';', $imageList);
             $metaData[$headers[$key]] = [
                 'column' => $headers[$key],
+                'question.name' => $question->name,
                 'question.type' => $question->qtype,
                 'question.var_name' => $question->var_name
             ];
@@ -345,6 +354,7 @@ class ReportService
                     $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
                     $metaData[$headers[$key]] = [
                         'column' => $headers[$key],
+                        'question.name' => $question->name,
                         'question.type' => $question->qtype,
                         'question.var_name' => $question->var_name
                     ];

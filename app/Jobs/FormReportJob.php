@@ -70,7 +70,7 @@ class FormReportJob extends Job
      */
     private function create(){
 
-        $questions = ReportService::getFormQuestions($this->formId);
+        $questions = ReportService::getFormQuestions($this->formId, $this->config->locale);
 
         $questionsMap = array_reduce($questions, function($agg, &$q){
             $agg[$q->id] = $q;
