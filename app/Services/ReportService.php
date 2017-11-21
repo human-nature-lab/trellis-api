@@ -126,66 +126,10 @@ class ReportService
             ->get();
     }
 
-    public static function formatSurveyData(&$survey, &$tree, &$treeMap, &$questionsMap){
-        $headers = array();
-        $data = array();
-        $alreadyHandledQuestions = array();
 
-        foreach($treeMap as $qId => $children){
+    public static function handleDefault($surveyId, $question, $repeatString, $parentDatumId){
 
-            if(array_key_exists($qId, $alreadyHandledQuestions))
-                continue;
-
-            $question = $questionsMap[$qId];
-            if($question->qtype === 'roster'){
-                $rosterRows = ReportService::getRosterRows($survey->id, $qId);
-
-                // Add each roster row
-                foreach($rosterRows as $index=>$row){
-                    $key = $qId . '___' . $index;
-                    $headers[$key] = $question->var_name . '_r' . ReportService::zeroPad($index);
-                    $data[$key] = $row->val;
-                }
-
-                foreach($children as $cId => $cChildren){
-                    $alreadyHandledQuestions[$cId] = true;
-                    foreach($rosterRows as $index => $rosterRow){
-                        $repeatString = '_r' . ReportService::zeroPad($index);
-                        $childQuestion = $questionsMap[$cId];
-                        list($newHeaders, $newData) = ReportService::handleQuestion($survey->id, $childQuestion, $repeatString);
-                        $headers = array_replace($headers, $newHeaders);
-                        $data = array_replace($data, $newData);
-                    }
-                }
-
-            } else {
-                list($newHeaders, $newData) = ReportService::handleQuestion($survey->id, $question);
-                $headers = array_replace($headers, $newHeaders);
-                $data = array_replace($data, $newData);
-            }
-
-        }
-
-        return array($headers, $data);
-
-    }
-
-    public static function handleQuestion($studyId, $question, $repeatString=''){
-
-        switch($question->qtype){
-            case 'multiple_select':
-                return ReportService::handleMultiSelect($studyId, $question, $repeatString);
-            case 'geo':
-                return ReportService::handleGeo($studyId, $question, $repeatString);
-            default:
-                return ReportService::handleDefault($studyId, $question, $repeatString);
-        }
-
-    }
-
-    public static function handleDefault($surveyId, $question, $repeatString){
-
-        $datum = ReportService::firstDatum($surveyId, $question->id);
+        $datum = self::firstDatum($surveyId, $question->id, $parentDatumId);
         $key = $question->id . $repeatString;
         $name = $question->var_name . $repeatString;
 
@@ -197,11 +141,17 @@ class ReportService
             $data[$key] = $datum->val;
         }
 
-        return array($headers, $data);
+        $metaData = [$headers[$key] => [
+            'column' => $headers[$key],
+            'question.type' => $question->qtype,
+            'question.var_name' => $question->var_name
+        ]];
+
+        return array($headers, $data, $metaData);
 
     }
 
-    public static function handleMultiChoice($surveyId, $question, $repeatString, $useChoiceNames=false, $locale){
+    public static function handleMultiChoice($surveyId, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId=null){
         $query = DB::table('datum_choice')
             ->join('datum', 'datum.id', '=', 'datum_choice.datum_id')
             ->join('choice', 'choice.id', '=', 'datum_choice.choice_id')
@@ -214,11 +164,20 @@ class ReportService
             ->whereNull('datum.deleted_at')
             ->select('datum.val', 'translation_text.translated_text as name', 'datum.opt_out');
 
+        if($parentDatumId){
+            $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
+        }
+
         $datum = $query->first();
         $key = $question->id . $repeatString;
         $name = $question->var_name . $repeatString;
         $headers = [$key=>$name];
         $data = [];
+        $metaData[$headers[$key]] = [
+            'column' => $headers[$key],
+            'question.type' => $question->qtype,
+            'question.var_name' => $question->var_name
+        ];
         if($datum){
             if($datum->opt_out !== null){
                 $data[$key] = $datum->opt_out;
@@ -229,17 +188,17 @@ class ReportService
             }
         }
 
-        return [$headers, $data];
+        return [$headers, $data, $metaData];
 
     }
 
-    public static function handleMultiSelect($surveyId, $question, $repeatString, $useChoiceNames=false, $locale){
+    public static function handleMultiSelect($surveyId, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId){
 
         $headers = [];
         $data = [];
-        $metaRows = [];
+        $metaData = [];
 
-        $parentDatum = ReportService::firstDatum($surveyId, $question->id);
+        $parentDatum = ReportService::firstDatum($surveyId, $question->id, $parentDatumId);
         $possibleChoices = DB::table('question_choice')
             ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
             ->leftJoin('translation_text', function($join) use ($locale)
@@ -256,9 +215,10 @@ class ReportService
         foreach ($possibleChoices->get() as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
             $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
-            $metaRows[$headers[$key]] = [
+            $metaData[$headers[$key]] = [
                 'column' => $headers[$key],
                 'question.var_name' => $question->var_name,
+                'question.type' => $question->qtype,
                 'choice.val' => $choice->val,
                 'choice.id' => $choice->id,
                 'choice.name' => $choice->name
@@ -297,26 +257,36 @@ class ReportService
             $data[$key] = $parentDatum->opt_out;
         }
 
-        return [$headers, $data, $metaRows];
+        return [$headers, $data, $metaData];
 
     }
 
-    public static function firstDatum($surveyId, $questionId){
-        return DB::table('datum')
+    /**
+     * Return first datum matching $surveyId and $questionId. Also matches $parentDatumId if it isn't null.
+     * @param $surveyId
+     * @param $questionId
+     */
+    public static function firstDatum($surveyId, $questionId, $parentDatumId=null){
+        $query = DB::table('datum')
             ->where('datum.survey_id', '=', $surveyId)
             ->where('datum.question_id', '=', $questionId)
-            ->whereNull('datum.deleted_at')
-            ->first();
+            ->whereNull('datum.deleted_at');
+        if($parentDatumId){
+            $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
+        }
+        return $query->first();
     }
 
-    public static function handleImage($surveyId, $question, $repeatString){
+    public static function handleImage($surveyId, $question, $repeatString, $parentDatumId){
         $headers = [];
         $data = [];
         $images = [];
+        $metaData = [];
+
         // This is flawed because it will use the same datum for 2 rows in a roster. The imageDatum needs to reference the
         // parent datum that is the roster row as well. This is likely flawed in all of these exports and will need to be
         // changed.
-        $imageDatum = ReportService::firstDatum($surveyId, $question->id);
+        $imageDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
         if($imageDatum !== null){
             $imageData = DB::table('datum_photo')
                 ->join('photo', 'datum_photo.photo_id', '=', 'photo.id')
@@ -333,6 +303,11 @@ class ReportService
             $key = $question->id.$repeatString;
             $headers[$key] = $question->var_name.$repeatString;
             $data[$key] = implode(';', $imageList);
+            $metaData[$headers[$key]] = [
+                'column' => $headers[$key],
+                'question.type' => $question->qtype,
+                'question.var_name' => $question->var_name
+            ];
         }
 
         // handle opted out questions
@@ -341,14 +316,15 @@ class ReportService
             $data[$key] = $imageDatum->opt_out;
         }
 
-        return array($headers, $data, $images);
+        return [$headers, $data, $images, $metaData];
     }
 
-    public static function handleGeo($surveyId, $question, $repeatString, $locale){
+    public static function handleGeo($surveyId, $question, $repeatString, $locale, $parentDatumId){
 
-        $headers = array();
-        $data = array();
-        $geoDatum = ReportService::firstDatum($surveyId, $question->id);
+        $headers = [];
+        $data = [];
+        $metaData = [];
+        $geoDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
 
         if($geoDatum) {
             $geoData = DB::table('datum_geo')
@@ -367,12 +343,17 @@ class ReportService
                 foreach (['name', 'id'] as $name) {
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
                     $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
+                    $metaData[$headers[$key]] = [
+                        'column' => $headers[$key],
+                        'question.type' => $question->qtype,
+                        'question.var_name' => $question->var_name
+                    ];
                     $data[$key] = $geo->$name;
                 }
             }
         }
 
-        return array($headers, $data);
+        return [$headers, $data, $metaData];
 
     }
 
@@ -465,22 +446,6 @@ class ReportService
 
         $filePath = storage_path() ."/app/". $fileId . '.csv';
         FileService::writeCsv($headers, $rows, $filePath);
-
-    }
-
-
-    public static function handleDatum($datum, &$row, &$headersMap, &$multiSelectQuestionsMap, &$geoQuestions, &$rosterQuestions){
-
-        if(array_key_exists($datum->question_id, $rosterQuestions)){
-            ReportService::handleRoster($datum, $row);
-        } else if (array_key_exists($datum->question_id, $multiSelectQuestionsMap)) {
-            ReportService::handleMultiSelect($datum, $row);
-        } else if(array_key_exists($datum->question_id, $geoQuestions)){
-            $geoQuestion = $geoQuestions[$datum->question_id];
-            ReportService::handleGeo($datum, $row, $headersMap, $geoQuestion);
-        } else {
-            $row[$datum->question_id] = $datum->val;
-        }
 
     }
 

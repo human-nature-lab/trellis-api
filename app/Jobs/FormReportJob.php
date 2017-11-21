@@ -111,8 +111,8 @@ class FormReportJob extends Job
 
     private function formatSurveyData($survey, $tree, $treeMap, $questionsMap){
 
-        $row = array();
-        $alreadyHandledQuestions = array();
+        $row = [];
+        $alreadyHandledQuestions = [];
 
         foreach($treeMap as $qId => $children){
 
@@ -127,15 +127,20 @@ class FormReportJob extends Job
                 foreach($rosterRows as $index=>$rosterRow){
                     $key = $qId . '___' . $index;
                     $this->headers[$key] = $question->var_name . '_r' . ReportService::zeroPad($index);
+                    $this->metaRows[$this->headers[$key]] = [
+                        'column' => $this->headers[$key],
+                        'question.var_name' => $question->var_name,
+                        'question.type' => $question->qtype,
+                    ];
                     $row[$key] = $rosterRow->val;
                 }
 
                 foreach($children as $cId => $cChildren){
                     $alreadyHandledQuestions[$cId] = true;
-                    foreach($rosterRows as $index => $rosterRow){
+                    foreach($rosterRows as $index => $rosterRowDatum){
                         $repeatString = '_r' . ReportService::zeroPad($index);
                         $childQuestion = $questionsMap[$cId];
-                        list($headers, $vals, $metaRows) = $this->handleQuestion($survey->id, $childQuestion, $repeatString);
+                        list($headers, $vals, $metaRows) = $this->handleQuestion($survey->id, $childQuestion, $repeatString, $rosterRowDatum->id);
                         $this->headers = array_replace($this->headers, $headers);
                         $this->metaRows = array_merge($this->metaRows, $metaRows);
                         $row = array_replace($row, $vals);
@@ -143,8 +148,9 @@ class FormReportJob extends Job
                 }
 
             } else {
-                list($headers, $vals) = $this->handleQuestion($survey->id, $question);
+                list($headers, $vals, $metaRows) = $this->handleQuestion($survey->id, $question);
                 $this->headers = array_replace($this->headers, $headers);
+                $this->metaRows = array_replace($this->metaRows, $metaRows);
                 $row = array_replace($row, $vals);
             }
 
@@ -161,32 +167,31 @@ class FormReportJob extends Job
     }
 
 
-    private function handleQuestion($studyId, $question, $repeatString=''){
+    private function handleQuestion($studyId, $question, $repeatString='', $rowDatumId=null){
 
         $images = [];
-        $metaRows = [];
 
         switch($question->qtype){
             case 'multiple_select':
-                list($headers, $vals, $metaRows) = ReportService::handleMultiSelect($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale);
+                list($headers, $vals, $metaData) = ReportService::handleMultiSelect($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
                 break;
             case 'geo':
-                list($headers, $vals) = ReportService::handleGeo($studyId, $question, $repeatString, $this->config->locale);
+                list($headers, $vals, $metaData) = ReportService::handleGeo($studyId, $question, $repeatString, $this->config->locale, $rowDatumId);
                 break;
             case 'image':
-                list($headers, $vals, $images) = ReportService::handleImage($studyId, $question, $repeatString);
+                list($headers, $vals, $images, $metaData) = ReportService::handleImage($studyId, $question, $repeatString, $rowDatumId);
                 break;
             case 'multiple_choice':
-                list($headers, $vals) = ReportService::handleMultiChoice($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale);
+                list($headers, $vals, $metaData) = ReportService::handleMultiChoice($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
                 break;
             default:
-                list($headers, $vals) = ReportService::handleDefault($studyId, $question, $repeatString);
+                list($headers, $vals, $metaData) = ReportService::handleDefault($studyId, $question, $repeatString, $rowDatumId);
                 break;
         }
 
         $this->images = array_merge($this->images, $images);
 
-        return array($headers, $vals, $metaRows);
+        return [$headers, $vals, $metaData];
 
     }
 
