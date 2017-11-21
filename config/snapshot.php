@@ -36,6 +36,18 @@ return [
             'user' => [
                 '*' => null,
             ],
+            'report' => [
+                '*' => null,
+            ],
+            'report_file' => [
+                '*' => null,
+            ],
+            'jobs' => [
+                '*' => null,
+            ],
+            'failed_jobs' => [
+                '*' => null,
+            ],
         ],
         'download' => [
             //TODO
