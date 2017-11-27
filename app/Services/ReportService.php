@@ -158,9 +158,9 @@ class ReportService
     }
 
     public static function handleMultiChoice($surveyId, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId=null){
-        $query = DB::table('datum_choice')
-            ->join('datum', 'datum.id', '=', 'datum_choice.datum_id')
-            ->join('choice', 'choice.id', '=', 'datum_choice.choice_id')
+        $query = DB::table('datum')
+            ->leftJoin('datum_choice', 'datum_choice.datum_id', '=', 'datum.id')
+            ->leftJoin('choice', 'choice.id', '=', 'datum_choice.choice_id')
             ->leftJoin('translation_text', function($join) use ($locale) {
                 $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id');
                 $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
@@ -168,7 +168,7 @@ class ReportService
             ->where('datum.survey_id', '=', $surveyId)
             ->where('datum.question_id', '=', $question->id)
             ->whereNull('datum.deleted_at')
-            ->select('datum.val', 'translation_text.translated_text as name', 'datum.opt_out');
+            ->select('datum.val', 'datum.name', 'translation_text.translated_text as translated_val', 'datum.opt_out');
 
         if($parentDatumId){
             $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
@@ -185,11 +185,11 @@ class ReportService
             'question.name' => $question->name,
             'question.var_name' => $question->var_name
         ];
-        if($datum){
+        if($datum !== null){
             if($datum->opt_out !== null){
                 $data[$key] = $datum->opt_out;
             } else if($useChoiceNames){
-                $data[$key] = $datum->name;
+                $data[$key] = $datum->translated_val;
             } else {
                 $data[$key] = $datum->val;
             }
@@ -221,7 +221,7 @@ class ReportService
         // Add headers for all possible choices
         foreach ($possibleChoices->get() as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
-            $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
+            $headers[$key] = $question->var_name . $repeatString . '_' . $choice->val;
             $metaData[$headers[$key]] = [
                 'column' => $headers[$key],
                 'question.name' => $question->name,
@@ -261,7 +261,7 @@ class ReportService
         // Handle opted_out questions
         if($parentDatum !== null && $parentDatum->opt_out !== null){
             $key = $question->id . '___' . $repeatString;
-            $headers[$key] = $question->var_name . '_' . $choice->val . $repeatString;
+            $headers[$key] = $question->var_name . $repeatString;
             $data[$key] = $parentDatum->opt_out;
         }
 
