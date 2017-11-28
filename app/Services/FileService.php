@@ -14,7 +14,7 @@ class FileService{
      * @param $nullValue - The string to use in place of null and empty strings.
      * @param $filePath - The path to the csv file.
      */
-    public static function writeCsv($colMap, $rowMaps, $filePath, $nullValue='NA'){
+    public static function writeCsv($colMap, $rowMaps, $filePath, $nullValue='NA', $replacements=['DK'=>'Dont_Know','RF'=>'Refused']){
 
         $headerIds = array();
         $headerNames = array();
@@ -33,7 +33,11 @@ class FileService{
             foreach ($headerIds as $id){
                 if(array_key_exists($id, $rowMap)
                     && $rowMap[$id] !== ''){
-                    array_push($row, $rowMap[$id]);
+                    if(array_key_exists($rowMap[$id], $replacements)){
+                        array_push($row, $replacements[$rowMap[$id]]);
+                    } else {
+                        array_push($row, $rowMap[$id]);
+                    }
                 } else {
                     // Value doesn't exist or the string is empty
                     array_push($row, $nullValue);
