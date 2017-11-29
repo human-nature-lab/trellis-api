@@ -21,6 +21,12 @@ return [
             'epoch' => [
                 '*' => null,
             ],
+            'failed_jobs' => [
+                '*' => null,
+            ],
+            'jobs' => [
+                '*' => null,
+            ],
             'key' => [
                 '*' => null,
             ],
@@ -30,22 +36,16 @@ return [
             'migrations' => [
                 '*' => null,
             ],
-            'token' => [
-                '*' => null,
-            ],
-            'user' => [
+            'report_file' => [
                 '*' => null,
             ],
             'report' => [
                 '*' => null,
             ],
-            'report_file' => [
+            'token' => [
                 '*' => null,
             ],
-            'jobs' => [
-                '*' => null,
-            ],
-            'failed_jobs' => [
+            'user' => [
                 '*' => null,
             ],
         ],
@@ -54,10 +54,22 @@ return [
             // 'device' => [
             //     'device_id' => null,
             // ],
+            'failed_jobs' => [
+                '*' => null,
+            ],
+            'jobs' => [
+                '*' => null,
+            ],
             'key' => [
                 '*' => null,
             ],
             'migrations' => [
+                '*' => null,
+            ],
+            'report_file' => [
+                '*' => null,
+            ],
+            'report' => [
                 '*' => null,
             ],
             'token' => [

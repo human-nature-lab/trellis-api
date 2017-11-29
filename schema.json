@@ -34,7 +34,7 @@
         "parent_datum_id": "string(41):nullable:index",
         "datum_type_id": "string(41):index:default(0)",
         "sort_order": "integer(10):unsigned:nullable",
-		"opt_out": "string(255):nullable",
+        "opt_out": "string(255):nullable",
         "opt_out_val": "text:nullable",
         "created_at": "dateTime",
         "updated_at": "dateTime",
@@ -112,6 +112,13 @@
     },
     "epoch": {
         "epoch": "bigInteger(20):unsigned"
+    },
+    "failed_jobs": {
+        "id": "increments(10):unsigned:primary",
+        "connection": "text",
+        "queue": "text",
+        "payload": "longText",
+        "failed_at": "timestamp:default('CURRENT_TIMESTAMP')"
     },
     "form": {
         "id": "string(41):primary",
@@ -217,6 +224,16 @@
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
+    },
+    "jobs": {
+        "id": "bigIncrements(20):unsigned:primary",
+        "queue": "string(255):index",
+        "payload": "longText",
+        "attempts": "tinyInteger(3):unsigned",
+        "reserved": "tinyInteger(3):unsigned",
+        "reserved_at": "integer(10):unsigned:nullable",
+        "available_at": "integer(10):unsigned",
+        "created_at": "integer(10):unsigned"
     },
     "key": {
         "id": "string(41):primary",
@@ -326,6 +343,24 @@
     "question_type": {
         "id": "string(41):primary",
         "name": "string(255)",
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
+    },
+    "report": {
+        "id": "string(41):primary",
+        "type": "string(255)",
+        "report_id": "string(255)",
+        "status": "string(255)",
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
+    },
+    "report_file": {
+        "id": "string(41):primary",
+        "file_type": "string(255)",
+        "report_id": "string(41):index",
+        "file_name": "string(255)",
         "created_at": "dateTime",
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
