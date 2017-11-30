@@ -340,27 +340,23 @@ class ReportService
 
         if($geoDatum) {
             $geoData = DB::table('datum_geo')
-                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id');
-            if($useAnyLocale) {
-                $geoData = $geoData->
-                join('translation_text', function ($join) use ($locale) {
+                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
+                ->leftJoin('translation_text', function ($join) use ($locale) {
                     $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
                         ->whereNull('translation_text.deleted_at')
                         ->on('translation_text.locale_id', '=', DB::raw("'" . $locale . "'"));
-                });
-            }else {
-                $geoData = $geoData->
-                leftJoin('translation_text', function ($join) use ($locale) {
-                    $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
-                        ->whereNull('translation_text.deleted_at')
-                        ->on('translation_text.locale_id', '=', DB::raw("'" . $locale . "'"));
-                });
-            }
-            $geoData = $geoData->where('datum_geo.datum_id', '=', $geoDatum->id)
+                })->where('datum_geo.datum_id', '=', $geoDatum->id)
                 ->whereNull('datum_geo.deleted_at')
-                ->select('translation_text.translated_text as name', 'geo.id');
+                ->select('translation_text.translated_text as name', 'geo.id', 'geo.name_translation_id as tId');
 
             foreach ($geoData->get() as $index => $geo) {
+                // Get the next geo
+                if($geo->name === null && $useAnyLocale){
+                    $geoTranslation = DB::table('translation_text')
+                        ->where('translation_text.translation_id', '=', $geo->tId)
+                        ->first();
+                    $geo->name = $geoTranslation->translated_text;
+                }
                 foreach (['name', 'id'] as $name) {
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
                     $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
