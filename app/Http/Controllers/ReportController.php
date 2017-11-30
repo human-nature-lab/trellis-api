@@ -4,57 +4,22 @@ use App\Jobs\CleanReportsJob;
 use App\Jobs\FormReportJob;
 use App\Jobs\RespondentReportJob;
 use App\Jobs\EdgeReportJob;
-use App\Models\Edge;
+use App\Jobs\GeoReportJob;
 use App\Models\Locale;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\EventDispatcher\Tests\CallableClass;
 use Validator;
 use App\Models\Form;
 use App\Models\Study;
 use Illuminate\Support\Facades\Log;
 use App\Models\Report;
-use App\Models\ReportFile;
-use App\Services\ReportService;
 
 class ReportController extends Controller {
 
     public function dispatchEdgesReport(Request $request, $studyId){
 
-        $validator = Validator::make(
-            ['id' => $studyId],
-            ['id' => 'required|string|min:36']
-        );
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Form id invalid',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
-        if(Study::where('id', $studyId)->count() === 0){
-            return response()->json([
-                'msg' => "Study with id, $studyId doesn't exist"
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        // Generate the report csv contents and store is with a unique filename
-        $reportId = Uuid::uuid4();
-        $reportJob = new EdgeReportJob($studyId, $reportId);
-        $this->dispatch($reportJob);
-
-        // Return the file id that can be downloaded
-        return response()->json([
-            'reportId' => $reportId
-        ], Response::HTTP_OK);
-
-    }
-
-
-    public function dispatchRespondentReport(Request $request, $studyId){
-
-        // TODO: add configuration options
         $config = new \stdClass();
 
         $validator = Validator::make(
@@ -76,6 +41,78 @@ class ReportController extends Controller {
             ], Response::HTTP_NOT_FOUND);
         }
 
+        // Generate the report csv contents and store is with a unique filename
+        $reportId = Uuid::uuid4();
+        $reportJob = new EdgeReportJob($studyId, $reportId, $config);
+
+        $this->dispatch($reportJob);
+
+        // Return the file id that can be downloaded
+        return response()->json([
+            'reportId' => $reportId
+        ], Response::HTTP_OK);
+
+    }
+
+    public function dispatchGeoReport(Request $request, $studyId){
+
+        $config = new \stdClass();
+
+        $validator = Validator::make(
+            ['id' => $studyId],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Form id invalid',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+
+        if(Study::where('id', $studyId)->count() === 0){
+            return response()->json([
+                'msg' => "Study with id, $studyId doesn't exist"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Generate the report csv contents and store is with a unique filename
+        $reportId = Uuid::uuid4();
+        $reportJob = new GeoReportJob($studyId, $reportId, $config);
+
+        $this->dispatch($reportJob);
+
+        // Return the file id that can be downloaded
+        return response()->json([
+            'reportId' => $reportId
+        ], Response::HTTP_OK);
+
+    }
+
+
+    public function dispatchRespondentReport(Request $request, $studyId){
+
+        $config = new \stdClass();
+
+        $validator = Validator::make(
+            ['id' => $studyId],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Form id invalid',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+
+        if(Study::where('id', $studyId)->count() === 0){
+            return response()->json([
+                'msg' => "Study with id, $studyId doesn't exist"
+            ], Response::HTTP_NOT_FOUND);
+        }
 
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
@@ -89,7 +126,6 @@ class ReportController extends Controller {
         ], Response::HTTP_OK);
 
     }
-
 
 	public function dispatchFormReport(Request $request, $formId){
 

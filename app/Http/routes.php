@@ -798,6 +798,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
         'ReportController@dispatchEdgesReport'
     );
 
+    $app->post(
+        'report/study/{study_id}/geo',
+        'ReportController@dispatchGeoReport'
+    );
+
     $app->get(
         'report/{report_id}',
         'ReportController@getReport'
