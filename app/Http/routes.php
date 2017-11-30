@@ -803,6 +803,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
         'ReportController@dispatchGeoReport'
     );
 
+    $app->post(
+        'report/study/{study_id}/interview',
+        'ReportController@dispatchInterviewReport'
+    );
+
     $app->get(
         'report/{report_id}',
         'ReportController@getReport'
