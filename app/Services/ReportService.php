@@ -159,7 +159,10 @@ class ReportService
 
     public static function handleMultiChoice($surveyId, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId=null){
         $query = DB::table('datum')
-            ->leftJoin('datum_choice', 'datum_choice.datum_id', '=', 'datum.id')
+            ->leftJoin('datum_choice', function($join){
+                $join->on('datum_choice.datum_id', '=', 'datum.id');
+                $join->whereNull('datum_choice.deleted_at');
+            })
             ->leftJoin('choice', 'choice.id', '=', 'datum_choice.choice_id')
             ->leftJoin('translation_text', function($join) use ($locale) {
                 $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id');
@@ -328,7 +331,7 @@ class ReportService
         return [$headers, $data, $images, $metaData];
     }
 
-    public static function handleGeo($surveyId, $question, $repeatString, $locale, $parentDatumId){
+    public static function handleGeo($surveyId, $question, $repeatString, $locale, $parentDatumId, $useAnyLocale=true){
 
         $headers = [];
         $data = [];
@@ -337,18 +340,27 @@ class ReportService
 
         if($geoDatum) {
             $geoData = DB::table('datum_geo')
-                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
-                ->leftJoin('translation_text', function($join) use ($locale)
-                {
+                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id');
+            if($useAnyLocale) {
+                $geoData = $geoData->
+                join('translation_text', function ($join) use ($locale) {
                     $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
-                        ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
-                })
-                ->where('datum_geo.datum_id', '=', $geoDatum->id)
+                        ->whereNull('translation_text.deleted_at')
+                        ->on('translation_text.locale_id', '=', DB::raw("'" . $locale . "'"));
+                });
+            }else {
+                $geoData = $geoData->
+                leftJoin('translation_text', function ($join) use ($locale) {
+                    $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
+                        ->whereNull('translation_text.deleted_at')
+                        ->on('translation_text.locale_id', '=', DB::raw("'" . $locale . "'"));
+                });
+            }
+            $geoData = $geoData->where('datum_geo.datum_id', '=', $geoDatum->id)
                 ->whereNull('datum_geo.deleted_at')
-                ->select('translation_text.translated_text as name', 'geo.id')
-                ->get();
+                ->select('translation_text.translated_text as name', 'geo.id');
 
-            foreach ($geoData as $index => $geo) {
+            foreach ($geoData->get() as $index => $geo) {
                 foreach (['name', 'id'] as $name) {
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
                     $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
