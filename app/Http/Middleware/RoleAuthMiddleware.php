@@ -3,13 +3,15 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use function foo\func;
 use Illuminate\Http\Response;
 
 class RoleAuthMiddleware
 {
 
-    public function handle($request, Closure $next, $type, ...$roles)
+    public function handle($request, Closure $next, $type)
     {
+        $roles = array_slice(func_get_args(), 3);
         $user = $request->user();
         if($user === null){
             return response()->json([
