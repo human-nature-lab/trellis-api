@@ -12,8 +12,9 @@ class Memoization
      */
     public static function memoize(callable $callback){
         $memo = array();
-        return function(...$arguments) use (&$memo, $callback){
+        return function() use (&$memo, $callback){
 
+            $arguments = func_get_args();
             $serialized = serialize($arguments);
             // Return already stored value if it exists
             if(array_key_exists($serialized, $memo)){
