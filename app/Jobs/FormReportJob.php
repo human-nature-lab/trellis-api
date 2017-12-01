@@ -16,7 +16,7 @@ use Ramsey\Uuid\Uuid;
 
 class FormReportJob extends Job
 {
-    use InteractsWithQueue, SerializesModels;
+//    use InteractsWithQueue, SerializesModels;
 
     protected $formId;
     protected $report;
