@@ -23,7 +23,10 @@ class FileService{
             array_push($headerNames, $name);
         }
 
-
+        if(!file_exists(dirname($filePath))){
+            mkdir(dirname($filePath), 0777, true);
+        }
+        
         $file = fopen($filePath, 'w');
 
         // Write headers
