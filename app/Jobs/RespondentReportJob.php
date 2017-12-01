@@ -97,7 +97,7 @@ class RespondentReportJob extends Job
                 ->first();
         });
 
-        $traverseGeoTree = function ($startingId, $maxDepth) use ($getGeoParent){
+        $traverseGeoTree = Memoization::memoize(function($startingId, $maxDepth) use ($getGeoParent){
             $tree = array();
             $id = $startingId;
             while(count($tree) < $maxDepth && $id !== null){
@@ -110,7 +110,7 @@ class RespondentReportJob extends Job
                 }
             }
             return $tree;
-        };
+        });
 
         $headers = array();
         $headers = array_replace($headers, $defaultHeaders);
@@ -142,7 +142,7 @@ class RespondentReportJob extends Job
             }
 
             // Add conditions if there are any for this respondent
-            if(array_key_exists($respondent->id, $respondent_conditions)) {
+            if(isset($respondent_conditions[$respondent->id])) {
                 $conditions = $respondent_conditions[$respondent->id];
                 foreach ($conditions as $condition) {
                     $headers[$condition] = $condition;

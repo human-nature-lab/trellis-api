@@ -68,7 +68,8 @@ class GeoReportJob extends Job
                 $join->whereNull('translation_text.deleted_at');
             })
             ->join('locale', 'locale.id', '=', 'translation_text.locale_id')
-            ->select('geo.*', 'locale.language_name', 'translation_text.translated_text as name');
+            ->select('geo.*', 'locale.language_name', 'translation_text.translated_text as name')
+            ->get();
 
         $headers =[
             'id' => 'Geo Id',
@@ -86,7 +87,7 @@ class GeoReportJob extends Job
                 ->first();
         });
 
-        $traverseGeoTree = function ($startingId, $maxDepth=10) use ($getGeoParent){
+        $traverseGeoTree = Memoization::memoize(function ($startingId, $maxDepth=10) use ($getGeoParent){
             $tree = array();
             $id = $startingId;
             while(count($tree) < $maxDepth && $id !== null){
@@ -99,11 +100,11 @@ class GeoReportJob extends Job
                 }
             }
             return $tree;
-        };
+        });
 
         $geos = [];
         $numParentsKey = 'numParents';
-        foreach($geosTranslations->get() as $geo){
+        foreach($geosTranslations as $geo){
             $geo = $geo->toArray();
             if(!array_key_exists($geo['id'], $geos)){
                 $geos[$geo['id']] = [];
@@ -125,10 +126,13 @@ class GeoReportJob extends Job
             $geos[$geo['id']][$numParentsKey] = count($parents);
         }
 
+        $startTime = microtime(true);
         // Sort by num parents from low to high
         uasort($geos, function($a, $b) use($numParentsKey){
             return $a[$numParentsKey] - $b[$numParentsKey];
         });
+        $duration = microtime(true) - $startTime;
+        Log::debug("Sort took: $duration");
 
         ReportService::saveDataFile($this->report, $headers, $geos);
         // TODO: create zip file with location images

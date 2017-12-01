@@ -49,3 +49,4 @@ Temporary Items
 .apdisk
 
 laravel-queue-worker.conf
+laravel-worker.conf

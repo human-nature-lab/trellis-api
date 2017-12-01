@@ -737,7 +737,8 @@ The easiest way to setup a queue listener is to run `php artisan queue:listen`. 
     ```sudo apt-get install supervisor```
     
 - Create a supervisor configuration for laravel workers called *laravel-worker.conf* in /etc/supervisor/conf.d
-
+    
+    ```
     [program:laravel-queue-worker]
     process_name=%(program_name)s_%(process_num)02d
     command=php /home/vagrant/code/trellis-api/artisan queue:work --sleep=10 --tries=3
@@ -747,6 +748,7 @@ The easiest way to setup a queue listener is to run `php artisan queue:listen`. 
     numprocs=2
     redirect_stderr=true
     stdout_logfile=/home/vagrant/code/trellis-api/storage/logs/laravel-queue-worker.log
+    ```
     
 - Update supervisor
 

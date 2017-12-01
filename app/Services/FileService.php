@@ -26,7 +26,7 @@ class FileService{
         if(!file_exists(dirname($filePath))){
             mkdir(dirname($filePath), 0777, true);
         }
-        
+
         $file = fopen($filePath, 'w');
 
         // Write headers
