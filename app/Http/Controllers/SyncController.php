@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 use Validator;
 
 class SyncController extends Controller
@@ -121,19 +122,53 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        $returnArray = array();
-        $adapter = new Local(storage_path() . '/respondent-photos');
-        $filesystem = new Filesystem($adapter);
+        ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
 
-        $contents = $filesystem->listContents();
+        http_response_code(Response::HTTP_OK);
 
-        foreach ($contents as $object) {
-            if ($object['extension'] == "jpg") {
-                $returnArray[] = array('fileName' => $object['path'], 'length' => $object['size']);
-            }
+        $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
+
+        foreach(explode("\r\n", $response->headers) as $header) {
+            header($header);
         }
 
-        return response()->json($returnArray, Response::HTTP_OK);
+        header('Content-Type: ' . response()->json()->headers->get('content-type'));    // override content type to ensure that it's application/json
+
+        echo '[';
+
+        $path = storage_path() . '/respondent-photos';
+        $extensions = ['jpg'];//['jpg', 'gif', 'png'];
+        $pattern = '/\.(' . implode('|', array_map('preg_quote', $extensions, array_fill(0, count($extensions), '/'))) . ')$/';
+        $first = true;
+
+        foreach ((new Finder())->name($pattern)->files()->in($path) as $file) {
+            if($first) {
+                $first = false;
+            } else {
+                echo ',';
+            }
+
+            echo json_encode([
+                "fileName" => $file->getFilename(),
+                "length" => $file->getSize()
+            ]);
+        }
+
+        echo ']';
+
+        // // original method
+        // $returnArray = array();
+        // $adapter = new Local(storage_path() . '/respondent-photos');
+        // $filesystem = new Filesystem($adapter);
+        // $contents = $filesystem->listContents();
+        //
+        // foreach ($contents as $object) {
+        //     if ($object['extension'] == "jpg") {
+        //         $returnArray[] = array('fileName' => $object['path'], 'length' => $object['size']);
+        //     }
+        // }
+        //
+        // return response()->json($returnArray, Response::HTTP_OK);
     }
 
     public function syncImages(Request $request, $deviceId)
