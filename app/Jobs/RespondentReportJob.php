@@ -50,6 +50,7 @@ class RespondentReportJob extends Job
      */
     public function handle()
     {
+        set_time_limit(140);
         $startTime = microtime(true);
         Log::debug("RespondentReportJob - handling: $this->studyId, $this->report->id");
         try{
