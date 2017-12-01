@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class InterviewReportJob extends Job
 {
-    use InteractsWithQueue, SerializesModels;
+//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
     protected $report;

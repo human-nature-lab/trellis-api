@@ -17,7 +17,7 @@ use Ramsey\Uuid\Uuid;
 
 class RespondentReportJob extends Job
 {
-    use InteractsWithQueue, SerializesModels;
+//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
     protected $report;
