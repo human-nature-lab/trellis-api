@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use function foo\func;
 use Illuminate\Http\Response;
 
 class RoleAuthMiddleware
