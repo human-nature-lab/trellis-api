@@ -22,7 +22,7 @@ class Memoization
             }
 
             // Otherwise execute the callback and store the returned value
-            $result = $callback(...$arguments);
+            $result = call_user_func_array($callback, $arguments);
             $memo[$serialized] = $result;
             return $result;
 
