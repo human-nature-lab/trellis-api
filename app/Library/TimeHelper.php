@@ -23,7 +23,7 @@ class TimeHelper
         if (is_numeric($time)) {
             $integer = substr((int) $time, 0, 10);
             $decimal = ltrim(substr($time, strlen($integer)), '.,');
-            $timestamp = $integer . '.' . $decimal . '0';
+            $timestamp = $integer . '.' . str_pad(substr(round(0 . '.' . $decimal, 6), 2), 6, 0);
             $dateTime = Carbon::createFromFormat('U.u', $timestamp, 'UTC');
         } else {
             $dateTime = new Carbon($time);
