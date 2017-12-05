@@ -77,6 +77,8 @@ class InterviewReportJob extends Job
             'latitude' => 'Latitude',
             'longitude' => 'Longitude',
             'altitude' => 'Altitude',
+            'start_time' => 'Start Time',
+            'end_time' => "End Time",
             'created_at' => 'Created At',
             'updated_at' => "Updated At",
             "deleted_at" => 'Deleted At'
