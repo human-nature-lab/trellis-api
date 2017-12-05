@@ -66,7 +66,7 @@ class InterviewReportJob extends Job
             ->leftJoin('form', 'form.id', '=', 'survey.form_id')
             ->leftJoin('user', 'user.id', '=', 'interview.user_id')
             ->where('survey.study_id', '=', $this->studyId)
-            ->select('interview.*', 'survey.respondent_id', 'survey.form_id');
+            ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username');
 
         $headers =[
             'id' => 'Interview Id',
@@ -74,6 +74,8 @@ class InterviewReportJob extends Job
             'respondent_id' => "Respondent Id",
             'form_id' => "Form Id",
             'user_id' => 'User Id',
+            'user_name' => "User name",
+            'username' => 'User username',
             'latitude' => 'Latitude',
             'longitude' => 'Longitude',
             'altitude' => 'Altitude',
