@@ -2,14 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Classes\Memoization;
+
 use App\Services\ReportService;
+use Illuminate\Support\Facades\DB;
 use Log;
 use App\Models\Report;
 use App\Models\Interview;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\DB;
+use App\Models\Study;
+
 
 class InterviewReportJob extends Job
 {
@@ -62,17 +62,26 @@ class InterviewReportJob extends Job
 
     public function create(){
 
+        $study = Study::find($this->studyId);
+
         $interviews = Interview::leftJoin('survey', 'survey.id', '=', 'interview.survey_id')
             ->leftJoin('form', 'form.id', '=', 'survey.form_id')
+            ->leftJoin('translation_text', function($join) use ($study){
+                $join->on('translation_text.translation_id', '=', 'form.name_translation_id');
+                $join->on('translation_text.locale_id', '=', DB::raw("'$study->default_locale_id'"));
+            })
             ->leftJoin('user', 'user.id', '=', 'interview.user_id')
             ->where('survey.study_id', '=', $this->studyId)
-            ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username');
+            ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username', 'translation_text.translated_text as form_name');
+
+        Log::debug($interviews->toSql());
 
         $headers =[
             'id' => 'Interview Id',
             'survey_id' => "Survey Id",
             'respondent_id' => "Respondent Id",
             'form_id' => "Form Id",
+            'form_name' => "Form name",
             'user_id' => 'User Id',
             'user_name' => "User name",
             'username' => 'User username',
