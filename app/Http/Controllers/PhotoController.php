@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Photo;
+use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -44,9 +45,22 @@ class PhotoController extends Controller
 
         $response = new StreamedResponse(function() use ($fileNames) {
             $zip = new \Barracuda\ArchiveStream\ZipArchive('photos.zip');
+            $errors = [];
             foreach($fileNames as $fileName){
-                $zip->add_file_from_path($fileName, storage_path("respondent-photos/$fileName"));
+                $path = storage_path("respondent-photos/$fileName");
+                if(is_readable($path)) {
+                    $zip->add_file_from_path($fileName, $path);
+                } else {
+                    Log::error("Unabled to access file at $path");
+                    array_push($errors, $fileName);
+                }
             }
+
+            // Add error file
+            if(count($errors) > 0){
+                $zip->add_file('errors.txt', "unable to read:\n" . implode("\n", $errors));
+            }
+
             $zip->finish();
         });
 
