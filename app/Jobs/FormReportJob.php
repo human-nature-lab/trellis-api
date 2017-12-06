@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\DB;
 use League\Flysystem\Exception;
 use Log;
 use App\Models\Report;
@@ -26,6 +27,8 @@ class FormReportJob extends Job
     protected $headers=[];
     protected $metaHeaders=[];
     protected $metaRows=[];
+    protected $otherRows = [];
+    protected $otherHeaders = [];
     protected $defaultColumns;
 
     /**
@@ -75,14 +78,21 @@ class FormReportJob extends Job
         $questionsMap = array_reduce($questions, function($agg, &$q){
             $agg[$q->id] = $q;
             return $agg;
-        }, array());
+        }, []);
 
-        $this->defaultColumns = array(
+        $this->defaultColumns = [
             'id' => 'survey_id',
             'respondent_id' => 'respondent_id',
             'created_at' => 'created_at',
             'completed_at' => 'completed_at'
-        );
+        ];
+
+        $this->otherHeaders = [
+            'question' => 'question',
+            'survey_id' => "Survey id",
+            'respondent_id' => "Respondent id",
+            'text' => "Response"
+        ];
 
         // 1. Create tree with follow up questions nested or if roster type then have the rows nested an follow up questions nested for each row
         // 2. Add any questions without follow ups
@@ -104,6 +114,7 @@ class FormReportJob extends Job
 
         ReportService::saveDataFile($this->report, $this->headers, $this->rows);
         ReportService::saveMetaFile($this->report, $this->metaRows);
+        ReportService::saveDataFile($this->report, $this->otherHeaders, $this->otherRows, 'other');
         ReportService::saveImagesFile($this->report, $this->images);
 
     }
@@ -140,7 +151,7 @@ class FormReportJob extends Job
                     foreach($rosterRows as $index => $rosterRowDatum){
                         $repeatString = '_r' . ReportService::zeroPad($index);
                         $childQuestion = $questionsMap[$cId];
-                        list($headers, $vals, $metaRows) = $this->handleQuestion($survey->id, $childQuestion, $repeatString, $rosterRowDatum->id);
+                        list($headers, $vals, $metaRows) = $this->handleQuestion($survey, $childQuestion, $repeatString, $rosterRowDatum->id);
                         $this->headers = array_replace($this->headers, $headers);
                         $this->metaRows = array_merge($this->metaRows, $metaRows);
                         $row = array_replace($row, $vals);
@@ -148,7 +159,7 @@ class FormReportJob extends Job
                 }
 
             } else {
-                list($headers, $vals, $metaRows) = $this->handleQuestion($survey->id, $question);
+                list($headers, $vals, $metaRows) = $this->handleQuestion($survey, $question);
                 $this->headers = array_replace($this->headers, $headers);
                 $this->metaRows = array_replace($this->metaRows, $metaRows);
                 $row = array_replace($row, $vals);
@@ -167,31 +178,293 @@ class FormReportJob extends Job
     }
 
 
-    private function handleQuestion($studyId, $question, $repeatString='', $rowDatumId=null){
+    private function handleQuestion($survey, $question, $repeatString='', $rowDatumId=null){
 
         $images = [];
-
         switch($question->qtype){
             case 'multiple_select':
-                list($headers, $vals, $metaData) = ReportService::handleMultiSelect($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
+                list($headers, $vals, $metaData) = self::handleMultiSelect($survey, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
                 break;
             case 'geo':
-                list($headers, $vals, $metaData) = ReportService::handleGeo($studyId, $question, $repeatString, $this->config->locale, $rowDatumId);
+                list($headers, $vals, $metaData) = self::handleGeo($survey, $question, $repeatString, $this->config->locale, $rowDatumId);
                 break;
             case 'image':
-                list($headers, $vals, $images, $metaData) = ReportService::handleImage($studyId, $question, $repeatString, $rowDatumId);
+                list($headers, $vals, $images, $metaData) = self::handleImage($survey, $question, $repeatString, $rowDatumId);
                 break;
             case 'multiple_choice':
-                list($headers, $vals, $metaData) = ReportService::handleMultiChoice($studyId, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
+                list($headers, $vals, $metaData) = self::handleMultiChoice($survey, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
                 break;
             default:
-                list($headers, $vals, $metaData) = ReportService::handleDefault($studyId, $question, $repeatString, $rowDatumId);
+                list($headers, $vals, $metaData) = self::handleDefault($survey, $question, $repeatString, $rowDatumId);
                 break;
         }
 
         $this->images = array_merge($this->images, $images);
 
         return [$headers, $vals, $metaData];
+
+    }
+
+
+    private static function firstDatum($surveyId, $questionId, $parentDatumId=null){
+        $query = DB::table('datum')
+            ->where('datum.survey_id', '=', $surveyId)
+            ->where('datum.question_id', '=', $questionId)
+            ->whereNull('datum.deleted_at');
+        if($parentDatumId){
+            $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
+        }
+        return $query->first();
+    }
+
+    public function handleImage($survey, $question, $repeatString, $parentDatumId){
+        $headers = [];
+        $data = [];
+        $images = [];
+        $metaData = [];
+        $surveyId = $survey->id;
+
+        // This is flawed because it will use the same datum for 2 rows in a roster. The imageDatum needs to reference the
+        // parent datum that is the roster row as well. This is likely flawed in all of these exports and will need to be
+        // changed.
+        $imageDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
+        if($imageDatum !== null){
+            $imageData = DB::table('datum_photo')
+                ->join('photo', 'datum_photo.photo_id', '=', 'photo.id')
+                ->where('datum_photo.datum_id', '=', $imageDatum->id)
+                ->whereNull('datum_photo.deleted_at')
+                ->select('photo.file_name', 'photo.id')
+                ->get();
+            // TODO: Check if you can omit the $imageDatum and maybe consider doing a semi-colon delimited lsit instead
+            $imageList = [];
+            foreach($imageData as $index => $datum){
+                array_push($imageList, $datum->file_name);
+                array_push($images, $datum);
+            }
+            $key = $question->id.$repeatString;
+            $headers[$key] = $question->var_name.$repeatString;
+            $data[$key] = implode(';', $imageList);
+            $metaData[$headers[$key]] = [
+                'column' => $headers[$key],
+                'question.name' => $question->name,
+                'question.type' => $question->qtype,
+                'question.var_name' => $question->var_name
+            ];
+        }
+
+        // handle opted out questions
+        if($imageDatum !== null && $imageDatum->opt_out !== null){
+            $key = $question->id.$repeatString;
+            $data[$key] = $imageDatum->opt_out;
+        }
+
+        return [$headers, $data, $images, $metaData];
+    }
+
+    public function handleGeo($survey, $question, $repeatString, $locale, $parentDatumId, $useAnyLocale=true){
+
+        $headers = [];
+        $data = [];
+        $metaData = [];
+        $surveyId = $survey->id;
+        $geoDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
+
+        if($geoDatum) {
+            $geoData = DB::table('datum_geo')
+                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
+                ->leftJoin('translation_text', function ($join) use ($locale) {
+                    $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
+                        ->whereNull('translation_text.deleted_at')
+                        ->on('translation_text.locale_id', '=', DB::raw("'" . $locale . "'"));
+                })->where('datum_geo.datum_id', '=', $geoDatum->id)
+                ->whereNull('datum_geo.deleted_at')
+                ->select('translation_text.translated_text as name', 'geo.id', 'geo.name_translation_id as tId');
+
+            foreach ($geoData->get() as $index => $geo) {
+                // Get the next geo
+                if($geo->name === null && $useAnyLocale){
+                    $geoTranslation = DB::table('translation_text')
+                        ->where('translation_text.translation_id', '=', $geo->tId)
+                        ->first();
+                    $geo->name = $geoTranslation->translated_text;
+                }
+                foreach (['name', 'id'] as $name) {
+                    $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
+                    $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
+                    $metaData[$headers[$key]] = [
+                        'column' => $headers[$key],
+                        'question.name' => $question->name,
+                        'question.type' => $question->qtype,
+                        'question.var_name' => $question->var_name
+                    ];
+                    $data[$key] = $geo->$name;
+                }
+            }
+        }
+
+        return [$headers, $data, $metaData];
+
+    }
+
+    public function handleDefault($survey, $question, $repeatString, $parentDatumId){
+
+        $surveyId = $survey->id;
+        $datum = self::firstDatum($surveyId, $question->id, $parentDatumId);
+        $key = $question->id . $repeatString;
+        $name = $question->var_name . $repeatString;
+
+        $headers = [$key=>$name];
+        $data = [];
+        if($datum !== null && $datum->opt_out !== null) {
+            $data[$key] = $datum->val;
+        } else if($datum !== null){
+            $data[$key] = $datum->val;
+        }
+
+        $metaData = [$headers[$key] => [
+            'column' => $headers[$key],
+            'question.name' => $question->name,
+            'question.type' => $question->qtype,
+            'question.var_name' => $question->var_name
+        ]];
+
+        return array($headers, $data, $metaData);
+
+    }
+
+    public function handleMultiChoice($survey, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId=null){
+        $surveyId = $survey->id;
+        $query = DB::table('datum')
+            ->leftJoin('datum_choice', function($join){
+                $join->on('datum_choice.datum_id', '=', 'datum.id');
+                $join->whereNull('datum_choice.deleted_at');
+            })
+            ->leftJoin('choice', 'choice.id', '=', 'datum_choice.choice_id')
+            ->leftJoin('translation_text', function($join) use ($locale) {
+                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id');
+                $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
+            ->where('datum.survey_id', '=', $surveyId)
+            ->where('datum.question_id', '=', $question->id)
+            ->whereNull('datum.deleted_at')
+            ->select('datum.val', 'datum.name', 'translation_text.translated_text as translated_val', 'datum.opt_out', 'datum_choice.override_val');
+
+        if($parentDatumId){
+            $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
+        }
+
+        $datum = $query->first();
+        $key = $question->id . $repeatString;
+        $name = $question->var_name . $repeatString;
+        $headers = [$key=>$name];
+        $data = [];
+        $metaData[$headers[$key]] = [
+            'column' => $headers[$key],
+            'question.type' => $question->qtype,
+            'question.name' => $question->name,
+            'question.var_name' => $question->var_name
+        ];
+        if($datum !== null){
+            if($datum->opt_out !== null){
+                $data[$key] = $datum->opt_out;
+            } else if($useChoiceNames){
+                $data[$key] = $datum->translated_val;
+            } else {
+                $data[$key] = $datum->val;
+            }
+            if($datum->override_val){
+                array_push($this->otherRows, [
+                    'question' => $headers[$key],
+                    'survey_id' => $surveyId,
+                    'respondent_id' => $survey->respondent_id,
+                    'text' => $datum->override_val
+                ]);
+            }
+        }
+
+        return [$headers, $data, $metaData];
+
+    }
+
+    public function handleMultiSelect($survey, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId){
+
+        $surveyId = $survey->id;
+        $headers = [];
+        $data = [];
+        $metaData = [];
+
+        $parentDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
+        $possibleChoices = DB::table('question_choice')
+            ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
+            ->leftJoin('translation_text', function($join) use ($locale)
+            {
+                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
+                    ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
+            ->where('question_choice.question_id', '=', $question->id)
+            ->select('choice.val', 'choice.id', 'translation_text.translated_text as name');
+
+
+        // Add headers for all possible choices
+        foreach ($possibleChoices->get() as $choice){
+            $key = $question->id . '___' . $repeatString . $choice->val;
+            $headers[$key] = $question->var_name . $repeatString . '_' . $choice->val;
+            $metaData[$headers[$key]] = [
+                'column' => $headers[$key],
+                'question.name' => $question->name,
+                'question.var_name' => $question->var_name,
+                'question.type' => $question->qtype,
+                'choice.val' => $choice->val,
+                'choice.id' => $choice->id,
+                'choice.name' => $choice->name
+            ];
+        }
+
+        // Add selected choices if there is a parent datum
+        if($parentDatum !== null){
+            $selectedChoices = DB::table('datum_choice')
+                ->join('choice', 'datum_choice.choice_id', '=', 'choice.id')
+                ->join('question_choice', 'choice.id', '=', 'question_choice.choice_id')
+                ->leftJoin('translation_text', function($join) use ($locale)
+                {
+                    $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
+                        ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+                })
+                ->where('datum_choice.datum_id', '=', $parentDatum->id)
+                ->select('choice.val', 'choice.id', 'translation_text.translated_text as name', 'datum_choice.override_val')
+                ->get();
+
+            // Add data for all selected choices
+            foreach ($selectedChoices as $choice) {
+                $key = $question->id . '___' . $repeatString . $choice->val;
+                if($useChoiceNames){
+                    $data[$key] = $choice->name;
+                } else{
+                    $data[$key] = true;
+                }
+                if($choice->override_val){
+                    array_push($this->otherRows, [
+                        'question' => $headers[$key],
+                        'survey_id' => $surveyId,
+                        'respondent_id' => $survey->respondent_id,
+                        'text' => $choice->override_val
+                    ]);
+                }
+            }
+        }
+
+        // Handle opted_out questions
+        if($parentDatum !== null) {
+            if ($parentDatum->opt_out !== null){
+                $key = $question->id . '___' . $repeatString;
+                $headers[$key] = $question->var_name . $repeatString;
+                $data[$key] = $parentDatum->opt_out;
+            }
+        }
+
+
+
+        return [$headers, $data, $metaData];
 
     }
 

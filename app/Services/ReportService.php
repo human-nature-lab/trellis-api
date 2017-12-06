@@ -208,7 +208,7 @@ class ReportService
         $data = [];
         $metaData = [];
 
-        $parentDatum = ReportService::firstDatum($surveyId, $question->id, $parentDatumId);
+        $parentDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
         $possibleChoices = DB::table('question_choice')
             ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
             ->leftJoin('translation_text', function($join) use ($locale)
@@ -411,60 +411,4 @@ class ReportService
     }
 
 
-    /**
-     * Create an csv file with one row per survey filled out for a single formId
-     * @param $formId - Id of the form to export
-     * @return string - The name of the file that was exported. The file is stored in 'storage/app'
-     */
-    public static function createFormReport($formId, $fileId, $config){
-
-        $questions = ReportService::getFormQuestions($formId);
-
-        $questionsMap = array_reduce($questions, function($agg, &$q){
-            $agg[$q->id] = $q;
-            return $agg;
-        }, array());
-
-        $defaultColumns = array(
-            'id' => 'survey_id',
-            'respondent_id' => 'respondent_id',
-            'created_at' => 'created_at',
-            'completed_at' => 'completed_at'
-        );
-
-        // 1. Create tree with follow up questions nested or if roster type then have the rows nested an follow up questions nested for each row
-        // 2. Add any questions without follow ups
-        // 3. Flatten the tree into a single
-
-        list($tree, $treeMap) = ReportService::buildFormTree($questions);
-
-        $headers = array();
-        $rows = array();
-
-        $surveys = ReportService::getFormSurveys($formId);
-
-        foreach($surveys as $survey){
-
-            list($surveyHeaders, $data) = ReportService::formatSurveyData($survey, $tree, $treeMap, $questionsMap);
-
-            $headers = array_replace($headers, $surveyHeaders);
-
-            // Add survey default values
-            foreach($defaultColumns as $key=>$name){
-                $data[$key] = $survey->$key;
-            }
-
-            array_push($rows, $data);
-
-        }
-
-        // Sort non default columns first then add default columns
-        asort($headers);
-        $headers = $defaultColumns + $headers; // add at the beginning of the array
-
-        $filePath = storage_path() ."/app/". $fileId . '.csv';
-        FileService::writeCsv($headers, $rows, $filePath);
-
-    }
-
-}
+ }
