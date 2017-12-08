@@ -6,17 +6,20 @@ use Carbon\Carbon;
 
 class TimeHelper
 {
-    /**
-     * Accepts a unix timestamp or date/time string and returns an ISO 8601 string in UTC (yyyy-MM-ddTHH:mm:ss.SSSSSSZ) such as "2017-07-07T20:25:45.123456Z".
-     *
-     * Optionally accepts millisecond or microsecond unix timestamp (such as used by SQLite) if string is a number longer than 10 characters:
-     *
-     * timestamp: 1499464197
-     * decimal: 1499464197.123456
-     * milliseconds: 1499464197123
-     * microseconds: 1499464197123456
-     *
-     * Returns current UTC time if $time is not specified.
+   /**
+    * Accepts a Unix timestamp or date/time string and returns an ISO 8601 string in UTC (yyyy-MM-ddTHH:mm:ss.SSSSSSZ) such as "2017-07-07T20:25:45.123456Z".
+    *
+    * Optionally accepts millisecond or microsecond Unix timestamp (such as used by SQLite) if string is a number longer than 10 characters:
+    *
+    * timestamp: 1499464197
+    * decimal: 1499464197.123456
+    * milliseconds: 1499464197123
+    * microseconds: 1499464197123456
+    *
+    * Returns current UTC time if $time is not specified.
+    *
+    * @param  integer|float|string  $time   Unix timestamp or date/time string
+    * @return string    ISO 8601 string in UTC
     */
     public static function utc($time = null)
     {
@@ -29,6 +32,6 @@ class TimeHelper
             $dateTime = new Carbon($time);
         }
 
-        return $dateTime->format("Y-m-d\TH:i:s.u\Z");
+        return $dateTime->format('Y-m-d\TH:i:s.u\Z');
     }
 }

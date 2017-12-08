@@ -37,8 +37,8 @@ class Log extends Model
      *
      * @var array $row Key-value pairs representing database row to update/delete
      * @var array $table Database table to use
-     * @var function $callback Callback of the form "function callback($row, $table, $operation) {}" (where $operation is 'create', 'update' or 'delete') for overriding database write, pass null to write row automatically
-     * @return string|false|null One of the truthy values: 'create', 'update' or 'delete' (meaning row was newer than previous row), or one of the falsy values: false (if row was logged), or null (if row already had a log entry so database wasn't updated)
+     * @var function $callback Callback of the form "function callback($row, $table, $operation) {}" (where $operation is 'create', 'update' or 'delete' and callback optionally returns truthy value if row was written and 0/false if it already existed in table) for overriding database write, pass null for callback to write row automatically
+     * @return string|false|null One of the truthy values: 'create', 'update' or 'delete' (meaning row was newer than previous row), or one of the falsy values: false (if row was logged), or null (if row already existed in table or had a log entry so database wasn't updated)
      */
     public static function writeRow($row, $table, $callback = null)
     {
@@ -54,35 +54,39 @@ class Log extends Model
             //     return; //TODO decide how to handle database updates when no authorized user (should never happen)
             // }
 
-            $operation = null;
+            $operation = null;  // default to returning null if row wasn't written or logged
             $previousRow = (array) DB::table($table)->where('id', $row['id'])->first();
 
             if ($previousRow) {
-                if ($previousRow != $row) {
-                    $previousTimestamp = DatabaseHelper::modifiedAt($previousRow);
-                    $timestamp = DatabaseHelper::modifiedAt($row);
+                $previousTimestamp = DatabaseHelper::modifiedAt($previousRow);
+                $timestamp = DatabaseHelper::modifiedAt($row);
 
-                    if ($previousTimestamp < $timestamp) {
-                        $operation = (array_get($row, 'deleted_at') && !array_get($previousRow, 'deleted_at')) ? 'delete' : 'update';
-                    } else {
-                        $previousRow = $row;    // if row is older than previous row, then swap them to log it instead
-                    }
+                if ($previousTimestamp < $timestamp) {
+                    $operation = (array_get($row, 'deleted_at') && !array_get($previousRow, 'deleted_at')) ? 'delete' : 'update';
+                } else {
+                    $previousRow = $row;    // if row is older than previous row, then swap them to log it instead
+                }
 
-                    $log = [
-                        'actor_id' => $userId,
-                        'row_id' => $row['id'],
-                        'table_name' => $table,
-                        'operation' => $operation,
-                        'previous_row' => json_encode($previousRow, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                    ];
+                ksort($previousRow);    // log row in relatively consistent format to prevent logging it multiple times
 
-                    if (!static::where($log)->first()) {
-                        $operation = false;
+                $log = [
+                    'actor_id' => $userId,
+                    'row_id' => $row['id'],
+                    'table_name' => $table,
+                    'operation' => $operation,
+                    'previous_row' => json_encode($previousRow, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ];
 
-                        $log['id'] = Uuid::uuid4();
+                $already = static::where($log)->first();
 
-                        static::create($log);    // insert log entry if it's not already present
-                    }
+                if (!$already) {
+                    $log['id'] = Uuid::uuid4();
+
+                    static::create($log);    // insert log entry if it's not already present
+                }
+
+                if ($previousTimestamp >= $timestamp) {
+                    $operation = $already ? null : false; // return null if row already existed in log, false if row was logged due to being older than previous row
                 }
             } else {
                 $operation = 'create';
@@ -90,12 +94,16 @@ class Log extends Model
 
             if ($operation) {
                 if ($callback) {
-                    $callback($row, $table, $operation);
+                    if(in_array($callback($row, $table, $operation), [0, false], true)) { // callback returning explicit 0 or false indicates that row already exists so operation didn't happen, null indicates that callback didn't return anything so no way to know if operation happened
+                        $operation = null;  // return null to indicate that row was already written
+                    }
                 } else {
                     if ($operation == 'create') {
                         DB::table($table)->insert($row);
                     } else {
-                        DB::table($table)->where('id', $row['id'])->update($row);   // can act as a delete since rows use soft deletes (deleted_at)
+                        if (!DB::table($table)->where('id', $row['id'])->update($row)) {    // can act as a delete since rows use soft deletes (deleted_at)
+                            $operation = null;  // return null to indicate that row already existed in table
+                        }
                     }
                 }
             }

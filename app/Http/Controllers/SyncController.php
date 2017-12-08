@@ -243,7 +243,7 @@ class SyncController extends Controller
             // throw new \Exception('Foreign key consistency check failed for the following tables: ' . implode(', ', array_keys($inconsistencies)));
         }
 
-        $epoch = Epoch::inc();    // increment epoch if any rows were written or logged
+        $epoch = $result > 0 ? Epoch::inc() : Epoch::get();    // increment epoch if any rows were written or logged
 
         Device::where('device_id', $deviceId)
             ->update([

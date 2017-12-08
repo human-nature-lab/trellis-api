@@ -206,13 +206,12 @@ class ImportMySQL extends Command
                 if ($field == '*') {
                     $fieldValues = array_fill_keys(array_keys($fieldValues), $substitution);  // if wildcard, substitute all fields
                 } else {
-                    $fieldValues[$field] = $substitution;
+                    if(isset($substitution)) {
+                        $fieldValues[$field] = $substitution;
+                    } else
+                        unset($fieldValues[$field]);    // skip field altogether if substitution is null
                 }
             }
-
-            $fieldValues = array_filter($fieldValues, function ($value) {
-                return isset($value);
-            }); // array_filter($fieldValues, 'isset');
 
             foreach ($fieldValues as $field => $value) {
                 if (!is_null($value)) {
