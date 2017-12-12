@@ -480,6 +480,15 @@
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
     },
+    "study_parameter": {
+        "id": "string(41):primary",
+        "study_id": "string(41):index",
+        "parameter_id": "string(41):index",
+        "val": "string(255)",
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
+    },
     "study_respondent": {
         "id": "string(41):primary",
         "study_id": "string(41):index",
