@@ -4,6 +4,7 @@ use App\Jobs\CleanReportsJob;
 use App\Jobs\FormReportJob;
 use App\Jobs\InterviewReportJob;
 use App\Jobs\RespondentReportJob;
+use App\Jobs\TimingReportJob;
 use App\Jobs\EdgeReportJob;
 use App\Jobs\GeoReportJob;
 use App\Models\Locale;
@@ -116,6 +117,43 @@ class ReportController extends Controller {
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
         $reportJob = new GeoReportJob($studyId, $reportId, $config);
+
+        $this->dispatch($reportJob);
+
+        // Return the file id that can be downloaded
+        return response()->json([
+            'reportId' => $reportId
+        ], Response::HTTP_OK);
+
+    }
+
+
+    public function dispatchTimingreport(Request $request, $studyId){
+
+        $config = new \stdClass();
+
+        $validator = Validator::make(
+            ['id' => $studyId],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Study id invalid',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+
+        if(Study::where('id', $studyId)->count() === 0){
+            return response()->json([
+                'msg' => "Study with id, $studyId doesn't exist"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Generate the report csv contents and store is with a unique filename
+        $reportId = Uuid::uuid4();
+        $reportJob = new TimingReportJob($studyId, $reportId, $config);
 
         $this->dispatch($reportJob);
 

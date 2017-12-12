@@ -808,6 +808,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
         'ReportController@dispatchInterviewReport'
     );
 
+    $app->post(
+        'report/study/{study_id}/timing',
+        'ReportController@dispatchTimingReport'
+    );
+
     $app->get(
         'report/{report_id}',
         'ReportController@getReport'
