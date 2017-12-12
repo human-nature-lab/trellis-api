@@ -395,6 +395,15 @@
         "updated_at": "dateTime",
         "deleted_at": "dateTime:nullable"
     },
+    "respondent_fill": {
+        "id": "string(41):primary",
+        "respondent_id": "string(41):index",
+        "name": "string(255)",
+        "val": "text",
+        "created_at": "dateTime",
+        "updated_at": "dateTime",
+        "deleted_at": "dateTime:nullable"
+    },
     "respondent_group_tag": {
         "id": "string(41):primary",
         "respondent_id": "string(41):index",
