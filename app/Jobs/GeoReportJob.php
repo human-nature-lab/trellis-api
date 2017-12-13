@@ -73,10 +73,10 @@ class GeoReportJob extends Job
             ->get();
 
         $headers =[
-            'id' => 'Geo Id',
-            'latitude' => 'Latitude',
-            'longitude' => 'Longitude',
-            'altitude' => 'Altitude'
+            'id' => 'geo_id',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+            'altitude' => 'altitude'
         ];
 
         $getGeoParent = Memoization::memoize(function($id){

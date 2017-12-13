@@ -77,22 +77,22 @@ class InterviewReportJob extends Job
         Log::debug($interviews->toSql());
 
         $headers =[
-            'id' => 'Interview Id',
-            'survey_id' => "Survey Id",
-            'respondent_id' => "Respondent Id",
-            'form_id' => "Form Id",
-            'form_name' => "Form name",
-            'user_id' => 'User Id',
-            'user_name' => "User name",
-            'username' => 'User username',
-            'latitude' => 'Latitude',
-            'longitude' => 'Longitude',
-            'altitude' => 'Altitude',
-            'start_time' => 'Start Time',
-            'end_time' => "End Time",
-            'created_at' => 'Created At',
-            'updated_at' => "Updated At",
-            "deleted_at" => 'Deleted At'
+            'id' => 'interview_id',
+            'survey_id' => "survey_id",
+            'respondent_id' => "respondent_id",
+            'form_id' => "form_id",
+            'form_name' => "form_name",
+            'user_id' => 'user_id',
+            'user_name' => "user_name",
+            'username' => 'user_username',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+            'altitude' => 'altitude',
+            'start_time' => 'start_time',
+            'end_time' => "end_time",
+            'created_at' => 'created_at',
+            'updated_at' => "updated_at",
+            "deleted_at" => 'deleted_at'
         ];
 
         // Sort by num parents from low to high
