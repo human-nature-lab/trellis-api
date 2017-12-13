@@ -86,11 +86,13 @@ class EdgeReportJob extends Job
                 'tGeo.latitude as tLat',
                 'tGeo.longitude as tLong',
                 'tGeo.altitude as tAlt',
-                'survey.updated_at'
+                'survey.updated_at',
+                'datum.opt_out',
+                'datum.opt_out_val'
             )
             ->get();
 
-        $headers =[
+        $headers = [
             'sId' => 'Ego',
             'sName' => 'Ego Name',
             'tId' => 'Alter',
@@ -104,7 +106,9 @@ class EdgeReportJob extends Job
             'tLat' => 'Alter Latitude',
             'tLong' => 'Alter Longitude',
             'tAlt' => 'Alter Altitude',
-            'tGeoId' => "Alter Geo Id"
+            'tGeoId' => "Alter Geo Id",
+            'opt_out' => "Question Opt Out",
+            'opt_out_val' => "Question Opt Out Response"
         ];
 
         $rows = array_map(function ($r) use ($headers) {
