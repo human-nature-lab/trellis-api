@@ -316,7 +316,7 @@ class FormReportJob extends Job
         $headers = [$key=>$name];
         $data = [];
         if($datum !== null && $datum->opt_out !== null) {
-            $data[$key] = $datum->val;
+            $data[$key] = $datum->opt_out;
         } else if($datum !== null){
             $data[$key] = $datum->val;
         }
