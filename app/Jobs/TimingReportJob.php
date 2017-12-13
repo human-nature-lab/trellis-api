@@ -62,12 +62,15 @@ class TimingReportJob extends Job
             ->select(
                 "interview.id as interview_id",
                 "datum.survey_id",
+                'datum.question_id',
                 "survey.form_id",
+                "survey.respondent_id",
                 "interview.user_id",
                 "user.name",
                 "user.username",
                 "datum.val",
-                "question_type.name as type",
+                "datum.name as question_name",
+                "question_type.name as question_type",
                 'datum.created_at',
                 'datum.updated_at',
                 'datum.deleted_at');
@@ -77,12 +80,15 @@ class TimingReportJob extends Job
         $headers =[
             'interview_id' => "interview_id",
             'survey_id' => "survey_id",
+            'respondent_id' => 'respondent_id',
+            'question_id' => 'question_id',
             'form_id' => "form_id",
             'user_id' => "user_id",
             'name' => "user_name",
             'username' => "user_username",
             'val' => "datum_value",
-            'type' => "question_type",
+            'question_type' => "question_type",
+            'question_name' => "question_name",
             'created_at' => 'created_at',
             'updated_at' => "updated_at",
             "deleted_at" => 'deleted_at'
