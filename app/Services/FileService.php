@@ -11,10 +11,11 @@ class FileService{
      * the column keys to the row value for that column.
      * @param $colMap - A hashmap of id => name. The name is what ends up in the column header.
      * @param $rowMaps - An array of hashmaps for each row. Hashmap keys should correspond to the $colMap keys.
-     * @param $nullValue - The string to use in place of null and empty strings.
      * @param $filePath - The path to the csv file.
+     * @param $nullValue - The string to use in place of null and empty strings.
+     * @param $replacements - A HashMap of strings to replace. Only exact matches are replaced.
      */
-    public static function writeCsv($colMap, $rowMaps, $filePath, $nullValue='NA', $replacements=['DK'=>'Dont_Know','RF'=>'Refused']){
+    public static function writeCsv($colMap, $rowMaps, $filePath, $nullValue='NA', $replacements=['DK'=>'Dont_Know','RF'=>'Refused','respondent_id'=>'respondent_master_id']){
 
         $headerIds = array();
         $headerNames = array();
@@ -28,6 +29,13 @@ class FileService{
         }
 
         $file = fopen($filePath, 'w');
+
+        // Make any replacements on the column headers
+        foreach($headerNames as $index => $name){
+            if(isset($replacements[$name])){
+                $headerNames[$index] = $replacements[$name];
+            }
+        }
 
         // Write headers
         fputcsv($file, $headerNames);
