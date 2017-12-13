@@ -75,17 +75,17 @@ class TimingReportJob extends Job
         Log::debug($datum->toSql());
 
         $headers =[
-            'interview_id' => "Interview Id",
-            'survey_id' => "Survey Id",
-            'form_id' => "Form Id",
-            'user_id' => "User Id",
-            'name' => "User Name",
-            'username' => "User Username",
-            'val' => "Datum Value",
-            'type' => "Question type",
-            'created_at' => 'Created At',
-            'updated_at' => "Updated At",
-            "deleted_at" => 'Deleted At'
+            'interview_id' => "interview_id",
+            'survey_id' => "survey_id",
+            'form_id' => "form_id",
+            'user_id' => "user_id",
+            'name' => "user_name",
+            'username' => "user_username",
+            'val' => "datum_value",
+            'type' => "question_type",
+            'created_at' => 'created_at',
+            'updated_at' => "updated_at",
+            "deleted_at" => 'deleted_at'
         ];
 
         // Sort by num parents from low to high

@@ -82,11 +82,11 @@ class RespondentReportJob extends Job
             ->get();
 
         $defaultHeaders = array(
-            'id' => "Respondent id",
-            'rname' => "Respondent name",
-            'created_at' => "Created at",
-            'updated_at' => "Updated at",
-            'geo_id' => "Geo Id",
+            'id' => "respondent_id",
+            'rname' => "respondent_name",
+            'created_at' => "created_at",
+            'updated_at' => "updated_at",
+            'geo_id' => "geo_id",
         );
 
         $getGeoParent = Memoization::memoize(function($id){
