@@ -29,6 +29,8 @@ class FormReportJob extends Job
     protected $metaRows=[];
     protected $otherRows = [];
     protected $otherHeaders = [];
+    protected $notesRows = [];
+    protected $notesHeaders = [];
     protected $defaultColumns;
 
     /**
@@ -89,9 +91,16 @@ class FormReportJob extends Job
 
         $this->otherHeaders = [
             'question' => 'question',
-            'survey_id' => "Survey id",
-            'respondent_id' => "Respondent id",
-            'text' => "Response"
+            'survey_id' => "survey_id",
+            'respondent_id' => "respondent_id",
+            'text' => "response"
+        ];
+
+        $this->notesHeaders = [
+            'question' => 'question',
+            'survey_id' => 'survey_id',
+            'respondent_id' => 'respondent_id',
+            'text' => 'response'
         ];
 
         // 1. Create tree with follow up questions nested or if roster type then have the rows nested an follow up questions nested for each row
@@ -115,6 +124,7 @@ class FormReportJob extends Job
         ReportService::saveDataFile($this->report, $this->headers, $this->rows);
         ReportService::saveMetaFile($this->report, $this->metaRows);
         ReportService::saveDataFile($this->report, $this->otherHeaders, $this->otherRows, 'other');
+        ReportService::saveDataFile($this->report, $this->notesHeaders, $this->notesRows, 'notes');
         ReportService::saveImagesFile($this->report, $this->images);
 
     }
@@ -205,7 +215,6 @@ class FormReportJob extends Job
 
     }
 
-
     private static function firstDatum($surveyId, $questionId, $parentDatumId=null){
         $query = DB::table('datum')
             ->where('datum.survey_id', '=', $surveyId)
@@ -215,6 +224,25 @@ class FormReportJob extends Job
             $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
         }
         return $query->first();
+    }
+
+    private function addNote($questionName, $survey, $datum){
+        array_push($this->notesRows, [
+            'question' => $questionName,
+            'survey_id' => $survey->id,
+            'respondent_id' => $survey->respondent_id,
+            'type' => $datum->opt_out,
+            'text' => $datum->opt_out_val
+        ]);
+    }
+
+    private function addOther($questionName, $surveyId, $respondentId, $response){
+        array_push($this->otherRows, [
+            'question' => $questionName,
+            'survey_id' => $surveyId,
+            'respondent_id' => $respondentId,
+            'text' => $response
+        ]);
     }
 
     public function handleImage($survey, $question, $repeatString, $parentDatumId){
@@ -256,6 +284,7 @@ class FormReportJob extends Job
         if($imageDatum !== null && $imageDatum->opt_out !== null){
             $key = $question->id.$repeatString;
             $data[$key] = $imageDatum->opt_out;
+            $this->addNote($headers[$key], $survey, $imageDatum);
         }
 
         return [$headers, $data, $images, $metaData];
@@ -317,6 +346,7 @@ class FormReportJob extends Job
         $data = [];
         if($datum !== null && $datum->opt_out !== null) {
             $data[$key] = $datum->opt_out;
+            $this->addNote($headers[$key], $survey, $datum);
         } else if($datum !== null){
             $data[$key] = $datum->val;
         }
@@ -347,7 +377,7 @@ class FormReportJob extends Job
             ->where('datum.survey_id', '=', $surveyId)
             ->where('datum.question_id', '=', $question->id)
             ->whereNull('datum.deleted_at')
-            ->select('datum.val', 'datum.name', 'translation_text.translated_text as translated_val', 'datum.opt_out', 'datum_choice.override_val');
+            ->select('datum.val', 'datum.name', 'translation_text.translated_text as translated_val', 'datum.opt_out', 'datum_choice.override_val', 'datum.opt_out_val');
 
         if($parentDatumId){
             $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
@@ -367,18 +397,14 @@ class FormReportJob extends Job
         if($datum !== null){
             if($datum->opt_out !== null){
                 $data[$key] = $datum->opt_out;
+                $this->addNote($headers[$key], $survey, $datum);
             } else if($useChoiceNames){
                 $data[$key] = $datum->translated_val;
             } else {
                 $data[$key] = $datum->val;
             }
             if($datum->override_val){
-                array_push($this->otherRows, [
-                    'question' => $headers[$key],
-                    'survey_id' => $surveyId,
-                    'respondent_id' => $survey->respondent_id,
-                    'text' => $datum->override_val
-                ]);
+                $this->addOther($headers[$key], $surveyId, $survey->respondent_id, $datum->override_val);
             }
         }
 
@@ -443,12 +469,7 @@ class FormReportJob extends Job
                     $data[$key] = true;
                 }
                 if($choice->override_val){
-                    array_push($this->otherRows, [
-                        'question' => $headers[$key],
-                        'survey_id' => $surveyId,
-                        'respondent_id' => $survey->respondent_id,
-                        'text' => $choice->override_val
-                    ]);
+                    $this->addOther($headers[$key], $surveyId, $survey->respondent_id, $choice->override_val);
                 }
             }
         }
@@ -459,6 +480,7 @@ class FormReportJob extends Job
                 $key = $question->id . '___' . $repeatString;
                 $headers[$key] = $question->var_name . $repeatString;
                 $data[$key] = $parentDatum->opt_out;
+                $this->addNote($headers[$key], $survey, $parentDatum);
             }
         }
 
