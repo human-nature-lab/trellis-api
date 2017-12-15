@@ -93,22 +93,22 @@ class EdgeReportJob extends Job
             ->get();
 
         $headers = [
-            'sId' => 'Ego',
-            'sName' => 'Ego Name',
-            'tId' => 'Alter',
-            'tName' => 'Alter Name',
-            'var_name' => 'Question',
-            'updated_at' => 'Survey Updated At',
-            'sLat' => 'Ego Latitude',
-            'sLong' => 'Ego Longitude',
-            'sAlt' => 'Ego Altitude',
-            'sGeoId' => 'Ego Geo Id',
-            'tLat' => 'Alter Latitude',
-            'tLong' => 'Alter Longitude',
-            'tAlt' => 'Alter Altitude',
-            'tGeoId' => "Alter Geo Id",
-            'opt_out' => "Question Opt Out",
-            'opt_out_val' => "Question Opt Out Response"
+            'sId' => 'ego',
+            'sName' => 'ego_name',
+            'tId' => 'alter',
+            'tName' => 'alter_name',
+            'var_name' => 'question',
+            'updated_at' => 'survey_updated_at',
+            'sLat' => 'ego_latitude',
+            'sLong' => 'ego_longitude',
+            'sAlt' => 'ego_altitude',
+            'sGeoId' => 'ego_geo_id',
+            'tLat' => 'alter_latitude',
+            'tLong' => 'alter_longitude',
+            'tAlt' => 'alter_altitude',
+            'tGeoId' => "alter_geo_id",
+            'opt_out' => "question_opt_out",
+            'opt_out_val' => "question_opt_out_response"
         ];
 
         $rows = array_map(function ($r) use ($headers) {
