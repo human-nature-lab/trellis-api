@@ -42,7 +42,7 @@ class FileService{
         foreach ($rowMaps as $rowMap){
             $row = array();
             foreach ($headerIds as $id){
-                if(array_key_exists($id, $rowMap)
+                if(isset($rowMap[$id])
                     && $rowMap[$id] !== ''){
                     if(is_string($rowMap[$id]) && array_key_exists($rowMap[$id], $replacements)){
                         array_push($row, $replacements[$rowMap[$id]]);
