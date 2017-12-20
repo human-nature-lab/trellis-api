@@ -44,14 +44,19 @@ class StudyController extends Controller
 
     public function getAllStudies(Request $request)
     {
-        // Only return studies assigned to the logged in user
         $user = $request->user();
-        $studies = $user->studies()->get();
-
-        return response()->json(
-            ['studies' => $studies],
-            Response::HTTP_OK
-        );
+        if($user->role == "ADMIN"){
+            return response()->json([
+                'studies' => Study::whereNull('deleted_at')->get()
+            ], HTTP_OK);
+        } else {
+            // Only return studies assigned to the logged in user
+            $studies = $user->studies()->get();
+            return response()->json(
+                ['studies' => $studies],
+                Response::HTTP_OK
+            );
+        }
     }
 
     public function updateStudy(Request $request, $id)
