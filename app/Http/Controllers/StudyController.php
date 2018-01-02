@@ -47,7 +47,9 @@ class StudyController extends Controller
         $user = $request->user();
         if($user->role == "ADMIN"){
             return response()->json([
-                'studies' => Study::whereNull('deleted_at')->get()
+                'studies' => Study::whereNull('deleted_at')
+                    ->with('locales', 'defaultLocale')
+                    ->get()
             ], Response::HTTP_OK);
         } else {
             // Only return studies assigned to the logged in user
