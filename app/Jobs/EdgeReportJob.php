@@ -63,14 +63,14 @@ class EdgeReportJob extends Job
     public function create(){
 
         $edges = DB::table('edge')
-            ->join('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
-            ->join('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
-            ->join('edge_datum','edge_datum.edge_id', '=', 'edge.id')
-            ->join('datum', 'datum.id', '=', 'edge_datum.datum_id')
-            ->join('question', 'question.id', '=', 'datum.question_id')
-            ->join('geo as sGeo', 'sGeo.id', '=', 'sourceR.geo_id')
-            ->join('geo as tGeo', 'tGeo.id', '=', 'targetR.geo_id')
-            ->join('survey', 'survey.id', '=', 'datum.survey_id')
+            ->leftJoin('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
+            ->leftJoin('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
+            ->leftJoin('edge_datum','edge_datum.edge_id', '=', 'edge.id')
+            ->leftJoin('datum', 'datum.id', '=', 'edge_datum.datum_id')
+            ->leftJoin('question', 'question.id', '=', 'datum.question_id')
+            ->leftJoin('geo as sGeo', 'sGeo.id', '=', 'sourceR.geo_id')
+            ->leftJoin('geo as tGeo', 'tGeo.id', '=', 'targetR.geo_id')
+            ->leftJoin('survey', 'survey.id', '=', 'datum.survey_id')
             ->where('survey.study_id', '=', $this->studyId)
             ->select(
                 'sourceR.id as sId',
@@ -89,27 +89,29 @@ class EdgeReportJob extends Job
                 'survey.updated_at',
                 'datum.opt_out',
                 'datum.opt_out_val'
-            )
-            ->get();
+            );
 
         $headers = [
-            'sId' => 'Ego',
-            'sName' => 'Ego Name',
-            'tId' => 'Alter',
-            'tName' => 'Alter Name',
-            'var_name' => 'Question',
-            'updated_at' => 'Survey Updated At',
-            'sLat' => 'Ego Latitude',
-            'sLong' => 'Ego Longitude',
-            'sAlt' => 'Ego Altitude',
-            'sGeoId' => 'Ego Geo Id',
-            'tLat' => 'Alter Latitude',
-            'tLong' => 'Alter Longitude',
-            'tAlt' => 'Alter Altitude',
-            'tGeoId' => "Alter Geo Id",
-            'opt_out' => "Question Opt Out",
-            'opt_out_val' => "Question Opt Out Response"
+            'sId' => 'ego',
+            'sName' => 'ego_name',
+            'tId' => 'alter',
+            'tName' => 'alter_name',
+            'var_name' => 'question',
+            'updated_at' => 'survey_updated_at',
+            'sLat' => 'ego_latitude',
+            'sLong' => 'ego_longitude',
+            'sAlt' => 'ego_altitude',
+            'sGeoId' => 'ego_geo_id',
+            'tLat' => 'alter_latitude',
+            'tLong' => 'alter_longitude',
+            'tAlt' => 'alter_altitude',
+            'tGeoId' => "alter_geo_id",
+            'opt_out' => "question_opt_out",
+            'opt_out_val' => "question_opt_out_response"
         ];
+
+        $sql = $edges->toSql();
+        Log::debug("EdgeReport query: $sql");
 
         $rows = array_map(function ($r) use ($headers) {
             $newRow = array();
@@ -117,7 +119,7 @@ class EdgeReportJob extends Job
                 $newRow[$key] = $r->$key;
             }
             return $newRow;
-        }, $edges);
+        }, $edges->get());
 
 
         ReportService::saveDataFile($this->report, $headers, $rows);
