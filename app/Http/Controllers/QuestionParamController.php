@@ -17,7 +17,7 @@ use DB;
 
 class QuestionParamController extends Controller
 {   
-    public function getParameterTypes(Request $request){
+    public function getParameterTypes(){
 
         return response()->json([
             'parameters' => Parameter::all()

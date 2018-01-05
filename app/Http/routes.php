@@ -138,6 +138,21 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     //***************************//
 
     $app->get(
+        'study/parameter/types',
+        'QuestionParamController@getParameterTypes'
+    );
+
+    $app->delete(
+        'study/{id}/parameter/{parameter_id}',
+        'StudyController@deleteParameter'
+    );
+
+    $app->post(
+        'study/{id}/parameter',
+        'StudyController@createOrUpdateParameter'
+    );
+
+    $app->get(
         'study/{id}',
         'StudyController@getStudy'
     );
@@ -171,6 +186,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'study/{study_id}/locales/{locale_id}',
         'StudyController@deleteLocale'
     );
+
 
     //**************************//
     //* User Controller Routes *//
