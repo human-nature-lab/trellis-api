@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Artisan;
 use Laravel\Lumen\Routing\Controller;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
+use RuntimeException;
 use Symfony\Component\Finder\Finder;
 use Validator;
 
@@ -268,7 +269,11 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        Artisan::call('trellis:export:snapshot');
+        try {
+            Artisan::call('trellis:export:snapshot');
+        } catch (RuntimeException $e) {
+            // WithoutOverlapping trait throws RuntimeException('Command is running now!') if command is already running
+        }
 
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
