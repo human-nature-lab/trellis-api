@@ -45,6 +45,13 @@ class Study extends Model
         ->withTimestamps();
     }
 
+    public function parameters()
+    {
+        return $this
+            ->hasMany('App\Models\StudyParameter', 'study_id')
+            ->with('parameter');
+    }
+
     public function defaultLocale()
     {
         return $this

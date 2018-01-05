@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Parameter;
+use App\Models\StudyParameter;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -49,6 +51,7 @@ class StudyController extends Controller
             return response()->json([
                 'studies' => Study::whereNull('deleted_at')
                     ->with('locales', 'defaultLocale')
+                    ->with('parameters')
                     ->get()
             ], Response::HTTP_OK);
         } else {
@@ -222,5 +225,68 @@ class StudyController extends Controller
             [],
             Response::HTTP_OK
         );
+    }
+
+    public function createOrUpdateParameter(Request $request, $studyId){
+
+        $validator = Validator::make(array_merge($request->all(), [
+            'study_id' => $studyId
+        ]), [
+            'study_id' => 'required|string|min:36'
+        ]);
+
+        if($validator->fails() === true){
+            return response()->json([
+                'msg' => "Validation failed",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        if($request->id === null){
+
+            $studyParameter = new StudyParameter();
+            $studyParameter->id = Uuid::uuid4();
+            $studyParameter->study_id = $studyId;
+
+        } else {
+
+            $studyParameter = StudyParameter::find($request->id);
+
+        }
+
+        // Check if the parameter exists
+        $parameterModel = Parameter::where('name', $request->name)->first();
+
+        if($parameterModel === null){
+            return response()->json([
+                'msg' => "Parameter name is invalid or does not exist"
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        // Save the parameter
+        $studyParameter->parameter_id = $parameterModel->id;
+        $studyParameter->val = $request->val;
+        $studyParameter->save();
+
+        return response()->json([
+            'parameter' => $studyParameter
+        ], Response::HTTP_OK);
+
+    }
+
+    public function deleteParameter(Request $request, $studyId, $parameterId){
+
+        StudyParameter::destroy($parameterId);
+
+        return response()->json([
+            'msg' => "$parameterId deleted successfully"
+        ], Response::HTTP_OK);
+
+    }
+
+    public function getParameterTypes(){
+
+        // See QuestionParamController::getParameterTypes
+
     }
 }
