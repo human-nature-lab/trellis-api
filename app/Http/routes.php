@@ -133,6 +133,16 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'InterviewController@submit'
     );
 
+    $app->get(
+        'study/{id}/interview',
+        'InterviewController@getInterviewPage'
+    );
+
+    $app->get(
+        'study/{id}/interview/count',
+        'InterviewController@getInterviewCount'
+    );
+
     //***************************//
     //* Study Controller Routes *//
     //***************************//
