@@ -26,4 +26,18 @@ class Interview extends Model
         'updated_at',
         'deleted_at'
     ];
+
+
+    public function survey(){
+        return $this
+            ->belongsTo("App\Models\Survey", "survey_id")
+            ->with('respondent')
+            ->with("form");
+    }
+
+    public function user(){
+        return $this
+            ->belongsTo("App\Models\User", "user_id");
+    }
+
 }

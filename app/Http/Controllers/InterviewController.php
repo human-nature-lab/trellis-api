@@ -112,4 +112,96 @@ class InterviewController extends Controller
         return response()->json([
         ], Response::HTTP_OK);
     }
+
+    public function getInterviewPage(Request $request, $studyId){
+
+        $validator = $this->getRequestValidator($request, $studyId);
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $q = $this->makePageQuery($request, $studyId);
+
+        $earliestDate = $request->get("earliest-date");
+        $latestDate = $request->get("latest-date");
+        $limit = $request->get("limit");
+        $offset = $request->get("offset") ?: 0;
+
+        if($limit != null || $latestDate == null || $earliestDate == null){
+            $q = $q->take($limit ?: 100);
+        }
+        $q = $q->offset($offset);
+        $interviews = $q->get();
+
+
+        return response()->json([
+            "interviews" => $interviews
+        ], Response::HTTP_OK);
+
+    }
+
+    public function getInterviewCount(Request $request, $studyId){
+
+        $validator = $this->getRequestValidator($request, $studyId);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $q = $this->makePageQuery($request, $studyId);
+
+        return response()->json([
+            "count" => $q->count()
+        ], Response::HTTP_OK);
+
+    }
+
+    private function getRequestValidator(Request $request, $studyId){
+
+        return Validator::make(array_merge($request->all(), ["study_id"=>$studyId]), [
+            'study_id' => 'required|string|min:36|exists:study,id',
+            'limit' => 'nullable|integer|min:0|max:200',
+            'offset' => 'nullable|integer|min:0',
+            'latest-date' => 'nullable|date',
+            'earliestDate' => 'nullable|date'
+        ]);
+
+    }
+
+    /**
+     * Get a page of interviews matching all of the parameters provided
+     * @param Request $request
+     * @return $this|\Illuminate\Database\Eloquent\Builder|static
+     */
+    private function makePageQuery(Request $request, $studyId){
+
+        $earliestDate = $request->get("earliest-date");
+        $latestDate = $request->get("latest-date");
+
+        $q = Interview::with("survey")
+            ->select("*", DB::raw("(select count(*) from datum where survey_id = interview.survey_id) as survey_datum_count"))
+            ->with("user");
+//        $q = Survey::with('interviews')
+//            ->with("form")
+//            ->with("dataCount")
+//            ->with("respondent");
+
+        if($earliestDate != null) {
+            $q = $q->where("interview.start_time", ">=", $earliestDate);
+        }
+        if($latestDate != null){
+            $q = $q->where("interview.start_time", "<=", $latestDate);
+        }
+        $q = $q->orderBy("start_time", "desc");
+
+        return $q;
+
+    }
+
 }

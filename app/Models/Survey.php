@@ -36,4 +36,26 @@ class Survey extends Model
         return parent::delete();
     }
     */
+
+    public function interviews(){
+        return $this->hasMany("App\Models\Interview", "survey_id")
+            ->with("user");
+    }
+
+    public function dataCount(){
+        return $this->select(function($query){
+            $query->from("datum")
+                ->where("datum.survey_id", "=", "survey.id");
+        });
+    }
+
+    public function form(){
+        return $this->belongsTo("App\Models\Form", "form_id")
+            ->with("nameTranslation");
+    }
+
+    public function respondent(){
+        return $this->belongsTo("App\Models\Respondent", "respondent_id");
+    }
+
 }
