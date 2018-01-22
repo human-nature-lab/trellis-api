@@ -38,6 +38,8 @@ class Kernel extends ConsoleKernel
 
         // overrides:   //TODO take this out if switched to Laravel
         \App\Console\Commands\MakeModel::class,
+        \App\Console\Commands\MakeReports::class,
+        \App\Console\Commands\BundleLatestReports::class,
     ];
 
     /**
