@@ -860,19 +860,19 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
         'report/clean',
         'ReportController@cleanReports'
     );
-
-    $app->get(
-        'report/generate',
-        function(){
-            Artisan::call("trellis:make:reports");
-        }
-    );
-
-    $app->get(
-        'report/bundle',
-        function(){
-            Artisan::call("trellis:bundle:reports");
-        }
-    );
+//
+//    $app->get(
+//        'report/generate',
+//        function(){
+//            Artisan::call("trellis:make:reports");
+//        }
+//    );
+//
+//    $app->get(
+//        'report/bundle',
+//        function(){
+//            Artisan::call("trellis:bundle:reports");
+//        }
+//    );
 
 });

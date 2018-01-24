@@ -125,15 +125,16 @@ class InterviewController extends Controller
 
         $q = $this->makePageQuery($request, $studyId);
 
-        $earliestDate = $request->get("earliest-date");
-        $latestDate = $request->get("latest-date");
-        $limit = $request->get("limit");
-        $offset = $request->get("offset") ?: 0;
+//        $earliestDate = date_parse($request->get("earliest-date"));
+//        $latestDate = date_parse($request->get("latest-date"));
+//        $limit = $request->get("limit");
+//        $offset = $request->get("offset") ?: 0;
 
-        if($limit != null || $latestDate == null || $earliestDate == null){
-            $q = $q->take($limit ?: 100);
-        }
-        $q = $q->offset($offset);
+//        if($limit != null || $latestDate == null || $earliestDate == null){
+//            $q = $q->take($limit ?: 100);
+//        }
+        $q = $q->limit(700);
+//        $q = $q->offset($offset);
         $interviews = $q->get();
 
 
@@ -181,8 +182,8 @@ class InterviewController extends Controller
      */
     private function makePageQuery(Request $request, $studyId){
 
-        $earliestDate = $request->get("earliest-date");
-        $latestDate = $request->get("latest-date");
+        $earliestDate = date_parse($request->get("earliest-date"));
+        $latestDate = date_parse($request->get("latest-date"));
 
         $q = Interview::with("survey")
             ->select("*", DB::raw("(select count(*) from datum where survey_id = interview.survey_id) as survey_datum_count"))
@@ -193,11 +194,14 @@ class InterviewController extends Controller
 //            ->with("respondent");
 
         if($earliestDate != null) {
-            $q = $q->where("interview.start_time", ">=", $earliestDate);
+//            $q = $q->whereDate("interview.start_time", ">=", $earliestDate);
+            $q = $q->whereDay("interview.start_time", ">=", $earliestDate["day"]);
+            $q = $q->whereMonth("interview.start_time", ">=", $earliestDate["month"]);
+            $q = $q->whereYear("interview.start_time", ">=", $earliestDate["year"]);
         }
-        if($latestDate != null){
-            $q = $q->where("interview.start_time", "<=", $latestDate);
-        }
+//        if($latestDate != null){
+//            $q = $q->whereDate("interview.start_time", "<=", $latestDate);
+//        }
         $q = $q->orderBy("start_time", "desc");
 
         return $q;
