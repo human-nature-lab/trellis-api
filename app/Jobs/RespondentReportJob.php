@@ -70,83 +70,73 @@ class RespondentReportJob extends Job
 
     public function create(){
 
-        $respondents = DB::table('respondent')
-            ->join('study_respondent', 'study_respondent.respondent_id', '=', 'respondent.id')
-            ->where('study_respondent.study_id', '=', $this->studyId)
-            ->whereNull('respondent.deleted_at')
-            ->select('respondent.id',
-                'respondent.name as rname',
-                'respondent.created_at',
-                'respondent.updated_at',
-                'respondent.geo_id')
-            ->get();
+//        $respondents = DB::table('respondent')
+//            ->join('study_respondent', 'study_respondent.respondent_id', '=', 'respondent.id')
+//            ->where('study_respondent.study_id', '=', $this->studyId)
+//            ->whereNull('respondent.deleted_at')
+//            ->select('respondent.id',
+//                'respondent.name as rname',
+//                'respondent.created_at',
+//                'respondent.updated_at')
+//            ->get();
 
         $defaultHeaders = array(
             'id' => "respondent_id",
             'rname' => "respondent_name",
             'created_at' => "created_at",
             'updated_at' => "updated_at",
-            'geo_id' => "geo_id",
+            "household_name" => "household_name",
+            "village_name" => "village_name",
+            "building_name" => "building_name"
         );
 
-        $geosQuery =  DB::table('geo')
-            ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
-            ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
-            ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id');
-        $geos = [];
 
-        foreach($geosQuery->get() as  $geo){
-            $geos[$geo->id] = $geo;
-        }
+        $respondents = DB::select("select r.id, r.name as rname, r.created_at, r.updated_at,   
+                (select translated_text from translation_text where translation_id in 
+                  (select household.name_translation_id from geo household where household.id = r.geo_id) 
+                limit 1) as household_name,
+                
+                (select translated_text from translation_text where translation_id in 
+                  (select building.name_translation_id from geo building where building.id in 
+                    (select household.parent_id from geo household where household.id = r.geo_id)) 
+                  limit 1) as building_name,
+                
+                (select translated_text from translation_text where translation_id in 
+                  (select village.name_translation_id from geo village where village.id in 
+                    (select building.parent_id from geo building where building.id in 
+                      (select household.parent_id from geo household where household.id = r.geo_id))) limit 1) as village_name
+                
+                from respondent r;");
 
-        $traverseGeoTree = Memoization::memoize(function($startingId, $maxDepth) use ($geos){
-            $tree = array();
-            $id = $startingId;
-            while(count($tree) < $maxDepth && $id !== null){
-                $parent = $geos[$id];
-                if($parent !== null) {
-                    array_push($tree, $parent);
-                    $id = $parent->parent_id;
-                } else {
-                    break;
-                }
-            }
-            return $tree;
-        });
 
         $headers = array();
         $headers = array_replace($headers, $defaultHeaders);
 
-        $conditionsGroupedByRespondentId = DB::table('respondent_condition_tag')
+        $conditions = DB::table("respondent_condition_tag")
             ->join('respondent', 'respondent.id', '=', 'respondent_condition_tag.respondent_id')
             ->join('condition_tag', 'condition_tag.id', '=', 'respondent_condition_tag.condition_tag_id')
-            ->select('respondent.id', DB::raw("group_concat(condition_tag.name SEPARATOR ';') as conditions"))
-            ->groupBy('respondent.id');
+            ->select("respondent.id", "condition_tag.name")
+            ->get();
 
-        $respondent_conditions = array_reduce($conditionsGroupedByRespondentId->get(), function($agg, $r){
-            $agg[$r->id] = explode(';', $r->conditions);
-            return $agg;
-        }, array());
+        $respondentConditions = [];
+        foreach($conditions as $c){
+            if(!isset($respondentConditions[$c->id])){
+                $respondentConditions[$c->id] = [];
+            }
+            array_push($respondentConditions[$c->id], $c->name);
+        }
 
         // map each respondent to a single row of the csv
-        $maxDepth = $this->maxGeoDepth;
-        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers, &$respondent_conditions, &$maxDepth, &$traverseGeoTree) {
+        $rows = array_map(function ($respondent) use (&$defaultHeaders, &$headers, &$respondentConditions) {
             $newRow = array();
             foreach ($defaultHeaders as $key => $name){
                 $newRow[$key] = $respondent->$key;
             }
 
-            $geoTree = $traverseGeoTree($respondent->geo_id, $maxDepth);
-            foreach($geoTree as $level => $geo){
-                $key = "geo_level_" . $level;
-                $headers[$key] = $key;
-                $newRow[$key] = $geo->name;
-            }
-
             // Add conditions if there are any for this respondent
-            if(isset($respondent_conditions[$respondent->id])) {
-                $conditions = $respondent_conditions[$respondent->id];
-                foreach ($conditions as $condition) {
+            if(isset($respondentConditions[$respondent->id])) {
+                $rConditions = $respondentConditions[$respondent->id];
+                foreach ($rConditions as $condition) {
                     $headers[$condition] = $condition;
                     $newRow[$condition] = true;
                 }
