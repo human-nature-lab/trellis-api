@@ -89,20 +89,21 @@ class RespondentReportJob extends Job
             'geo_id' => "geo_id",
         );
 
-        $getGeoParent = Memoization::memoize(function($id){
-            return DB::table('geo')
-                ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
-                ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
-                ->where('geo.id', '=', $id)
-                ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id')
-                ->first();
-        });
+        $geosQuery =  DB::table('geo')
+            ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
+            ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
+            ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id');
+        $geos = [];
 
-        $traverseGeoTree = Memoization::memoize(function($startingId, $maxDepth) use ($getGeoParent){
+        foreach($geosQuery->get() as  $geo){
+            $geos[$geo->id] = $geo;
+        }
+
+        $traverseGeoTree = Memoization::memoize(function($startingId, $maxDepth) use ($geos){
             $tree = array();
             $id = $startingId;
             while(count($tree) < $maxDepth && $id !== null){
-                $parent = $getGeoParent($id);
+                $parent = $geos[$id];
                 if($parent !== null) {
                     array_push($tree, $parent);
                     $id = $parent->parent_id;
@@ -129,7 +130,7 @@ class RespondentReportJob extends Job
 
         // map each respondent to a single row of the csv
         $maxDepth = $this->maxGeoDepth;
-        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers, &$respondent_conditions, &$maxDepth, $traverseGeoTree) {
+        $rows = array_map(function ($respondent) use ($defaultHeaders, &$headers, &$respondent_conditions, &$maxDepth, &$traverseGeoTree) {
             $newRow = array();
             foreach ($defaultHeaders as $key => $name){
                 $newRow[$key] = $respondent->$key;
