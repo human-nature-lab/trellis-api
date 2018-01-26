@@ -11,7 +11,9 @@ use App\Jobs\TimingReportJob;
 use App\Models\Report;
 use App\Models\Study;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Queue\Job;
 use Laravel\Lumen\Routing\DispatchesJobs;
+use Log;
 use Queue;
 use Ramsey\Uuid\Uuid;
 
@@ -81,6 +83,7 @@ class MakeReports extends Command
         $config->studyId = $studyId;
         $config->useChoiceNames = true;
         $config->locale = $study->defaultLocale->id;
+        $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
 
         foreach ($formIds as $formId){
             $reportId = Uuid::uuid4();
