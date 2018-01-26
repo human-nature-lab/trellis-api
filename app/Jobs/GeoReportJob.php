@@ -79,6 +79,16 @@ class GeoReportJob extends Job
             'altitude' => 'altitude'
         ];
 
+        $geoQuery = DB::table('geo')
+            ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
+            ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
+            ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id');
+
+        $geoHash = [];
+        foreach($geoQuery->get() as $geo){
+            $geoHash[$geo->id] = $geo;
+        }
+
         $getGeoParent = Memoization::memoize(function($id){
             return DB::table('geo')
                 ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
@@ -88,11 +98,11 @@ class GeoReportJob extends Job
                 ->first();
         });
 
-        $traverseGeoTree = Memoization::memoize(function ($startingId, $maxDepth=10) use ($getGeoParent){
+        $traverseGeoTree = Memoization::memoize(function ($startingId, $maxDepth=10) use ($geoHash){
             $tree = array();
             $id = $startingId;
             while(count($tree) < $maxDepth && $id !== null){
-                $parent = $getGeoParent($id);
+                $parent = $geoHash[$id];
                 if($parent !== null) {
                     array_push($tree, $parent);
                     $id = $parent->parent_id;
