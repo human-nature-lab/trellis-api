@@ -25,6 +25,11 @@ class User extends Model
         'deleted_at'
     ];
 
+    protected $hidden = [
+        'password',
+        'updated_at'
+    ];
+
     public function studies()
     {
         return $this

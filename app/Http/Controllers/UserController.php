@@ -178,6 +178,10 @@ class UserController extends Controller
         ]);
     }
 
+    public function getMe(Request $request){
+        return response()->json($request->user(), Response::HTTP_OK);
+    }
+
     public function createUser(Request $request)
     {
         $validator = Validator::make($request->all(), [
