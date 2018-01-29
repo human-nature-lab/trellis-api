@@ -205,6 +205,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     //**************************//
 
     $app->get(
+        'user/me',
+        'UserController@getMe'
+    );
+
+    $app->get(
         'user/{id}',
         'UserController@getUser'
     );
@@ -224,12 +229,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'UserController@getAllUsers'
     );
 
-    $app->put(
-        'user',
-        'UserController@createUser'
-    );
-
-    $app->put(
+        $app->put(
         'user/{user_id}/studies/{study_id}',
         'UserController@saveStudy'
     );
@@ -797,6 +797,14 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
 
 
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'role:whitelist,ADMIN']], function ($app) {
+
+    //**********************//
+    //* Create User Route *//
+    //**********************//
+    $app->put(
+        'user',
+        'UserController@createUser'
+    );
 
     //**********************//
     //* Report Routes *//
