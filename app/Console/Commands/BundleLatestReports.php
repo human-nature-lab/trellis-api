@@ -41,7 +41,7 @@ class BundleLatestReports extends Command
     {
         $studyId = 'ad9a9086-8f15-4830-941d-416b59639c41';
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $types = ['geo', 'repondent', 'timing', 'interview', 'edge', 'timing-datum'];
+        $types = ['geo', 'respondent', 'timing', 'interview', 'edge'];
         $formIds = [
             '5612115f-9208-4696-9497-4398ae112f8b',
             '03551748-f180-44fa-9d58-c6b720c095e9',
@@ -57,6 +57,7 @@ class BundleLatestReports extends Command
             ->orderBy('report.updated_at', 'desc')
             ->limit(count($types))
             ->with("files")
+            ->distinct()
             ->get();
         $formReports = Report::whereIn("report.report_id", $formIds)
             ->where("report.type", "=", "form")

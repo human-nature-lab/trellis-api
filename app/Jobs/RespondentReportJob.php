@@ -86,27 +86,46 @@ class RespondentReportJob extends Job
             'created_at' => "created_at",
             'updated_at' => "updated_at",
             "household_name" => "household_name",
+            "household_id" => "household_id",
             "village_name" => "village_name",
-            "building_name" => "building_name"
+            "village_id" => "village_id",
+            "building_name" => "building_name",
+            "building_id" => "building_id"
         );
 
 
         $respondents = DB::select("select r.id, r.name as rname, r.created_at, r.updated_at,   
-                (select translated_text from translation_text where translation_id in 
-                  (select household.name_translation_id from geo household where household.id = r.geo_id) 
-                limit 1) as household_name,
-                
-                (select translated_text from translation_text where translation_id in 
-                  (select building.name_translation_id from geo building where building.id in 
-                    (select household.parent_id from geo household where household.id = r.geo_id)) 
-                  limit 1) as building_name,
-                
-                (select translated_text from translation_text where translation_id in 
-                  (select village.name_translation_id from geo village where village.id in 
-                    (select building.parent_id from geo building where building.id in 
-                      (select household.parent_id from geo household where household.id = r.geo_id))) limit 1) as village_name
-                
-                from respondent r;");
+              (select translated_text from translation_text where translation_id in 
+                (select household.name_translation_id from geo household where household.id = r.geo_id) 
+                limit 1
+              ) as household_name,
+            
+              (select h1.id from geo h1 where h1.id = r.geo_id) as household_id,
+            
+              (select translated_text from translation_text where translation_id in 
+                (select building.name_translation_id from geo building where building.id in 
+                  (select household.parent_id from geo household where household.id = r.geo_id
+                  )
+                )   
+                limit 1
+              ) as building_name,
+            
+              (select household.parent_id from geo household where household.id = r.geo_id) as building_id,
+            
+              (select translated_text from translation_text where translation_id in 
+                (select village.name_translation_id from geo village where village.id in 
+                  (select building.parent_id from geo building where building.id in 
+                    (select household.parent_id from geo household where household.id = r.geo_id)
+                  )
+                ) 
+                limit 1
+              ) as village_name,
+            
+              (select building.parent_id from geo building where building.id in 
+                (select household.parent_id from geo household where household.id = r.geo_id)
+              ) as village_id
+            
+            from respondent r;");
 
 
         $headers = array();
