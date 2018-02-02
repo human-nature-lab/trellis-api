@@ -46,7 +46,7 @@ class BundleLatestReports extends Command
             '5612115f-9208-4696-9497-4398ae112f8b',
             '03551748-f180-44fa-9d58-c6b720c095e9',
             'be587a4a-38c6-46cb-a787-1fcb4813b274',
-            '750e24c9-3a9c-462f-bcc1-17f197d6701f',
+            '4eac1508-0643-4a12-ac5c-f88e5523b9b4',
             '363cc222-c84b-411b-be55-8c5cb3d20ad1',
             '5826ca44-39a5-49cb-ae6d-779d0e9acfe7',
             '310bf97e-df3d-4ec9-bed0-1c970984f817',
@@ -72,20 +72,9 @@ class BundleLatestReports extends Command
         $filename = $this->option("name");
         $fullPath = $saveDir . "/" . $filename;
 
-//        if(!file_exists($saveDir)) {
-//            $this->info("Directory doesn't exist. Making directory at ". $saveDir);
-//            try {
-//                mkdir($saveDir, 0755, true);
-//            } catch(Exception $e){
-//                $this->error("Unable to make directory");
-//                $this->error($e->getTraceAsString());
-//                return;
-//            }
-//        }
-
-        if(file_exists($fullPath)){
-           $this->error("File already exists! Delete or change filename to continue.");
-           return;
+        // Remove the existing reports if it's the default
+        if($filename == "reports.zip" && file_exists($fullPath)) {
+            unlink($fullPath);
         }
 
         $zip  = new \ZipArchive();
