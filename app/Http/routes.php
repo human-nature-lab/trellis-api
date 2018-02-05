@@ -219,11 +219,6 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'UserController@removeUser'
     );
 
-    $app->post(
-        'user/{id}',
-        'UserController@updateUser'
-    );
-
     $app->get(
         'user',
         'UserController@getAllUsers'
@@ -804,6 +799,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'r
     $app->put(
         'user',
         'UserController@createUser'
+    );
+
+    $app->post(
+        'user/{id}',
+        'UserController@updateUser'
     );
 
     //**********************//
