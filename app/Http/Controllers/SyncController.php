@@ -269,12 +269,6 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
-        try {
-            Artisan::call('trellis:export:snapshot');
-        } catch (RuntimeException $e) {
-            // WithoutOverlapping trait throws RuntimeException('Command is running now!') if command is already running
-        }
-
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
         $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory.path'));
@@ -292,6 +286,16 @@ class SyncController extends Controller
                 return response()->download($newestFilePath, $newestFileName);   // if snapshot epoch >= than device's epoch, then return binary file download
             }
         }
+
+        //BUG //TODO move this to a terminable middleware or queue, see: https://laracasts.com/discuss/channels/laravel/can-i-finish-request-and-then-continue-processing
+        // export new snapshot after 202 Accepted is returned to client and connection is closed
+        register_shutdown_function(function(){
+            try {
+                Artisan::call('trellis:export:snapshot');
+            } catch (RuntimeException $e) {
+                // WithoutOverlapping trait throws RuntimeException('Command is running now!') if command is already running
+            }
+        });
 
         return response()->json([], Response::HTTP_ACCEPTED);   // if no snapshot epoch >= than device's epoch, then return 202 Accepted to make client retry later
     }
