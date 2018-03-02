@@ -19,7 +19,9 @@ use Ramsey\Uuid\Uuid;
 
 class MakeReports extends Command
 {
-    use DispatchesJobs;
+    use DispatchesJobs, AutoDispatch {
+        AutoDispatch::dispatch insteadof DispatchesJobs;
+    }
 
     /**
      * The name and signature of the console command.
