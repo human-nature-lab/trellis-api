@@ -17,7 +17,7 @@ class LogServiceProvider extends ServiceProvider
     {
         $maxFiles = 5;
 
-        $handlers[] = (new RotatingFileHandler(storage_path("logs/lumen.log"), $maxFiles))
+        $handlers[] = (new RotatingFileHandler(storage_path("logs/lumen-".get_current_user().".log"), $maxFiles))
             ->setFormatter(new LineFormatter(null, null, true, true));
 
         $this->app['log']->setHandlers($handlers);
