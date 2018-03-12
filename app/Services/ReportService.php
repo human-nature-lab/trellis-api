@@ -118,6 +118,7 @@ class ReportService
             ->whereNull('datum.deleted_at')
             ->where('datum.val', 'not like', 'roster%')
             ->where('datum.question_id', '=', $questionId)
+            ->orderBy('sort_order', 'asc')
             ->get();
 
         return $rows;
