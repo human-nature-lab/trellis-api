@@ -19,14 +19,17 @@ use DateTime;
 
 class InterviewController extends Controller
 {
+    /**
+     * Create a new interview and survey from the specified form, study and respondent
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function submit(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'study_id' => 'required|string|min:36|exists:study,id',
             'form_id' => 'required|string|min:36|exists:form,id',
-            'respondent_id' => 'required|string|min:36|exists:respondent,id',
-            'token_id' => 'required|string|min:36|exists:token,id',
-            'questions' => 'required|array'
+            'respondent_id' => 'required|string|min:36|exists:respondent,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -36,82 +39,66 @@ class InterviewController extends Controller
             ], $validator->statusCode());
         }
 
-        $token = Token::find($request->input('token_id'));
-        $user = User::find($token->user_id);
-        $surveyModel = new Survey;
-        $interviewModel = new Interview;
+        $survey = new Survey;
+        $interview = new Interview;
 
-        DB::transaction(function () use ($request, $surveyModel, $interviewModel, $user) {
+        DB::transaction(function () use ($request, $survey, $interview) {
             $surveyId = Uuid::uuid4();
             $interviewId = Uuid::uuid4();
-            $now = new DateTime();
 
             // Create new Survey.
-            $surveyModel->id = $surveyId;
-            $surveyModel->respondent_id = $request->input('respondent_id');
-            $surveyModel->form_id = $request->input('form_id');
-            $surveyModel->study_id = $request->input('study_id');
-            $surveyModel->save();
+            $survey->id = $surveyId;
+            $survey->respondent_id = $request->input('respondent_id');
+            $survey->form_id = $request->input('form_id');
+            $survey->study_id = $request->input('study_id');
+            $survey->save();
 
             // Create new Interview
-            $interviewModel->id = $interviewId;
-            $interviewModel->survey_id = $surveyId;
-            $interviewModel->user_id = $user->id;
-            // TODO: start_time and end_time
-            $interviewModel->start_time = $now->getTimestamp();
-            $interviewModel->end_time = $now->getTimestamp();
+            $interview->id = $interviewId;
+            $interview->survey_id = $surveyId;
+            $interview->user_id = $request->user()->id;
+            $interview->start_time = date_create('now');
+            $interview->end_time = null;
+            $interview->save();
 
-            // Iterate through questions and add edges / datum
-            foreach ($request->input('questions') as $question) {
-                if ($question['question_type']['name'] == 'relationship') {
-                    // Create new datum
-                    $datumId = Uuid::uuid4();
-                    $datumModel = new Datum;
-                    $datumModel->id = $datumId;
-                    $datumModel->survey_id = $surveyId;
-                    //TODO deal with choice_id
-                    $datumModel->name = $question['var_name'];
-                    $datumModel->val = "1";
-                    $datumModel->question_id = $question['id'];
-                    $datumModel->save();
-
-                    foreach ($question['selectedRespondents'] as $respondent) {
-                        if ($respondent) {
-                            // Create edge
-                            $edgeId = Uuid::uuid4();
-                            $edgeModel = new Edge;
-                            $edgeModel->id = $edgeId;
-                            $edgeModel->source_respondent_id = $request->input('respondent_id');
-                            $edgeModel->target_respondent_id = $respondent['id'];
-                            $edgeModel->save();
-
-                            // Create edge_datum
-                            $edgeDatumId = Uuid::uuid4();
-                            $edgeDatumModel = new EdgeDatum;
-                            $edgeDatumModel->id = $edgeDatumId;
-                            $edgeDatumModel->edge_id = $edgeId;
-                            $edgeDatumModel->datum_id = $datumId;
-                            $edgeDatumModel->save();
-                        }
-                    }
-                } else {
-                    // Create new datum
-                    $datumId = Uuid::uuid4();
-                    $datumModel = new Datum;
-                    $datumModel->id = $datumId;
-                    $datumModel->survey_id = $surveyId;
-                    //TODO deal with choice_id
-                    $datumModel->name = $question['var_name'];
-                    $datumModel->val = $question['answer'];
-                    $datumModel->question_id = $question['id'];
-                    $datumModel->save();
-                }
-            }
         });
 
         return response()->json([
+            'survey-id' => $survey->id,
+            'interview-id' => $interview->id
         ], Response::HTTP_OK);
     }
+
+
+    /**
+     * Complete the interview by setting the end_time
+     * @param $interviewId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function endInterview($interviewId){
+
+        $validator = Validator::make([
+            'interviewId' => $interviewId
+        ], [
+            'interviewId' => 'required|string|min:32|exists:interview,id'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'msg' => "Invalid interview id",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $interview = Interview::find($interviewId);
+        $interview->end_time = date_create("now");
+        $interview->save();
+
+        return response()->json([
+            'completed_at' => $interview->end_time
+        ], Response::HTTP_OK);
+    }
+
 
     public function getInterviewPage(Request $request, $studyId){
 
