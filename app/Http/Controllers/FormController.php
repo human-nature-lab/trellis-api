@@ -43,11 +43,17 @@ use League\Csv\Reader;
 
 class FormController extends Controller
 {
+    /**
+     * Get the form with all of the translations, question text and other supplementary information included with it
+     * @param Request $request
+     * @param $id
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function getForm(Request $request, $id)
     {
         $validator = Validator::make(
             ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['id' => 'required|string|min:36|exists:form,id']
         );
 
         if ($validator->fails() === true) {
@@ -57,17 +63,40 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        //$formModel = Form::find($id);
         $formModel = Form::with('sections', 'nameTranslation')->find($id);
-
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource not found'
-            ], Response::HTTP_OK);
-        }
 
         return response()->json([
             'form' => $formModel
+        ], Response::HTTP_OK);
+    }
+
+
+    /**
+     * Get the structure of the form. This is loosely defined as everything that is required to navigate the form, but not
+     * display it.
+     * @param $formId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function getFormStructure($formId){
+
+        $validator = Validator::make([
+            'formId' => $formId
+        ], [
+            'formId' => 'required|string|min:32|exists:form,id'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'msg' => "Invalid form id",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        // TODO: This could be a custom query that returns a more 'bare bones' response without the fluff
+        $form = Form::with('sections')->find($formId);
+
+        return response()->json([
+            'structure' => $form
         ], Response::HTTP_OK);
     }
 

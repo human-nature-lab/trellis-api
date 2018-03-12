@@ -289,4 +289,27 @@ class StudyController extends Controller
         // See QuestionParamController::getParameterTypes
 
     }
+
+    public function getLocales($studyId) {
+
+        $validator = Validator::make([
+            'studyId' => $studyId
+        ], [
+            'studyId' => 'required|string|min:32|exists:study,id'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'msg' => 'Invalid study id',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $locales = StudyLocale::where('study_locale.study_id', '=', $studyId)
+            ->join('locale', 'study_locale.locale_id', '=', 'locale.id')->get();
+        return response()->json([
+            'locales' => $locales
+        ], Response::HTTP_OK);
+
+    }
 }
