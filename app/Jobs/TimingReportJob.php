@@ -58,6 +58,7 @@ class TimingReportJob extends Job
             ->join('question', 'question.id', '=', 'datum.question_id')
             ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
             ->where('survey.study_id', '=', $study->id)
+            ->orderBy('interview_id')
             ->orderBy('datum.created_at', 'asc')
             ->select(
                 "interview.id as interview_id",

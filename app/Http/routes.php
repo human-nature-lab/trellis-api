@@ -50,6 +50,19 @@ $app->get(
     'SyncController@downloadSync'
 );
 
+
+// Temporary form navigation routes
+$app->get(
+    'form/{formId}/structure',
+    'FormController@getFormStructure'
+);
+
+$app->get(
+    'study/{studyId}/locales',
+    'StudyController@getLocales'
+);
+
+
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 
     //**************************//
