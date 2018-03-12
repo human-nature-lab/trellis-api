@@ -428,6 +428,7 @@ class FormReportJob extends Job
                     ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
             })
             ->where('question_choice.question_id', '=', $question->id)
+            ->whereNull('question_choice.deleted_at')
             ->select('choice.val', 'choice.id', 'translation_text.translated_text as name');
 
 
