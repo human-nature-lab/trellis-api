@@ -62,6 +62,11 @@ $app->get(
     'StudyController@getLocales'
 );
 
+$app->get(
+    'survey/{surveyId}/actions',
+    'ActionController@getSurveyActions'
+);
+
 
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 
