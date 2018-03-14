@@ -271,7 +271,12 @@ class SyncController extends Controller
         };
 
         //TODO possibly move this to a terminable middleware or queue, see: https://laracasts.com/discuss/channels/laravel/can-i-finish-request-and-then-continue-processing
-        (new Process('php artisan trellis:export:snapshot', base_path()))->start();  // generates snapshot asynchronously in another process
+        try {
+            Artisan::call('trellis:export:snapshot');   // runs the command synchronously (this is ok as long as the client has a long or infinite timeout)
+        } catch (RuntimeException $e) {
+            // WithoutOverlapping trait throws RuntimeException('Command is running now!') if command is already running
+        }
+        // (new Process('php artisan trellis:export:snapshot', base_path()))->start();  // generates snapshot asynchronously in another process //BUG this can be terminated after response is sent (so far seen in Red Hat Enterprise Linux) and prevent snapshot generation
 
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
