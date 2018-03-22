@@ -4,7 +4,7 @@ use App\Models\ActionType;
 use Illuminate\Http\Response;
 use Validator;
 
-class ActionController extends Controller {
+class ActionTypeController extends Controller {
 
     /**
      * Get all of the action types in the database

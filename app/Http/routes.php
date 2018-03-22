@@ -67,6 +67,11 @@ $app->get(
     'ActionController@getSurveyActions'
 );
 
+$app->get(
+    'form/action-types',
+    'ActionTypeController@getActionTypes'
+);
+
 
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 
