@@ -20,6 +20,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CheckMySQLTriggersAndProcedures::class,
         \App\Console\Commands\ExportMySQL::class,
         \App\Console\Commands\ExportSnapshot::class,
+        \App\Console\Commands\ExportSnapshotV2::class,
         \App\Console\Commands\ExportSQLite::class,
         \App\Console\Commands\FillMySQL::class,
         \App\Console\Commands\ImportMySQL::class,
