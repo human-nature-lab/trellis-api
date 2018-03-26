@@ -345,12 +345,12 @@ class FormController extends Controller
 
 
         $studyModel = Study::find($studyId);
-        $formModel = $studyModel->forms()->get();
+        $forms = $studyModel->forms()->get();
 
         //$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
 
         /*
-        $formModel = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
+        $forms = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
             ->join('translation_text AS tt', 'tt.translation_id', '=', 'form.name_translation_id')
             ->join('study_form AS sf', 'sf.form_master_id', '=', 'form.form_master_id')
             ->where('sf.study_id', $studyId)
@@ -359,7 +359,7 @@ class FormController extends Controller
         */
 
         return response()->json(
-            ['forms' => $formModel],
+            ['forms' => $forms],
             Response::HTTP_OK
         );
     }

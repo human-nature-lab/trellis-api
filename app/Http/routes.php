@@ -51,7 +51,7 @@ $app->get(
 );
 
 
-// Temporary form navigation routes
+// TODO: Temporary form navigation routes
 $app->get(
     'form/{formId}/structure',
     'FormController@getFormStructure'
@@ -68,10 +68,34 @@ $app->get(
 );
 
 $app->get(
+    'study/{studyId}/surveys',
+    'SurveyController@getStudySurveys'
+);
+
+$app->get(
     'form/action-types',
     'ActionTypeController@getActionTypes'
 );
 
+$app->get(
+    'respondent/{respondentId}/study/{studyId}/forms',
+    'RespondentController@getRespondentStudyForms'
+);
+
+$app->get(
+    'study/{studyId}/form',
+    'FormController@getAllStudyForms'
+);
+
+$app->get(
+    'respondent/{respondentId}',
+    'RespondentController@getRespondentById'
+);
+
+$app->get(
+    'respondent',
+    'RespondentController@getAllRespondents'
+);
 
 $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 
@@ -112,11 +136,6 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'FormController@getAllForms'
     );
 
-    $app->get(
-        'study/{studyId}/form',
-        'FormController@getAllStudyForms'
-    );
-
     $app->put(
         'form',
         'FormController@createForm'
@@ -147,6 +166,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     $app->post(
         'study/form/{formId}/section/import',
         'FormController@importSection'
+    );
+
+    $app->get(
+        'study/{studyId}/forms',
+        'RespondentController@getRespondentStudyForms'
     );
 
     //*******************************//
@@ -221,7 +245,6 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'study/{study_id}/locales/{locale_id}',
         'StudyController@deleteLocale'
     );
-
 
     //**************************//
     //* User Controller Routes *//
@@ -339,12 +362,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     //****************************//
 
     $app->get(
-        'respondent',
-        'RespondentController@getAllRespondents'
-    );
-
-    $app->get(
-        'respondent/{study_id}',
+        'study/{study_id}/respondents',
         'RespondentController@getAllRespondentsByStudyId'
     );
 
