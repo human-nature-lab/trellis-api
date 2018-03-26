@@ -42,6 +42,12 @@ return [
             'report' => [
                 '*' => null,
             ],
+            'snapshot' => [
+                '*' => null,
+            ],
+            'sync' => [
+                '*' => null,
+            ],
             'token' => [
                 '*' => null,
             ],
@@ -70,6 +76,12 @@ return [
                 '*' => null,
             ],
             'report' => [
+                '*' => null,
+            ],
+            'snapshot' => [
+                '*' => null,
+            ],
+            'sync' => [
                 '*' => null,
             ],
             'token' => [
