@@ -29,6 +29,37 @@ class RespondentController extends Controller
         return view('respondents.respondents', array('title' => 'Respondents', 'respondents' => $respondents));
     }
 
+    /**
+     * Get all surveys in the study that have been started for this respondentId
+     * @param $studyId
+     * @param $respondentId
+     * @return \Symfony\Component\HttpFoundation\Response - Has surveys property with an array of surveys
+     */
+    public function getRespondentStudySurveys ($studyId, $respondentId) {
+        $validator = Validator::make([
+            'respondentId' => $respondentId,
+            'studyId' => $studyId
+        ], [
+            'respondentId' => "required|string|min:32|exists:respondent,id",
+            'studyId' => "required|string|min:32|exists:study,id",
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => 'Invalid respondentId or studyId',
+                'err' => $validator->errors()
+            ], $validator->stausCode());
+        }
+
+        $surveys = Survey::whereNull('deleted_at')
+            ->where('study_id', '=', $studyId)
+            ->where('respondent_id', '=', $respondentId);
+
+        return response()->json([
+            'surveys' => $surveys
+        ], Response::HTTP_OK);
+    }
+
     public function getAllRespondents(Request $request)
     {
         // Default to limit = 100 and offset = 0
@@ -411,10 +442,26 @@ class RespondentController extends Controller
         return Redirect::to('/respondents')->with(array('title' => 'Trellis'));
     }
 
-    public function show($id)
+    public function getRespondentById($respondentId)
     {
-        $respondent = Respondent::find($id);
-        return view('respondents.show')->with('respondent', $respondent);
+        $respondentId = urldecode($respondentId);
+        $validator = Validator::make([
+            'respondentId' => $respondentId
+        ], [
+            'respondentId' => 'required|string|min:32|exists:respondent,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => "Invalid respondent id",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondent = Respondent::find($respondentId);
+        return response()->json([
+            'respondent' => $respondent
+        ], Response::HTTP_OK);
     }
 
 
