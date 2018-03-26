@@ -16,13 +16,13 @@ class CreateActionTable extends Migration
             $table->string('survey_id', 41);
             $table->string('action_type_id', 41);
             $table->string('question_id', 41);
-            $table->text("action_text");
+            $table->text('action_text');
             $table->dateTime('created_at');
             $table->dateTime('deleted_at')->nullable();
 
             $table->foreign('question_id')->references('id')->on('question');
             $table->foreign('survey_id')->references('id')->on('survey');
-            $table->foreign('action_type_id')->references('id')->on('activity_type');
+            $table->foreign('action_type_id')->references('id')->on('action_type');
         });
     }
 
