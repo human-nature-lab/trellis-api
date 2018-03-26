@@ -1,6 +1,7 @@
 <?php namespace App\Http\Controllers;
 
 use App\Models\Survey;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
@@ -19,6 +20,35 @@ class SurveyController extends Controller {
 		    'surveys' => Survey::all()
         ], Response::HTTP_OK);
 	}
+
+
+	public function getStudySurveys (Request $request, $studyId) {
+	    $validator = Validator::make(array_merge($request->all(), [
+	        'studyId' => $studyId
+        ]), [
+            'respondent_id' => 'string|min:32|exists:respondent,id',
+            'studyId' => 'required|string|min:32|exists:study,id'
+        ]);
+
+	    if ($validator->fails()) {
+	        return response()->json([
+	            'msg' => "Validation failed",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondentId = $request->get('respondent_id');
+        $surveys = Survey::where('study_id', '=', $studyId)
+            ->whereNull('deleted_at')->get();
+
+	    if ($respondentId !== null) {
+	        $surveys = $surveys->where('respondent_id', '=', $respondentId);
+        }
+
+        return response()->json([
+            'surveys' => $surveys
+        ], Response::HTTP_OK);
+    }
 
 	/**
 	 * Create a new survey for the specified form

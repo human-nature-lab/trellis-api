@@ -312,4 +312,5 @@ class StudyController extends Controller
         ], Response::HTTP_OK);
 
     }
+
 }
