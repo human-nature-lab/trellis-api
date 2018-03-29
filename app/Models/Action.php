@@ -16,6 +16,7 @@ class Action extends Model
     protected $fillable = [
         'id',
         'question_id',
+        'question_datum_id',
         'survey_id',
         'action_type_id',
         'action_text',
