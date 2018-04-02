@@ -61,12 +61,12 @@ class ReportService
      */
     public static function saveMetaFile($report, $rows){
 
-        $headers = ['column'=>'column'];
+        $headers = ['header'=>'header'];
         $newRows = [];
         foreach($rows as $column=>$row){
-            $newRow = ['column'=>$column];
+            $newRow = ['header'=>$column];
             foreach($row as $name=>$val){
-                $headers[$name] = $name;
+                $headers[$name] = strtolower($name);
                 $newRow[$name] = $val;
             }
             array_push($newRows, $newRow);
@@ -85,8 +85,60 @@ class ReportService
     }
 
 
+    public static function getQuestionChoices($question, $locale) {
+        $possibleChoices = DB::table('question_choice')
+            ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
+            ->leftJoin('translation_text', function($join) use ($locale)
+            {
+                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
+                    ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
+            })
+            ->where('question_choice.question_id', '=', $question->id)
+            ->whereNull('question_choice.deleted_at')
+            ->select('choice.val', 'choice.id', 'translation_text.translated_text as name')
+            ->get();
+        $translations = DB::table('translation_text')
+            ->join('choice', 'choice.choice_translation_id', '=', 'translation_text.translation_id')
+            ->join('question_choice', 'question_choice.choice_id', '=', 'choice.id')
+            ->join('locale', 'locale.id', '=', 'translation_text.locale_id')
+            ->whereNull('question_choice.deleted_at')
+            ->where('question_choice.question_id', '=', $question->id)
+            ->select('choice.val', 'choice.id as id', 'translation_text.translated_text', 'locale.id as locale_id', 'locale.language_name')
+            ->get();
+        $choiceTranslations = [];
+        foreach ($translations as $t) {
+            if (!isset($choiceTranslations[$t->id])) {
+                $choiceTranslations[$t->id] = [];
+            }
+            array_push($choiceTranslations[$t->id], $t);
+        }
+
+        foreach ($possibleChoices as $c) {
+            $c->translations = $choiceTranslations[$c->id];
+        }
+        return $possibleChoices;
+    }
+
+
     public static function getFormQuestions($formId, $locale){
-        return DB::table('question')
+        $translations = DB::table('translation_text')
+            ->join('question', 'question.question_translation_id', '=', 'translation_text.translation_id')
+            ->join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
+            ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
+            ->join('form', 'form_section.form_id', '=', 'form.id')
+            ->join('locale', 'locale.id', '=', 'translation_text.locale_id')
+            ->where('form.id', '=', $formId)
+            ->whereNull('question.deleted_at')
+            ->select('question.id', 'translation_text.translated_text', 'locale.language_tag', 'locale.language_name')
+            ->get();
+        $questionTranslations = [];
+        foreach ($translations as $t) {
+            if (!isset($questionTranslations[$t->id])) {
+                $questionTranslations[$t->id] = [];
+            }
+            array_push($questionTranslations[$t->id], $t);
+        }
+        $questions = DB::table('question')
             ->join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
             ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
             ->join('form', 'form_section.form_id', '=', 'form.id')
@@ -95,14 +147,21 @@ class ReportService
                 $join->on('translation_text.translation_id', '=', 'question.question_translation_id');
                 $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
             })
+            ->join('locale', 'locale.id', '=', 'translation_text.locale_id')
             ->where('form.id', '=', $formId)
             ->whereNull('question.deleted_at')
             ->select('question.id',
                 'translation_text.translated_text as name',
+                'locale.id as locale_id',
+                'locale.language_name as language_name',
                 'question.var_name',
                 'question_type.name as qtype',
                 'form_section.follow_up_question_id')
             ->get();
+        foreach ($questions as $q) {
+            $q->translations = $questionTranslations[$q->id];
+        }
+        return $questions;
     }
 
     public static function getFormSurveys($formId){
