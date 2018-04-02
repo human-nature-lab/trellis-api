@@ -78,7 +78,7 @@ class BundleLatestReports extends Command
         }
 
         $zip  = new \ZipArchive();
-        $zip->open(storage_path($fullPath), 1);
+        $zip->open(storage_path($fullPath), ZipArchive::OVERWRITE);
         foreach($reports as $report){
             foreach($report->files as $file) {
                 $zipName = $study->name . '_' . $report->type . '_export.csv';
