@@ -149,9 +149,9 @@ class FormReportJob extends Job
                     $key = $qId . '___' . $index;
                     $this->headers[$key] = $question->var_name . '_r' . ReportService::zeroPad($index);
                     $this->metaRows[$this->headers[$key]] = [
-                        'column' => $this->headers[$key],
-                        'question.var_name' => $question->var_name,
-                        'question.type' => $question->qtype,
+                        'header' => $this->headers[$key],
+                        'variable_name' => $question->var_name,
+                        'question_type' => $question->qtype,
                     ];
                     $row[$key] = $rosterRow->val;
                 }
@@ -273,11 +273,13 @@ class FormReportJob extends Job
             $headers[$key] = $question->var_name.$repeatString;
             $data[$key] = implode(';', $imageList);
             $metaData[$headers[$key]] = [
-                'column' => $headers[$key],
-                'question.name' => $question->name,
-                'question.type' => $question->qtype,
-                'question.var_name' => $question->var_name
+                'header' => $headers[$key],
+                'question_type' => $question->qtype,
+                'variable_name' => $question->var_name
             ];
+            foreach ($question->translations as $t) {
+                $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
+            }
         }
 
         // handle opted out questions
@@ -321,11 +323,13 @@ class FormReportJob extends Job
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
                     $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
                     $metaData[$headers[$key]] = [
-                        'column' => $headers[$key],
-                        'question.name' => $question->name,
-                        'question.type' => $question->qtype,
-                        'question.var_name' => $question->var_name
+                        'header' => $headers[$key],
+                        'question_type' => $question->qtype,
+                        'variable_name' => $question->var_name
                     ];
+                    foreach ($question->translations as $t) {
+                        $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
+                    }
                     $data[$key] = $geo->$name;
                 }
             }
@@ -352,11 +356,13 @@ class FormReportJob extends Job
         }
 
         $metaData = [$headers[$key] => [
-            'column' => $headers[$key],
-            'question.name' => $question->name,
-            'question.type' => $question->qtype,
-            'question.var_name' => $question->var_name
+            'header' => $headers[$key],
+            'question_type' => $question->qtype,
+            'variable_name' => $question->var_name
         ]];
+        foreach ($question->translations as $t) {
+            $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
+        }
 
         return array($headers, $data, $metaData);
 
@@ -389,11 +395,13 @@ class FormReportJob extends Job
         $headers = [$key=>$name];
         $data = [];
         $metaData[$headers[$key]] = [
-            'column' => $headers[$key],
-            'question.type' => $question->qtype,
-            'question.name' => $question->name,
-            'question.var_name' => $question->var_name
+            'header' => $headers[$key],
+            'question_type' => $question->qtype,
+            'variable_name' => $question->var_name
         ];
+        foreach ($question->translations as $t) {
+            $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
+        }
         if($datum !== null){
             if($datum->opt_out !== null){
                 $data[$key] = $datum->opt_out;
@@ -420,30 +428,25 @@ class FormReportJob extends Job
         $metaData = [];
 
         $parentDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
-        $possibleChoices = DB::table('question_choice')
-            ->join('choice', 'choice.id', '=', 'question_choice.choice_id')
-            ->leftJoin('translation_text', function($join) use ($locale)
-            {
-                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
-                    ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
-            })
-            ->where('question_choice.question_id', '=', $question->id)
-            ->select('choice.val', 'choice.id', 'translation_text.translated_text as name');
-
+        $possibleChoices = ReportService::getQuestionChoices($question, $locale);
 
         // Add headers for all possible choices
-        foreach ($possibleChoices->get() as $choice){
+        foreach ($possibleChoices as $choice){
             $key = $question->id . '___' . $repeatString . $choice->val;
             $headers[$key] = $question->var_name . $repeatString . '_' . $choice->val;
             $metaData[$headers[$key]] = [
-                'column' => $headers[$key],
-                'question.name' => $question->name,
-                'question.var_name' => $question->var_name,
-                'question.type' => $question->qtype,
-                'choice.val' => $choice->val,
-                'choice.id' => $choice->id,
-                'choice.name' => $choice->name
+                'header' => $headers[$key],
+                'variable_name' => $question->var_name,
+                'question_type' => $question->qtype,
+                'option_code' => $choice->val,
+                'option_id' => $choice->id
             ];
+            foreach ($question->translations as $t) {
+                $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
+            }
+            foreach ($choice->translations as $t) {
+                $metaData[$headers[$key]]["option_$t->language_name"] = $t->translated_text;
+            }
         }
 
         // Add selected choices if there is a parent datum
