@@ -189,7 +189,6 @@ class FormReportJob extends Job
 
 
     private function handleQuestion($survey, $question, $repeatString='', $rowDatumId=null){
-
         $images = [];
         switch($question->qtype){
             case 'multiple_select':
