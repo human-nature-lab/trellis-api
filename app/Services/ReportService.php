@@ -147,7 +147,7 @@ class ReportService
                 $join->on('translation_text.translation_id', '=', 'question.question_translation_id');
                 $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
             })
-            ->join('locale', 'locale.id', '=', 'translation_text.locale_id')
+            ->leftJoin('locale', 'locale.id', '=', 'translation_text.locale_id')
             ->where('form.id', '=', $formId)
             ->whereNull('question.deleted_at')
             ->select('question.id',
@@ -159,7 +159,7 @@ class ReportService
                 'form_section.follow_up_question_id')
             ->get();
         foreach ($questions as $q) {
-            $q->translations = $questionTranslations[$q->id];
+             $q->translations = $questionTranslations[$q->id];
         }
         return $questions;
     }
