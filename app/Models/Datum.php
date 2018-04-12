@@ -19,28 +19,36 @@ class Datum extends Model
         'val',
         'choice_id',
         'survey_id',
-        'preload_id',
         'question_id',
-        'repetition',
-        'parent_datum_id',
         'datum_type_id',
         'sort_order',
-        'opt_out',
-        'opt_out_val',
+        'question_datum_id',
+        'geo_id',
+        'edge_id',
+        'photo_id',
+        'roster_id',
         'created_at',
         'updated_at',
         'deleted_at'
     ];
 
-    /*
-    public function delete()
-    {
-        $childDatumChoices = DatumChoice::where('datum_id', '=', $this->id)->get();
-        foreach ($childDatumChoices as $childDatumChoice) {
-            $childDatumChoice->delete();
-        }
-
-        return parent::delete();
+    public function choices () {
+        return $this->hasMany('App\Models\Choice', 'choice')
+            ->whereNull('choice.deleted_at');
     }
-    */
+
+    public function geos () {
+        return $this->hasMany('App\Models\Geo', 'geo')
+            ->whereNull('geo.deleted_at');
+    }
+
+    public function edges () {
+        return $this->hasMany('App\Models\Edge', 'edge')
+            ->whereNull('edge.deleted_at');
+    }
+
+    public function rosters () {
+        return $this->hasMany('App\Models\Roster', 'roster')
+            ->whereNull('roster.deleted_at');
+    }
 }

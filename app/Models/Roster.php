@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Action extends Model
+class Roster extends Model
 {
     use SoftDeletes;
 
@@ -15,18 +15,10 @@ class Action extends Model
 
     protected $fillable = [
         'id',
-        'question_id',
-        'question_datum_id',
-        'survey_id',
-        'action_type_id',
-        'action_text',
-        'created_at',
+        'val',
         'updated_at',
+        'created_at',
         'deleted_at'
     ];
-
-    public function type(){
-        return $this->hasOne('action_type');
-    }
 
 }
