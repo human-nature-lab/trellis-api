@@ -17,7 +17,7 @@ class ActionAndDatumAndQuestionDatum extends Migration
 
             // Location information
             $table->integer('section_repetition');
-            $table->string('follow_up_question_datum_id', 41);
+            $table->string('follow_up_datum_id', 41);
             $table->string('question_id', 41);
             $table->string('survey_id', 41)->nullable();
             $table->string('preload_id', 41)->nullable();
@@ -32,7 +32,7 @@ class ActionAndDatumAndQuestionDatum extends Migration
         });
 
         Schema::table('question_datum', function (Blueprint $table) {
-            $table->foreign('follow_up_question_datum_id')->references('id')->on('question_datum');
+            $table->foreign('follow_up_datum_id')->references('id')->on('datum');
             $table->foreign('question_id')->references('id')->on('question');
         });
 
