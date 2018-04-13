@@ -20,6 +20,7 @@ class CreateActionTable extends Migration
             $table->dateTime('created_at');
             $table->dateTime('deleted_at')->nullable();
 
+
             $table->foreign('question_id')->references('id')->on('question');
             $table->foreign('survey_id')->references('id')->on('survey');
             $table->foreign('action_type_id')->references('id')->on('action_type');
