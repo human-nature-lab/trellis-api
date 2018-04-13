@@ -17,6 +17,7 @@ use DB;
 
 class ExportSnapshotV2 extends Command
 {
+    // USE: sudo -u www-data php artisan trellis:export:snapshotv2
     use WithoutOverlapping;
 
     // TODO: Why doesn't this mutex strategy work?
