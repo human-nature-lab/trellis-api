@@ -263,7 +263,6 @@ class FormReportJob extends Job
                 ->whereNull('datum_photo.deleted_at')
                 ->select('photo.file_name', 'photo.id')
                 ->get();
-            // TODO: Check if you can omit the $imageDatum and maybe consider doing a semi-colon delimited lsit instead
             $imageList = [];
             foreach($imageData as $index => $datum){
                 array_push($imageList, $datum->file_name);
