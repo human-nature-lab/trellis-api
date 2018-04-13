@@ -12,6 +12,20 @@ $app->post(
 );
 
 //**************************//
+//* Sync v2 Controller Routes *//
+//**************************//
+$app->get(
+    'device/{device_id}/syncv2/authenticate',
+    'SyncControllerV2@authenticate'
+);
+
+$app->get(
+    'device/{device_id}/syncv2/snapshot',
+    'SyncControllerV2@getSnapshotInfo'
+);
+
+
+//**************************//
 //* Sync Controller Routes *//
 //**************************//
 
