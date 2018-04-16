@@ -34,7 +34,8 @@ class Datum extends Model
 
     public function choices () {
         return $this->hasMany('App\Models\Choice', 'choice')
-            ->whereNull('choice.deleted_at');
+            ->whereNull('choice.deleted_at')
+            ->with('choiceTranslation');
     }
 
     public function geos () {
