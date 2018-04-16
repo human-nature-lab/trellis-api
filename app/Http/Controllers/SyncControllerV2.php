@@ -8,6 +8,8 @@ use Laravel\Lumen\Routing\Controller;
 use Validator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Adapter\Local;
 
 class SyncControllerV2 extends Controller
 {
@@ -34,6 +36,44 @@ class SyncControllerV2 extends Controller
         }
 
         return response()->json([], Response::HTTP_OK);
+    }
+
+    public function getSnapshotFileSize(Request $request, $snapshotId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $snapshotId
+        ]), [
+            'id' => 'required|string|exists:snapshot,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $snapshot = Snapshot::find($snapshotId);
+        if ($snapshot === null) {
+            return response()->json([
+                'msg' => 'Snapshot ID not found.',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $adapter = new Local(storage_path() . '/snapshot');
+        $filesystem = new Filesystem($adapter);
+        $exists = $filesystem->has($snapshot->file_name);
+
+        if (!$exists) {
+            return response()->json([
+                'msg' => 'Snapshot file not found.',
+                'err' => $validator->errors()
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $size = $filesystem->getSize($snapshot->file_name);
+
+        return response()->json($size, Response::HTTP_OK);
     }
 
     public function getSnapshotInfo(Request $request, $deviceId) {
