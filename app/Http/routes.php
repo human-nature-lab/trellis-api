@@ -24,6 +24,10 @@ $app->get(
     'SyncControllerV2@getSnapshotInfo'
 );
 
+$app->get(
+    'snapshot/{snapshot_id}/file_size',
+    'SyncControllerV2@getSnapshotFileSize'
+);
 
 //**************************//
 //* Sync Controller Routes *//
