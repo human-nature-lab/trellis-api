@@ -6,6 +6,8 @@ use App\Models\Edge;
 use App\Models\EdgeDatum;
 use App\Models\Datum;
 use App\Models\Interview;
+use App\Models\Respondent;
+use App\Models\SelfAdministeredSurvey;
 use App\Models\Survey;
 use App\Models\User;
 use App\Models\Token;
@@ -99,6 +101,63 @@ class InterviewController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function selfAdministeredLogin(Request $request, $formId)
+    {
+        $validator = Validator::make(
+            ['formId' => $formId],
+            [
+                'formId' => 'required|string|min:36|exists:form,id',
+                'respondentAssignedId' => 'required|string|exists:respondent,assigned_id',
+                'password' => 'required|string'
+            ]
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondentAssignedId = $request->input('respondentAssignedId');
+        // TODO: handle respondents with the same assigned ID
+        $respondentModel = Respondent::where('assigned_id', $respondentAssignedId)->first();
+
+        $surveyModel = Survey::where('respondent_id', $respondentModel->id)
+            ->where('form_id', $formId)->first();
+
+        if ($surveyModel === null) {
+            return response()->json([
+                'msg' => 'No survey found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $sasModel = SelfAdministeredSurvey::where('survey_id', $surveyModel->id)->first();
+
+        if ($sasModel === null) {
+            return response()->json([
+                'msg' => 'No self-administered survey found'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $password = $request->input('password');
+        if ($sasModel->password !== $password) {
+            return response()->json([
+                'msg' => 'Incorrect password provided'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $interviewId = Uuid::uuid4();
+        $interviewModel = new Interview;
+        $interviewModel->id = $interviewId;
+        $interviewModel->survey_id = $surveyModel->id;
+        $interviewModel->start_time = date('Y-m-d H:i:s');
+        $interviewModel->save();
+
+        return response()->json([
+            'interviewId' => $interviewId
+        ], Response::HTTP_OK);
+    }
 
     public function getInterviewPage(Request $request, $studyId){
 
