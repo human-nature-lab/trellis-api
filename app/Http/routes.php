@@ -182,6 +182,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     );
 
     $app->post(
+        'study/{studyId}/form/assign',
+        'FormController@assignForm'
+    );
+
+    $app->post(
         'study/form/{formId}/section/import',
         'FormController@importSection'
     );
