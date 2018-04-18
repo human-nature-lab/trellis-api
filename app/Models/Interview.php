@@ -40,4 +40,9 @@ class Interview extends Model
             ->belongsTo("App\Models\User", "user_id");
     }
 
+
+    public function surveyData() {
+        return $this->belongsTo('App\Models\Survey', 'survey_id')
+            ->with('respondent', 'questionData', 'sectionConditionTags', 'surveyConditionTags');
+    }
 }
