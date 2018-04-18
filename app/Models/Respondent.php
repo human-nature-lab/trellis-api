@@ -15,6 +15,7 @@ class Respondent extends Model
 
     protected $fillable = [
         'id',
+        'assigned_id',
         'geo_id',
         'notes',
         'geo_notes',
