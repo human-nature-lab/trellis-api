@@ -379,6 +379,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
     //* Respondent Controller Routes *//
     //****************************//
 
+    $app->post(
+        'study/{studyId}/respondent/import',
+        'RespondentController@importRespondents'
+    );
+
     $app->get(
         'study/{study_id}/respondents',
         'RespondentController@getAllRespondentsByStudyId'
