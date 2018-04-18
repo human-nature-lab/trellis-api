@@ -13,6 +13,7 @@ use App\Models\QuestionAssignConditionTag;
 use App\Models\QuestionChoice;
 use App\Models\QuestionGroup;
 use App\Models\QuestionParameter;
+use App\Models\Respondent;
 use App\Models\Section;
 use App\Models\SectionQuestionGroup;
 use App\Models\Study;
@@ -28,6 +29,7 @@ use App\Services\QuestionParameterService;
 use App\Services\QuestionService;
 use App\Services\QuestionChoiceService;
 use App\Services\QuestionTypeService;
+use App\Services\SelfAdministeredSurveyService;
 use App\Services\SkipService;
 use App\Services\TranslationService;
 use App\Services\TranslationTextService;
@@ -98,6 +100,68 @@ class FormController extends Controller
         return response()->json([
             'structure' => $form
         ], Response::HTTP_OK);
+    }
+
+    public function assignForm(Request $request, $studyId, SelfAdministeredSurveyService $sasService)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'studyId' => $studyId
+        ]), [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'formId' => 'required|string|min:36|exists:form,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $hasAssignFormFile = $request->hasFile('assignFormCsv');
+        if ($hasAssignFormFile) {
+            $assignFormFile = $request->file('assignFormCsv');
+            $assignFormStream = fopen($assignFormFile->getRealPath(), 'r+');
+            $assignFormCsv = Reader::createFromStream($assignFormStream);
+            $nAssigned = 0;
+
+            // Skip past header-row
+            $skipHeader = $request->input('skipHeader');
+            \Log::info('$skipHeader: ' . $skipHeader);
+
+            if ($skipHeader === "true") {
+                $assignFormCsv->setOffset(1);
+            }
+
+            $formId = $request->input('formId');
+
+            $assignFormCsv->each(function ($row) use ($nAssigned, $studyId, $sasService, $formId) {
+                // TODO: incrementing $nRespondents here doesn't work
+                // $nAssigned += 1;
+                $respondentAssignedId = $row[0];
+                $respondentPassword = $row[1];
+                \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
+                \Log::info('$respondentPassword: ' . $respondentPassword);
+
+                $respondentModel = Respondent::where('assigned_id', $respondentAssignedId)->first();
+                if ($respondentModel !== null) {
+                    \Log::info('$respondentId: ' . $respondentModel->id);
+                    //public static function assignSurvey ($respondentId, $formId, $studyId, $password)
+                }
+                $sasService->assignSurvey($respondentModel->id, $formId, $studyId, $respondentPassword);
+                return true;
+            });
+
+            return response()->json(
+                [ 'importedRespondents' => $nAssigned ],
+                Response::HTTP_OK
+            );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a CSV file of respondent IDs and passwords'
+            ], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService, QuestionParameterService $questionParameterService)
