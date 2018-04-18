@@ -40,7 +40,7 @@ class Respondent extends Model
             ->withTimestamps();
     }
 
-    public function conditionTags()
+    public function respondentConditionTags()
     {
         return $this->belongsToMany('App\Models\ConditionTag', 'respondent_condition_tag')
             ->whereNull('respondent_condition_tag.deleted_at')
