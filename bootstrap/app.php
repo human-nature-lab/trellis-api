@@ -109,13 +109,13 @@ $app->singleton(
         App\Http\Middleware\CorsMiddleware::class,
         Illuminate\Session\Middleware\StartSession::class,
 //	    Barryvdh\Cors\HandleCors::class,
-        App\Http\Middleware\KeyMiddleware::class,
         App\Http\Middleware\UserMiddleware::class
  ]);
 
  $app->routeMiddleware([
      'token' => 'App\Http\Middleware\TokenMiddleware',
-     'role' => 'App\Http\Middleware\RoleAuthMiddleware'
+     'role' => 'App\Http\Middleware\RoleAuthMiddleware',
+     'key' => 'App\Http\Middleware\KeyMiddleware',
  ]);
 
 /*
@@ -146,7 +146,8 @@ $app->register(\App\Providers\LogServiceProvider::class);
 */
 
 $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
-    require __DIR__.'/../app/Http/routes.php';
+    require __DIR__.'/../app/Http/routes.survey.php';
+    require __DIR__.'/../app/Http/routes.admin.php';
 });
 
 //$app->configure('cors');
