@@ -47,12 +47,12 @@ class InterviewDataController
             $questionDatum->save();
         }
 
-        $idsToRemove = array_map(function ($o) {return $o->id}, $delta->removed);
+        $idsToRemove = array_map(function ($o) { return $o->id; }, $delta->removed);
         $class::destroy($idsToRemove);
 
         // Conditions don't get modified. They are just created or deleted
         if (isset($delta['modified'])) {
-            foreach ($delta['modifed'] as $modifiedItem) {
+            foreach ($delta['modified'] as $modifiedItem) {
                 $modifiedModel = $class::find($modifiedItem->id);
                 foreach ($modifiedItem as $key => $value) {
                     $modifiedModel->$key = $value;
