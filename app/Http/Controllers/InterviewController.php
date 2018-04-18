@@ -103,14 +103,13 @@ class InterviewController extends Controller
 
     public function selfAdministeredLogin(Request $request, $formId)
     {
-        $validator = Validator::make(
-            ['formId' => $formId],
-            [
-                'formId' => 'required|string|min:36|exists:form,id',
-                'respondentAssignedId' => 'required|string|exists:respondent,assigned_id',
-                'password' => 'required|string'
-            ]
-        );
+        $validator = Validator::make(array_merge($request->all(), [
+            'formId' => $formId
+        ]), [
+            'formId' => 'required|string|min:36|exists:form,id',
+            'respondentAssignedId' => 'required|string|exists:respondent,assigned_id',
+            'password' => 'required|string'
+        ]);
 
         if ($validator->fails() === true) {
             return response()->json([
