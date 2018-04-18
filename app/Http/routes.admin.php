@@ -207,11 +207,6 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
             'InterviewController@submit'
         );
 
-        $app->post(
-            'form/{formId}/login',
-            'InterviewController@selfAdministeredLogin'
-        );
-
         $app->get(
             'study/{id}/interview',
             'InterviewController@getInterviewPage'

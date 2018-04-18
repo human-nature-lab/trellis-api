@@ -13,4 +13,9 @@ $app->group([
     'prefix' => 'survey-view'
 ], function ($app) {
     $app->get('form/{form_id}', 'SurveyViewController@showLogin');
+
+    $app->post(
+        'form/{formId}/login',
+        'InterviewController@selfAdministeredLogin'
+    );
 });
