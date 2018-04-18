@@ -184,6 +184,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         );
 
         $app->post(
+            'study/{studyId}/form/assign',
+            'FormController@assignForm'
+        );
+
+        $app->post(
             'study/form/{formId}/section/import',
             'FormController@importSection'
         );
@@ -200,6 +205,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         $app->post(
             'form/{id}/interview/{respondentId}/submit',
             'InterviewController@submit'
+        );
+
+        $app->get(
+            'form/{formId}/login',
+            'InterviewController@selfAdministeredLogin'
         );
 
         $app->get(
