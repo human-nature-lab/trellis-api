@@ -7,6 +7,7 @@ use App\Models\Photo;
 use App\Models\Study;
 use App\Models\RespondentPhoto;
 use App\Models\StudyRespondent;
+use App\Services\RespondentPhotoService;
 use App\Services\RespondentService;
 use \DateTime;
 use \Input;
@@ -93,6 +94,8 @@ class RespondentController extends Controller
             }
 
             $respondentCsv->each(function ($row) use ($nRespondents, $studyId, $respondentService) {
+                // TODO: incrementing $nRespondents here doesn't work
+                // $nRespondents += 1;
                 $respondentAssignedId = $row[0];
                 $respondentName = $row[1];
                 \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
@@ -107,6 +110,56 @@ class RespondentController extends Controller
                 [ 'importedRespondents' => $nRespondents ],
                 Response::HTTP_OK
             );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a CSV file of respondent IDs and names'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    public function importRespondentPhotos(Request $request, $studyId, RespondentPhotoService $respondentPhotoService)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'studyId' => $studyId
+        ]), [
+            'studyId' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $nRespondentPhotos = 0;
+        $hasRespondentPhotoFile = $request->hasFile('respondentPhotoZipFile');
+        if ($hasRespondentPhotoFile) {
+            $respondentPhotoFile = $request->file('respondentPhotoZipFile');
+            $respondentPhotoZip = new ZipArchive;
+            if ($respondentPhotoZip->open($respondentPhotoFile->getRealPath()) === TRUE) {
+                for ($i = 0; $i < $respondentPhotoZip->numFiles; $i++) {
+                    $fileName = $respondentPhotoZip->getNameIndex($i);
+                    $fileInfo = pathinfo($fileName);
+                    // TODO: Consider supporting other image types here
+                    if ($fileInfo['extension'] === 'jpg') {
+                        // TODO
+                        Log::info('JPG: ' . $fileInfo['basename']);
+                    }
+                }
+                $respondentPhotoZip->close();
+                return response()->json(
+                    [ 'importedRespondentPhotos' => $nRespondentPhotos ],
+                    Response::HTTP_OK
+                );
+            } else {
+                return response()->json([
+                    'msg' => 'Request failed',
+                    'err' => 'Unable to open the provided archive.'
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
         } else {
             return response()->json([
                 'msg' => 'Request failed',
@@ -312,10 +365,10 @@ class RespondentController extends Controller
         );
     }
 
-    public function addPhoto(Request $request, $respondentId)
+    public function addPhoto(Request $request, $respondent_id, RespondentPhotoService $respondentPhotoService)
     {
         $validator = Validator::make([
-            'respondent_id' => $respondentId], [
+            'respondent_id' => $respondent_id], [
             'respondent_id' => 'required|string|min:36'
         ]);
 
@@ -329,7 +382,7 @@ class RespondentController extends Controller
         $adapter = new Local(storage_path() . '/respondent-photos');
         $filesystem = new Filesystem($adapter);
 
-        $respondent = Respondent::find($respondentId);
+        $respondent = Respondent::find($respondent_id);
         $hasFile = $request->hasFile('file');
         if ($hasFile and $respondent->exists()) {
             $file = $request->file('file');
@@ -340,6 +393,9 @@ class RespondentController extends Controller
             $filesystem->writeStream($fileName, $stream);
             fclose($stream);
 
+            $photo = $respondentPhotoService->createRespondentPhoto($fileName, $respondent_id);
+
+            /*
             $photo = new Photo;
             $photoId = Uuid::uuid4();
             $photo->id = $photoId;
@@ -354,6 +410,7 @@ class RespondentController extends Controller
             $maxCount = ($maxCount == null) ? 1 : $maxCount + 1;
             $respondentPhoto->sort_order = $maxCount;
             $respondentPhoto->save();
+            */
 
             return response()->json(
                 ['photo' => $photo],
