@@ -72,7 +72,6 @@ class FormController extends Controller
         ], Response::HTTP_OK);
     }
 
-
     /**
      * Get the structure of the form. This is loosely defined as everything that is required to navigate the form, but not
      * display it.
