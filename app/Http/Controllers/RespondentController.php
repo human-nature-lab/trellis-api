@@ -7,6 +7,7 @@ use App\Models\Photo;
 use App\Models\Study;
 use App\Models\RespondentPhoto;
 use App\Models\StudyRespondent;
+use App\Services\RespondentService;
 use \DateTime;
 use \Input;
 use \DB;
@@ -17,6 +18,7 @@ use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 use Log;
+use League\Csv\Reader;
 
 class RespondentController extends Controller
 {
@@ -58,6 +60,59 @@ class RespondentController extends Controller
         return response()->json([
             'surveys' => $surveys
         ], Response::HTTP_OK);
+    }
+
+    public function importRespondents(Request $request, $studyId, RespondentService $respondentService)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'studyId' => $studyId
+        ]), [
+            'studyId' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $hasRespondentFile = $request->hasFile('respondentCsvFile');
+        if ($hasRespondentFile) {
+            $respondentFile = $request->file('respondentCsvFile');
+            $respondentFileStream = fopen($respondentFile->getRealPath(), 'r+');
+            $respondentCsv = Reader::createFromStream($respondentFileStream);
+            $nRespondents = 0;
+
+            // Skip past header-row
+            $skipHeader = $request->input('skipHeader');
+            \Log::info('$skipHeader: ' . $skipHeader);
+
+            if ($skipHeader === "true") {
+                $respondentCsv->setOffset(1);
+            }
+
+            $respondentCsv->each(function ($row) use ($nRespondents, $studyId, $respondentService) {
+                $respondentAssignedId = $row[0];
+                $respondentName = $row[1];
+                \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
+                \Log::info('$respondentName: ' . $respondentName);
+
+                $respondentService->createRespondent($respondentName, $studyId, $respondentAssignedId);
+
+                return true;
+            });
+
+            return response()->json(
+                [ 'importedRespondents' => $nRespondents ],
+                Response::HTTP_OK
+            );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a CSV file of respondent IDs and names'
+            ], Response::HTTP_BAD_REQUEST);
+        }
     }
 
     public function getAllRespondents(Request $request)
@@ -339,7 +394,7 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function createRespondent(Request $request)
+    public function createRespondent(Request $request, RespondentService $respondentService)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'string|min:1|max:65535',
@@ -353,22 +408,7 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $respondentId = Uuid::uuid4();
-        $respondentName = $request->input('name');
-
-        $newRespondentModel = new Respondent;
-        $newRespondentModel->id = $respondentId;
-        $newRespondentModel->name = $respondentName;
-        $newRespondentModel->save();
-
-        $studyId = $request->input('study_id');
-        $studyRespondentId = Uuid::uuid4();
-
-        $newStudyRespondentModel = new StudyRespondent;
-        $newStudyRespondentModel->id = $studyRespondentId;
-        $newStudyRespondentModel->respondent_id = $respondentId;
-        $newStudyRespondentModel->study_id = $studyId;
-        $newStudyRespondentModel->save();
+        $newRespondentModel = $respondentService->createRespondent ($request->input('name'), $request->input('study_id'));
 
         return response()->json([
             'respondent' => $newRespondentModel
