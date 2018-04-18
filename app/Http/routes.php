@@ -384,6 +384,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], fu
         'RespondentController@importRespondents'
     );
 
+    $app->post(
+        'study/{studyId}/respondent-photo/import',
+        'RespondentController@importRespondentPhotos'
+    );
+
     $app->get(
         'study/{study_id}/respondents',
         'RespondentController@getAllRespondentsByStudyId'
