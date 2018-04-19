@@ -9,7 +9,10 @@
 namespace App\Models;
 
 
-class QuestionDatum
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class QuestionDatum extends Model
 {
     use SoftDeletes;
 
