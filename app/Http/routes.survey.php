@@ -31,3 +31,4 @@ $app->post('form/{id}/interview/{respondentId}/submit', 'InterviewController@sub
 $app->get('form/{id}',                                      'FormController@getForm');
 $app->get('study/{study_id}/respondents',                   'RespondentController@getAllRespondentsByStudyId');
 $app->get('study/{id}',                                     'StudyController@getStudy');
+$app->get('photo/{id}',                                     'PhotoController@getPhoto');
