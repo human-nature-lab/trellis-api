@@ -131,10 +131,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Form Controller Routes *//
         //**************************//
 
-        $app->get(
-            'form/{id}',
-            'FormController@getForm'
-        );
+//        $app->get(
+//            'form/{id}',
+//            'FormController@getForm'
+//        );
 
         $app->delete(
             'form/{id}',
@@ -198,15 +198,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
             'RespondentController@getRespondentStudyForms'
         );
 
+
         //*******************************//
         //* Interview Controller Routes *//
         //*******************************//
-
-        $app->post(
-            'form/{id}/interview/{respondentId}/submit',
-            'InterviewController@submit'
-        );
-
         $app->get(
             'study/{id}/interview',
             'InterviewController@getInterviewPage'
@@ -216,6 +211,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
             'study/{id}/interview/count',
             'InterviewController@getInterviewCount'
         );
+
 
         //***************************//
         //* Study Controller Routes *//
@@ -236,10 +232,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
             'StudyController@createOrUpdateParameter'
         );
 
-        $app->get(
-            'study/{id}',
-            'StudyController@getStudy'
-        );
+//        $app->get(
+//            'study/{id}',
+//            'StudyController@getStudy'
+//        );
 
         $app->delete(
             'study/{id}',
@@ -396,10 +392,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
             'RespondentController@importRespondentPhotos'
         );
 
-        $app->get(
-            'study/{study_id}/respondents',
-            'RespondentController@getAllRespondentsByStudyId'
-        );
+//        $app->get(
+//            'study/{study_id}/respondents',
+//            'RespondentController@getAllRespondentsByStudyId'
+//        );
 
         $app->get(
             'respondent/{study_id}/count',
