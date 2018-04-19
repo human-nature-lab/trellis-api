@@ -77,7 +77,6 @@ class InterviewController extends Controller
             'study_id' => 'required|string|min:36|exists:study,id',
             'form_id' => 'required|string|min:36|exists:form,id',
             'respondent_id' => 'required|string|min:36|exists:respondent,id',
-            'token_id' => 'required|string|min:36|exists:token,id',
             'questions' => 'required|array'
         ]);
 
@@ -88,12 +87,10 @@ class InterviewController extends Controller
             ], $validator->statusCode());
         }
 
-        $token = Token::find($request->input('token_id'));
-        $user = User::find($token->user_id);
         $surveyModel = new Survey;
         $interviewModel = new Interview;
 
-        DB::transaction(function() use ($request, $surveyModel, $interviewModel, $user, $datumService) {
+        DB::transaction(function() use ($request, $surveyModel, $interviewModel, $datumService) {
 
             $surveyId = Uuid::uuid4();
             $interviewId = Uuid::uuid4();
@@ -109,7 +106,6 @@ class InterviewController extends Controller
             // Create new Interview
             $interviewModel->id = $interviewId;
             $interviewModel->survey_id = $surveyId;
-            $interviewModel->user_id = $user->id;
             // TODO: start_time and end_time
             $interviewModel->start_time = $now->getTimestamp();
             $interviewModel->end_time = $now->getTimestamp();
