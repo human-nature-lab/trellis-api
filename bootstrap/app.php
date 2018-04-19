@@ -146,8 +146,8 @@ $app->register(\App\Providers\LogServiceProvider::class);
 */
 
 $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
-    require __DIR__.'/../app/Http/routes.survey.php';
     require __DIR__.'/../app/Http/routes.admin.php';
+    require __DIR__.'/../app/Http/routes.survey.php';
 });
 
 //$app->configure('cors');
