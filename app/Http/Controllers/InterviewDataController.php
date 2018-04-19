@@ -16,6 +16,7 @@ use App\Models\RespondentConditionTag;
 use App\Models\SectionConditionTag;
 use App\Models\SurveyConditionTag;
 use DB;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
 
@@ -90,7 +91,7 @@ class InterviewDataController
            self::dataPatch(Datum::class, $patch['data']['datum']);
            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-           self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
+           self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['form']);
         });
 
         return response()->json([
