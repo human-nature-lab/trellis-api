@@ -38,14 +38,14 @@ class InterviewDataController
      */
     private function dataPatch ($class, $delta) {
         foreach ($delta['added'] as $newItem) {
-            $questionDatum = $class::firstOrNew([
-                'id' => $newItem
+            $model = $class::firstOrNew([
+                'id' => $newItem['id']
             ]);
             foreach ($newItem as $key => $value) {
-                $questionDatum->$key = $value;
+                $model->$key = $value;
             }
-            $questionDatum->deleted_at = null;
-            $questionDatum->save();
+            $model->deleted_at = null;
+            $model->save();
         }
 
         $idsToRemove = array_map(function ($o) { return $o->id; }, $delta->removed);
@@ -74,7 +74,7 @@ class InterviewDataController
         $validator = Validator::make([
             'interview_id' => $interviewId
         ], [
-            'interview_id' => 'required|string|min:36|exists:interview, id'
+            'interview_id' => 'required|string|min:36|exists:interview,id'
         ]);
 
         if ($validator->fails()) {
@@ -83,15 +83,15 @@ class InterviewDataController
             ], $validator->statusCode());
         }
 
-        $patch = $request->input->all();
+        $patch = $request->all();
 
         // They should all succeed or all fail as one
         DB::transaction(function () use ($patch) {
            self::dataPatch(QuestionDatum::class, $patch['data']['questionDatum']);
            self::dataPatch(Datum::class, $patch['data']['datum']);
-           self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
-           self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-           self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['form']);
+//           self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
+//           self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
+//           self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['form']);
         });
 
         return response()->json([
@@ -104,7 +104,7 @@ class InterviewDataController
      * @param $interviewId
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function getInterviewWithData ($interviewId) {
+    public function getInterviewData ($interviewId) {
         $validator = Validator::make([
             'interview_id' => $interviewId
         ], [
