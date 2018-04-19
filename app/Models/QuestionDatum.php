@@ -1,13 +1,6 @@
 <?php
-/**
- * Created by IntelliJ IDEA.
- * User: wi27
- * Date: 4/18/2018
- * Time: 1:14 PM
- */
 
 namespace App\Models;
-
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
