@@ -96,8 +96,8 @@ class RespondentController extends Controller
             $respondentCsv->each(function ($row) use ($nRespondents, $studyId, $respondentService) {
                 // TODO: incrementing $nRespondents here doesn't work
                 // $nRespondents += 1;
-                $respondentAssignedId = $row[0];
-                $respondentName = $row[1];
+                $respondentAssignedId = trim($row[0]);
+                $respondentName = trim($row[1]);
                 \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
                 \Log::info('$respondentName: ' . $respondentName);
 
@@ -175,7 +175,7 @@ class RespondentController extends Controller
         $offset = $request->input('offset', 0);
 
         $count = Respondent::count();
-        $respondents = Respondent::with('photos', 'conditionTags')
+        $respondents = Respondent::with('photos', 'respondentConditionTags')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -213,11 +213,11 @@ class RespondentController extends Controller
 
         if ($q) {
             $searchTerms = explode(" ", $q);
-            $r1 = Respondent::with('photos', 'conditionTags')
+            $r1 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
 
-            $r2 = Respondent::with('photos', 'conditionTags')
+            $r2 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 2 as score")
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
 
@@ -225,12 +225,12 @@ class RespondentController extends Controller
                 $cArray = explode(",", $c);
                 if (count($cArray) > 0) {
                     $r1 = $r1
-                        ->whereHas('conditionTags', function ($query) use ($cArray) {
+                        ->whereHas('respondentConditionTags', function ($query) use ($cArray) {
                             $query
                                 ->whereIn('condition_tag.name', $cArray);
                         }, '=', count($cArray));
                     $r2 = $r2
-                        ->whereHas('conditionTags', function ($query) use ($cArray) {
+                        ->whereHas('respondentConditionTags', function ($query) use ($cArray) {
                             $query
                                 ->whereIn('condition_tag.name', $cArray);
                         }, '=', count($cArray));
@@ -259,7 +259,7 @@ class RespondentController extends Controller
             //Log::info('$currentQuery: ' . $currentQuery);
 
 
-            $respondents = $respondents->limit($limit)->offset($offset)->get();
+            $respondents = $respondents->limit($limit)->offset($offset)->get()->unique();
             $count = count($respondents);
 
             return response()->json(
@@ -270,7 +270,7 @@ class RespondentController extends Controller
                 Response::HTTP_OK
             );
         } else {
-            $respondents = Respondent::with('photos', 'conditionTags')
+            $respondents = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
 
@@ -278,7 +278,7 @@ class RespondentController extends Controller
                 $cArray = explode(",", $c);
                 if (count($cArray) > 0) {
                     $respondents = $respondents
-                        ->whereHas('conditionTags', function ($query) use ($cArray) {
+                        ->whereHas('respondentConditionTags', function ($query) use ($cArray) {
                             $query
                                 ->whereIn('condition_tag.name', $cArray);
                         }, '=', count($cArray));
@@ -325,7 +325,7 @@ class RespondentController extends Controller
             $query->where('study.id', '=', $study_id);
         })->count();
 
-        $respondents = Respondent::with('photos', 'conditionTags')->whereHas('studies', function ($query) use ($study_id) {
+        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
         })
             ->limit($limit)
