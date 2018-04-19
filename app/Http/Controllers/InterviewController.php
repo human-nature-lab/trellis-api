@@ -253,4 +253,25 @@ class InterviewController extends Controller
 
     }
 
+
+    public function getInterview ($interviewId) {
+        $validator = Validator::make([
+            'interview_id' => $interviewId
+        ], [
+            'interview_id' => 'required|string|min:36|exists:interview,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $interview = Interview::where('id', $interviewId)->with('survey')->first();
+
+        return response()->json([
+            'interview' => $interview
+        ], Response::HTTP_OK);
+    }
+
 }
