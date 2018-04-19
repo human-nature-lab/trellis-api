@@ -137,8 +137,8 @@ class FormController extends Controller
             $assignFormCsv->each(function ($row) use ($nAssigned, $studyId, $sasService, $formId) {
                 // TODO: incrementing $nRespondents here doesn't work
                 // $nAssigned += 1;
-                $respondentAssignedId = $row[0];
-                $respondentPassword = $row[1];
+                $respondentAssignedId = trim($row[0]);
+                $respondentPassword = trim($row[1]);
                 \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
                 \Log::info('$respondentPassword: ' . $respondentPassword);
 
