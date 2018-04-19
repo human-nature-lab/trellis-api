@@ -122,10 +122,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //**************************//
         //* Photo Controller Routes *//
         //**************************//
-        $app->get(
-            'photo/{id}',
-            'PhotoController@getPhoto'
-        );
+//        $app->get(
+//            'photo/{id}',
+//            'PhotoController@getPhoto'
+//        );
 
         //**************************//
         //* Form Controller Routes *//
