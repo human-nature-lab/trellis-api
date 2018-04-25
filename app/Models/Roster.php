@@ -11,7 +11,7 @@ class Roster extends Model
 
     public $incrementing = false;
 
-    protected $table = 'action';
+    protected $table = 'roster';
 
     protected $fillable = [
         'id',

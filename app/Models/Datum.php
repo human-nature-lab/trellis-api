@@ -19,7 +19,6 @@ class Datum extends Model
         'val',
         'choice_id',
         'survey_id',
-        'question_id',
         'datum_type_id',
         'sort_order',
         'question_datum_id',
