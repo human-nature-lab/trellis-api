@@ -555,7 +555,7 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $respondent = Respondent::find($respondentId);
+        $respondent = Respondent::with('respondentConditionTags', 'photos')->find($respondentId);
         return response()->json([
             'respondent' => $respondent
         ], Response::HTTP_OK);
