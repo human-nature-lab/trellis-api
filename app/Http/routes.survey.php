@@ -26,7 +26,12 @@ $app->group([
 
     $app->get('respondent/{respondent_id}',                 'RespondentController@getRespondentById');
 
-    $app->post('edge',                                      'EdgeController@createEdges');
+    $app->post('edges',                                     'EdgeController@createEdges');
+    $app->get('edges/{ids}',                                'EdgeController@getEdgesById');
+
+    $app->post('rosters',                                   'RosterController@createRosterRows');
+    $app->get('rosters/{ids}',                              'RosterController@getRostersById');
+    $app->put('rosters',                                    'RosterController@editRosterRows');
 });
 
 
