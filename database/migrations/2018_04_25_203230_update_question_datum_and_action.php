@@ -30,7 +30,7 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->string('action_type');
             $table->text('payload')->nullable();
 
-            $table->dropForeign('question_datum_question_id_foreign');
+            $table->dropForeign('action_question_id_foreign');
             $table->dropColumn('question_id');
         });
 

@@ -15,7 +15,9 @@ $app->group([
     $app->post('form/{formId}/login',                       'InterviewController@selfAdministeredLogin');
     $app->get('form/{form_id}',                             'FormController@getForm');
 
-    $app->get('interview/{interview_id}/data',              'InterviewDataController@getInterviewData');
+    $app->get('interview/{interview_id}/actions',           'InterviewDataController@getInterviewActionsByInterviewId');
+    $app->post('interview/{interview_id}/actions',          'InterviewDataController@saveInterviewActions');
+    $app->get('interview/{interview_id}/data',              'InterviewDataController@getInterviewDataByInterviewId');
     $app->post('interview/{interview_id}/data',             'InterviewDataController@updateInterviewData');
     $app->get('interview/{interview_id}',                   'InterviewController@getInterview');
 
@@ -32,6 +34,8 @@ $app->group([
     $app->post('rosters',                                   'RosterController@createRosterRows');
     $app->get('rosters/{ids}',                              'RosterController@getRostersById');
     $app->put('rosters',                                    'RosterController@editRosterRows');
+
+    $app->get('photo/{id}',                                 'PhotoController@getPhoto');
 });
 
 
