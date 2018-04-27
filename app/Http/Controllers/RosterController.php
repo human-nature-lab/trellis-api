@@ -31,7 +31,7 @@ class RosterController extends Controller {
         $rosters = Roster::whereIn('id', $rosterIds)->get();
 
 	    return response()->json([
-	        'roster' => $rosters
+	        'rosters' => $rosters
         ], Response::HTTP_OK);
     }
 

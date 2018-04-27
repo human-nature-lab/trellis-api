@@ -20,7 +20,6 @@ class Action extends Model
         'survey_id',
         'payload',
         'created_at',
-        'updated_at',
         'deleted_at'
     ];
 

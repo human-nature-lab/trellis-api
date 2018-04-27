@@ -23,18 +23,18 @@ class QuestionDatum extends Model
         'id',
         'section_repetition',
         'follow_up_datum_id',
-        'section',
-        'page',
         'question_id',
         'survey_id',
         'preload_id',
         'answered_at',
         'skipped_at',
-        'dk_rf',
-        'dk_rf_val',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
+        'section',
+        'page',
+        'dk_rf',
+        'dk_rf_val'
     ];
 
 
