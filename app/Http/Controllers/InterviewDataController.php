@@ -9,6 +9,7 @@
 namespace App\Http\Controllers;
 
 
+use App\Models\Action;
 use App\Models\Datum;
 use App\Models\Interview;
 use App\Models\QuestionDatum;
@@ -104,11 +105,11 @@ class InterviewDataController
      * @param $interviewId
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function getInterviewData ($interviewId) {
+    public function getInterviewDataByInterviewId ($interviewId) {
         $validator = Validator::make([
             'interview_id' => $interviewId
         ], [
-            'inteview_id' => 'required|string|min:36|exists:interview,id'
+            'interview_id' => 'required|string|min:36|exists:interview,id'
         ]);
 
         if ($validator->fails()) {
@@ -122,5 +123,74 @@ class InterviewDataController
             'interview' => $interview
         ], Response::HTTP_OK);
 
+    }
+
+    /**
+     * Get all of the actions associated with an interview via the survey
+     * @param $interviewId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function getInterviewActionsByInterviewId ($interviewId) {
+        $validator = Validator::make([
+            'interview_id' => $interviewId
+        ], [
+            'interview_id' => 'required|string|min:36|exists:interview,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $actions = Action::join('survey')
+            ->join('interview', function ($join) use ($interviewId) {
+                $join->on('interview.survey_id', '=', 'survey.id')
+                    ->andOn('interview.id', '=', $interviewId);
+            })->get();
+
+        return response()->json([
+            'actions' => $actions
+        ], Response::HTTP_OK);
+
+    }
+
+    /**
+     * Store the actions for an interview
+     * @param Request $request
+     * @param $interviewId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function saveInterviewActions (Request $request, $interviewId) {
+        $validator = Validator::make([
+            'interview_id' => $interviewId
+        ], [
+            'interview_id' => 'required|string|min:36|exists:interview,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+        $actions = $request->get('actions');
+
+        // Handle this tranaction manually and return an error if we fail to insert the data
+        DB::beginTransaction();
+
+        try {
+            Action::insert($actions);
+        } catch (Exception $exception) {
+            DB::rollBack();
+            return response()->json([
+                'msg' => $exception
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'msg' => 'ok'
+        ], Response::HTTP_OK);
     }
 }

@@ -21,14 +21,14 @@ class Datum extends Model
         'survey_id',
         'datum_type_id',
         'sort_order',
+        'created_at',
+        'updated_at',
+        'deleted_at',
         'question_datum_id',
         'geo_id',
         'edge_id',
         'photo_id',
-        'roster_id',
-        'created_at',
-        'updated_at',
-        'deleted_at'
+        'roster_id'
     ];
 
     public function choices () {
