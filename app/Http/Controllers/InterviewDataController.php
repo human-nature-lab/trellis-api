@@ -64,7 +64,7 @@ class InterviewDataController
         }
     }
 
-    /**
+     /**
      * Take a delta encoding of the interview data and condition tags and modified the state of the database so
      * that it represents the current state of the survey
      * @param Request $request
@@ -86,10 +86,21 @@ class InterviewDataController
 
         $patch = $request->all();
 
+        $data = $patch['data'];
         // They should all succeed or all fail as one
-        DB::transaction(function () use ($patch) {
-           self::dataPatch(QuestionDatum::class, $patch['data']['questionDatum']);
-           self::dataPatch(Datum::class, $patch['data']['datum']);
+        DB::transaction(function () use ($data) {
+            // Remove datum and questionDatum that were removed first
+            $datumIds = array_map(function ($d) {
+                return $d['id'];
+            }, $data['datum']);
+            $qDatumIds = array_map(function ($d) {
+                return $d['id'];
+            }, $data['questionDatum']);
+            Datum::destroy($datumIds);
+            QuestionDatum::destroy($qDatumIds);
+
+           self::dataPatch(QuestionDatum::class, $data['questionDatum']);
+           self::dataPatch(Datum::class, $data['datum']);
 //           self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
 //           self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
 //           self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['form']);
