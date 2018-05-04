@@ -72,7 +72,8 @@ class InterviewReportJob extends Job
             })
             ->leftJoin('user', 'user.id', '=', 'interview.user_id')
             ->where('survey.study_id', '=', $this->studyId)
-            ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username', 'translation_text.translated_text as form_name');
+            ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username', 'translation_text.translated_text as form_name')
+            ->addSelect(DB::raw('(select count(*) from datum where survey_id = survey.id and datum.opt_out is not null) as dk_rf_count'));
 
         Log::debug($interviews->toSql());
 
@@ -92,7 +93,8 @@ class InterviewReportJob extends Job
             'end_time' => "end_time",
             'created_at' => 'created_at',
             'updated_at' => "updated_at",
-            "deleted_at" => 'deleted_at'
+            "deleted_at" => 'deleted_at',
+            'dk_rf_count' => 'dk_rf_count'
         ];
 
         // Sort by num parents from low to high
