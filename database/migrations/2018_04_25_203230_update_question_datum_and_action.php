@@ -27,11 +27,16 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->dropColumn('action_type_id');
             $table->dropColumn('action_text');
 
-            $table->string('action_type');
+            $table->string('question_id', 41)->nullable()->change();
+            $table->string('action_type', 41);
             $table->text('payload')->nullable();
+            $table->integer('section');
+            $table->integer('page');
+            $table->integer('section_follow_up_repetition')->nullable();
+            $table->integer('section_repetition')->nullable();
 
-            $table->dropForeign('action_question_id_foreign');
-            $table->dropColumn('question_id');
+            $table->dropForeign('action_question_datum_id_foreign');
+            $table->dropColumn('question_datum_id');
         });
 
         Schema::table('datum', function (Blueprint $table) {
@@ -57,12 +62,16 @@ class UpdateQuestionDatumAndAction extends Migration
         Schema::table('action', function (Blueprint $table) {
             $table->text('action_text')->nullable();
             $table->string('action_type_id', 41);
-            $table->dropColumn('payload');
-            $table->dropColumn('action_type');;
-            $table->string('question_id', 41)->nullable();
 
-            $table->foreign('question_id')->references('id')->on('question');
             $table->foreign('action_type_id')->references('id')->on('action_type');
+
+            $table->dropForeign('action_question_id_foreign')->null();
+            $table->dropColumn('payload');
+            $table->dropColumn('action_type');
+            $table->dropColumn('section');
+            $table->dropColumn('page');
+            $table->dropColumn('sectionFollowUpRepetition')->null();
+            $table->dropColumn('sectionRepetition')->null();
         });
 
         Schema::table('question_datum', function (Blueprint $table) {
