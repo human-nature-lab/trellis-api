@@ -19,6 +19,7 @@ use App\Models\SurveyConditionTag;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Log;
 use Validator;
 
 class InterviewDataController
@@ -154,11 +155,11 @@ class InterviewDataController
             ], $validator->statusCode());
         }
 
-        $actions = Action::join('survey')
-            ->join('interview', function ($join) use ($interviewId) {
-                $join->on('interview.survey_id', '=', 'survey.id')
-                    ->andOn('interview.id', '=', $interviewId);
-            })->get();
+        $interview = Interview::find($interviewId);
+
+        $actions = Action::where('action.survey_id', '=', $interview->survey_id)
+            ->leftJoin('interview', 'interview.survey_id', '=', 'action.survey_id')
+            ->get();
 
         return response()->json([
             'actions' => $actions
@@ -184,12 +185,24 @@ class InterviewDataController
                 'err' => $validator->errors()
             ], $validator->statusCode());
         }
-        $actions = $request->get('actions');
+        $actions = array_map(function ($action) {
+            if (isset($action['payload']) && !is_string($action['payload'])) {
+                $action['payload'] = json_encode($action['payload']);
+            }
+            $fields = ['created_at', 'payload', 'action_type', 'survey_id', 'deleted_at','section','page','section_repetition','section_follow_up_repetition','question_id'];
+            foreach ($fields as $field) {
+                if (!isset($action[$field])) {
+                    $action[$field] = null;
+                }
+            }
+            return $action;
+        }, $request->get('actions'));
 
         // Handle this tranaction manually and return an error if we fail to insert the data
         DB::beginTransaction();
 
         try {
+            // This doesn't seem to work ATM
             Action::insert($actions);
         } catch (Exception $exception) {
             DB::rollBack();

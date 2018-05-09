@@ -260,4 +260,31 @@ class GeoController extends Controller
             'geo' => $returnGeo
         ], Response::HTTP_OK);
     }
+
+    /**
+     * Get a bunch of geos at one time by passing in a list of comma delimited ids. If any of the ids are invalid the
+     * entire request will fail.
+     * @param {String} $ids - A comma delimited list of geo ids
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function getGeosById ($ids) {
+        $geoIds = explode(',', $ids);
+        $validator = Validator::make([
+            'geo_ids' => $geoIds
+        ], [
+            'geo_ids' => 'required|exists:geo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $geos = Geo::whereIn('id', $geoIds)->get();
+
+        return response()->json([
+            'geos' => $geos
+        ], Response::HTTP_OK);
+    }
 }
