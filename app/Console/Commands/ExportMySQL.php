@@ -63,8 +63,8 @@ class ExportMySQL extends Command
         if (substr($dumpPathString, 0, 1) === '>') {
             $dumpPathString = '>'.$dumpPathString;
         }
-        $datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null)"'." $dumpPathString";
-        $datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null))"'." $dumpPathString";
+        $datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null) or preload_id is not null"'." $dumpPathString";
+        $datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null) or preload_id is not null)"'." $dumpPathString";
 
         $cmds = [$mainDumpCmd, $datumDumpCmd, $datumRelatedCmd];
         foreach ($cmds as $cmd) {
