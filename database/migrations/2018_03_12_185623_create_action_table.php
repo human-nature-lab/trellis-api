@@ -13,7 +13,7 @@ class CreateActionTable extends Migration
         });
         Schema::create('action', function (Blueprint $table) {
             $table->string('id', 41)->primary();
-            $table->string('survey_id', 41);
+            $table->string('survey_id', 41)->nullable();
             $table->string('action_type_id', 41);
             $table->string('question_id', 41);
             $table->text('action_text');

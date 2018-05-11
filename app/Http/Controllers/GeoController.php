@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Log;
 use Validator;
 use App\Models\Geo;
 use App\Library\TranslationHelper;
@@ -13,6 +14,90 @@ use DB;
 
 class GeoController extends Controller
 {
+
+    public function searchGeos(Request $request) {
+
+        $query = $request->get('query');
+        $limit = $request->get('limit', 25);
+        $offset = $request->get('offset', 0);
+        $study = $request->get('study');
+        $parent = $request->get('parent');
+        $onlyNoParent = $request->get('no-parent');
+        $types = $request->get('types');
+        $types = isset($types) ? explode(',', $types) : [];
+
+        $validator = Validator::make([
+            'limit' => $limit,
+            'offset' => $offset,
+            'parent' => $parent,
+            'study' => $study,
+            'types' => $types
+        ], [
+            'limit' => 'max:100',
+            'offset' => 'min:0',
+            'study' => 'exists:study,id',
+            'parent' => 'exists:geo,id',
+            'type' => 'array|exists:geo_type,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+
+        $q = Geo::with('photos', 'nameTranslation');
+        if (isset($query)) {
+            $terms = explode(" ", $query);
+            Log::debug(json_encode($terms));
+            foreach ($terms as $i => $term) {
+                if ($i === 0) {
+                    $q = $q->whereIn('name_translation_id', function ($sq) use ($term) {
+                        $sq->select('translation_id')
+                            ->from('translation_text')
+                            ->where('translated_text', 'like', "%$term%");
+                    });
+                } else {
+                    $q = $q->orWhereIn('name_translation_id', function ($sq) use ($term) {
+                        $sq->select('translation_id')
+                            ->from('translation_text')
+                            ->where('translated_text', 'like', "%$term%");
+                    });
+                }
+            }
+        }
+
+        if (isset($study)) {
+            $q = $q->whereIn('geo_type_id', function ($sq) use ($study) {
+                $sq->select('id')
+                    ->from('geo_type')
+                    ->where('study_id', '=', $study);
+            });
+        }
+
+        if (isset($parent)) {
+            $q = $q->where('parent_id', '=', $parent);
+        } else if (isset($onlyNoParent)) {
+            $q = $q->whereNull('parent_id');
+        }
+
+        if (count($types) > 0) {
+            $q = $q->whereIn('geo_type_id', $types);
+        }
+
+        $q = $q->take($limit)->skip($offset);
+
+        Log::debug($q->toSql());
+
+        $geos = $q->get();
+
+        return response()->json([
+            'geos' => $geos
+        ], Response::HTTP_OK);
+
+    }
+
     public function getGeo(Request $request, $id)
     {
         $validator = Validator::make(
@@ -281,7 +366,7 @@ class GeoController extends Controller
             ], $validator->statusCode());
         }
 
-        $geos = Geo::whereIn('id', $geoIds)->get();
+        $geos = Geo::with('photos')->whereIn('id', $geoIds)->get();
 
         return response()->json([
             'geos' => $geos
