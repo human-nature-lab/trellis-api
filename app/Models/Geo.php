@@ -39,6 +39,11 @@ class Geo extends Model
             ->belongsTo('App\Models\GeoType', 'geo_type_id');
     }
 
+    public function photos() {
+        return $this
+            ->belongsToMany('App\Models\Photo', 'geo_photo', 'geo_id', 'photo_id');
+    }
+
     public function parent()
     {
         return $this

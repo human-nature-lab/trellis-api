@@ -36,6 +36,7 @@ $app->group([
     $app->put('rosters',                                    'RosterController@editRosterRows');
 
     $app->get('geos/{ids}',                                 'GeoController@getGeosById');
+    $app->get('geo/search',                                 'GeoController@searchGeos');
 
     $app->get('photo/{id}',                                 'PhotoController@getPhoto');
 });
