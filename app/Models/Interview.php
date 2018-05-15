@@ -31,8 +31,7 @@ class Interview extends Model
     public function survey(){
         return $this
             ->belongsTo("App\Models\Survey", "survey_id")
-            ->with('respondent')
-            ->with("form");
+            ->with('respondent', 'form');
     }
 
     public function user(){
@@ -43,6 +42,6 @@ class Interview extends Model
 
     public function surveyData() {
         return $this->belongsTo('App\Models\Survey', 'survey_id')
-            ->with('respondent', 'questionData', 'sectionConditionTags', 'surveyConditionTags');
+            ->with('respondent', 'data', 'sectionConditionTags', 'surveyConditionTags');
     }
 }
