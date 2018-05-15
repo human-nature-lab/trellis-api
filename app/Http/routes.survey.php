@@ -25,6 +25,7 @@ $app->group([
     $app->get('study/{study_id}/respondents/search',        'RespondentController@searchRespondentsByStudyId');
     $app->get('study/{study_id}/respondents',               'RespondentController@getAllRespondentsByStudyId');
     $app->get('study/{study_id}',                           'StudyController@getStudy');
+    $app->get('studies',                                    'StudyController@getAllStudiesComplete');
 
     $app->get('respondent/{respondent_id}',                 'RespondentController@getRespondentById');
 
