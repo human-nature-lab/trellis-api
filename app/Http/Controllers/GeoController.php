@@ -366,7 +366,7 @@ class GeoController extends Controller
             ], $validator->statusCode());
         }
 
-        $geos = Geo::with('photos')->whereIn('id', $geoIds)->get();
+        $geos = Geo::with('photos', 'nameTranslation')->whereIn('id', $geoIds)->get();
 
         return response()->json([
             'geos' => $geos

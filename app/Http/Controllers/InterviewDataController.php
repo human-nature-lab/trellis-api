@@ -17,8 +17,10 @@ use App\Models\RespondentConditionTag;
 use App\Models\SectionConditionTag;
 use App\Models\SurveyConditionTag;
 use DB;
+use Doctrine\DBAL\Driver\PDOException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use League\Flysystem\Exception;
 use Log;
 use Validator;
 
@@ -50,13 +52,13 @@ class InterviewDataController
             $model->save();
         }
 
-        $idsToRemove = array_map(function ($o) { return $o->id; }, $delta->removed);
+        $idsToRemove = array_map(function ($o) { return $o['id']; }, $delta['removed']);
         $class::destroy($idsToRemove);
 
         // Conditions don't get modified. They are just created or deleted
         if (isset($delta['modified'])) {
             foreach ($delta['modified'] as $modifiedItem) {
-                $modifiedModel = $class::find($modifiedItem->id);
+                $modifiedModel = $class::find($modifiedItem['id']);
                 foreach ($modifiedItem as $key => $value) {
                     $modifiedModel->$key = $value;
                 }
@@ -86,30 +88,104 @@ class InterviewDataController
         }
 
         $patch = $request->all();
+        Log::debug(json_encode($patch));
+        $datum = $patch['data']['datum'];
+        $questionDatum = $patch['data']['questionDatum'];
 
-        $data = $patch['data'];
-        // They should all succeed or all fail as one
-        DB::transaction(function () use ($data) {
-            // Remove datum and questionDatum that were removed first
-            $datumIds = array_map(function ($d) {
-                return $d['id'];
-            }, $data['datum']);
-            $qDatumIds = array_map(function ($d) {
-                return $d['id'];
-            }, $data['questionDatum']);
-            Datum::destroy($datumIds);
-            QuestionDatum::destroy($qDatumIds);
+        DB::beginTransaction();
 
-           self::dataPatch(QuestionDatum::class, $data['questionDatum']);
-           self::dataPatch(Datum::class, $data['datum']);
-//           self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
-//           self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-//           self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['form']);
-        });
+        try {
+            // Simpler stuff first
+            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
+            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
+            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
+
+            // Remove any removed datum
+            $removedDatumIds = array_map(function ($d) {
+                return $d['id'];
+            }, $datum['removed']);
+            $removedQuestionDatumIds = array_map(function ($d) {
+                return $d['id'];
+            }, $questionDatum['removed']);
+            Datum::destroy($removedDatumIds);
+            Questiondatum::destroy($removedQuestionDatumIds);
+
+//            QuestionDatum::insert($questionDatum['added']);
+//            Datum::insert($datum['added']);
+
+            // Update modified values
+            foreach ($datum['modified'] as $d) {
+                Datum::where('id', '=', $d['id'])
+                    ->update($d);
+            }
+            foreach ($questionDatum['modified'] as $d) {
+                QuestionDatum::where('id', '=', $d['id'])
+                    ->update($d);
+            }
+
+            $insertSieve = [];
+            $tries = 0;
+            $failureCount = 0;
+            do {
+                foreach ($questionDatum['added'] as $qD) {
+                    if (!isset($insertSieve[$qD['id']])) {
+                        $insertSieve[$qD['id']] = false;
+                    }
+                    try {
+                        $d = new QuestionDatum($qD);
+                        $d->save();
+                        $insertSieve[$qD['id']] = true;
+                    }
+                    catch (PDOException $e) {
+                        $failureCount++;
+                    }
+                    catch (Exception $e) {
+                        Log::debug($e);
+                        $failureCount++;
+                    }
+                }
+                foreach ($datum['added'] as $d) {
+                    if (!isset($insertSieve[$d['id']])) {
+                        $insertSieve[$d['id']] = false;
+                    }
+                    try {
+                        $da = new Datum($d);
+                        $da->save();
+                        $insertSieve[$d['id']] = true;
+                    }
+                    catch (PDOException $e) {
+                        $failureCount++;
+                    }
+                    catch (Exception $e) {
+                        Log::debug($e);
+                        $failureCount++;
+                    }
+                }
+            } while ($failureCount > 0 && $tries < 3);
+
+            $insertFailures = 0;
+            foreach ($insertSieve as $key => $val) {
+                if (!$val) {
+                    $insertFailures++;
+                }
+            }
+            if ($insertFailures > 0) {
+                throw new Exception('Unable to insert questionDatum and datum');
+            }
+
+        } catch (Exception $exception) {
+            Log::debug('rolling back transaction');
+            DB::rollBack();
+            return response()->json([
+                'msg' => $exception
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        DB::commit();
 
         return response()->json([
             'msg' => 'successful patch'
-        ], Response::HTTP_ACCEPTED);
+        ], Response::HTTP_CREATED);
     }
 
     /**
@@ -130,7 +206,7 @@ class InterviewDataController
             ], $validator->statusCode());
         }
 
-        $interview = Interview::find($interviewId)->with('surveyData');
+        $interview = Interview::with('surveyData')->find($interviewId);
         return response()->json([
             'interview' => $interview
         ], Response::HTTP_OK);
@@ -158,7 +234,6 @@ class InterviewDataController
         $interview = Interview::find($interviewId);
 
         $actions = Action::where('action.survey_id', '=', $interview->survey_id)
-            ->leftJoin('interview', 'interview.survey_id', '=', 'action.survey_id')
             ->get();
 
         return response()->json([
@@ -202,7 +277,6 @@ class InterviewDataController
         DB::beginTransaction();
 
         try {
-            // This doesn't seem to work ATM
             Action::insert($actions);
         } catch (Exception $exception) {
             DB::rollBack();
