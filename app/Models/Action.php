@@ -27,8 +27,4 @@ class Action extends Model
         'deleted_at'
     ];
 
-    public function type(){
-        return $this->hasOne('action_type');
-    }
-
 }
