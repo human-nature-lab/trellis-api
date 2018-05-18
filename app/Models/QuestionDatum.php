@@ -1,4 +1,10 @@
 <?php
+/**
+ * Created by IntelliJ IDEA.
+ * User: wi27
+ * Date: 4/18/2018
+ * Time: 1:14 PM
+ */
 
 namespace App\Models;
 
@@ -22,11 +28,13 @@ class QuestionDatum extends Model
         'preload_id',
         'answered_at',
         'skipped_at',
-        'opt_out',
-        'opt_out_val',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
+        'section',
+        'page',
+        'dk_rf',
+        'dk_rf_val'
     ];
 
 

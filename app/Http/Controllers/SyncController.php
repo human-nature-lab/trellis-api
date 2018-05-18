@@ -16,6 +16,7 @@ use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
 use RuntimeException;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Process\Process;
 use Validator;
 
 class SyncController extends Controller
@@ -269,6 +270,14 @@ class SyncController extends Controller
             ], $validator->statusCode());
         };
 
+        //TODO possibly move this to a terminable middleware or queue, see: https://laracasts.com/discuss/channels/laravel/can-i-finish-request-and-then-continue-processing
+        try {
+            Artisan::call('trellis:export:snapshot');   // runs the command synchronously (this is ok as long as the client has a long or infinite timeout)
+        } catch (RuntimeException $e) {
+            // WithoutOverlapping trait throws RuntimeException('Command is running now!') if command is already running
+        }
+        // (new Process('php artisan trellis:export:snapshot', base_path()))->start();  // generates snapshot asynchronously in another process //BUG this can be terminated after response is sent (so far seen in Red Hat Enterprise Linux) and prevent snapshot generation
+
         app()->configure('snapshot');   // save overhead by only loading config when needed
 
         $snapshotDirPath = FileHelper::storagePath(config('snapshot.directory.path'));
@@ -286,16 +295,6 @@ class SyncController extends Controller
                 return response()->download($newestFilePath, $newestFileName);   // if snapshot epoch >= than device's epoch, then return binary file download
             }
         }
-
-        //BUG //TODO move this to a terminable middleware or queue, see: https://laracasts.com/discuss/channels/laravel/can-i-finish-request-and-then-continue-processing
-        // export new snapshot after 202 Accepted is returned to client and connection is closed
-        register_shutdown_function(function(){
-            try {
-                Artisan::call('trellis:export:snapshot');
-            } catch (RuntimeException $e) {
-                // WithoutOverlapping trait throws RuntimeException('Command is running now!') if command is already running
-            }
-        });
 
         return response()->json([], Response::HTTP_ACCEPTED);   // if no snapshot epoch >= than device's epoch, then return 202 Accepted to make client retry later
     }

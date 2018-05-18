@@ -16,6 +16,7 @@ class Snapshot extends Model
     protected $fillable = [
         'id',
         'file_name',
+        'hash',
         'created_at',
         'updated_at',
         'deleted_at'

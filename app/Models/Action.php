@@ -15,18 +15,16 @@ class Action extends Model
 
     protected $fillable = [
         'id',
+        'action_type',
+        'section',
+        'page',
+        'section_repetition',
+        'section_follow_up_repetition',
         'question_id',
-        'question_datum_id',
         'survey_id',
-        'action_type_id',
-        'action_text',
+        'payload',
         'created_at',
-        'updated_at',
         'deleted_at'
     ];
-
-    public function type(){
-        return $this->hasOne('action_type');
-    }
 
 }
