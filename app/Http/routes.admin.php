@@ -31,6 +31,11 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         'SyncControllerV2@getSnapshotFileSize'
     );
 
+    $app->get(
+        'snapshot/{snapshot_id}/download',
+        'SyncControllerV2@downloadSnapshot'
+    );
+
     //**************************//
     //* Sync Controller Routes *//
     //**************************//
