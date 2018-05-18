@@ -15,6 +15,11 @@ class PhotoController extends Controller
 {
     public function getPhoto($id)
     {
+        return response("iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==")
+            ->header('Content-Type', 'image/jpeg')
+            ->header('Pragma', 'public')
+            ->header('Cache-Control', 'max-age=60, must-revalidate');
+
         $photoModel = Photo::find($id);
         if ($photoModel != null) {
             // TODO: this hard-coded path should be put in the config
@@ -33,7 +38,9 @@ class PhotoController extends Controller
             }
         }
 
-        return Response::HTTP_NOT_FOUND;
+        return response()->json([
+            'msg' => 'Photo not found'
+        ], Response::HTTP_NOT_FOUND);
     }
 
 

@@ -17,8 +17,8 @@ class FileService{
      */
     public static function writeCsv($colMap, $rowMaps, $filePath, $nullValue='NA', $replacements=['DK'=>'Dont_Know','RF'=>'Refused','respondent_id'=>'respondent_master_id']){
 
-        $headerIds = array();
-        $headerNames = array();
+        $headerIds = [];
+        $headerNames = [];
         foreach ($colMap as $id => $name){
             array_push($headerIds, $id);
             array_push($headerNames, $name);
@@ -29,6 +29,8 @@ class FileService{
         }
 
         $file = fopen($filePath, 'w');
+        // Write the file encoding header -> https://stackoverflow.com/questions/21988581/write-utf-8-characters-to-file-with-fputcsv-in-php
+        fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
         // Make any replacements on the column headers
         foreach($headerNames as $index => $name){
@@ -40,7 +42,7 @@ class FileService{
         // Write headers
         fputcsv($file, $headerNames);
         foreach ($rowMaps as $rowMap){
-            $row = array();
+            $row = [];
             foreach ($headerIds as $id){
                 if(isset($rowMap[$id])
                     && $rowMap[$id] !== ''){

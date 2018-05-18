@@ -21,4 +21,13 @@ class Edge extends Model
         'updated_at',
         'deleted_at'
     ];
+
+
+    public function targetRespondent () {
+        return $this->hasOne('App\Models\Respondent', 'id', 'target_respondent_id')->with('photos');
+    }
+
+    public function sourceRespondent () {
+        return $this->hasOne('App\Models\Respondent', 'id', 'source_respondent_id')->with('photos');
+    }
 }

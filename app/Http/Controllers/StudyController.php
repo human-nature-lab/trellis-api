@@ -50,8 +50,7 @@ class StudyController extends Controller
         if($user->role == "ADMIN"){
             return response()->json([
                 'studies' => Study::whereNull('deleted_at')
-                    ->with('locales', 'defaultLocale')
-                    ->with('parameters')
+                    ->with('locales', 'defaultLocale', 'parameters')
                     ->get()
             ], Response::HTTP_OK);
         } else {
@@ -62,6 +61,14 @@ class StudyController extends Controller
                 Response::HTTP_OK
             );
         }
+    }
+
+    public function getAllStudiesComplete() {
+        return response()->json([
+            'studies' => Study::whereNull('deleted_at')
+                ->with('locales', 'defaultLocale', 'parameters')
+                ->get()
+        ], Response::HTTP_OK);
     }
 
     public function updateStudy(Request $request, $id)

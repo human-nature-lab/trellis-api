@@ -31,9 +31,17 @@ class ExportMySQL extends Command
     public function handle()
     {
         $length = escapeshellarg(10*1024);    //TODO get this from .env or derive it as: length <= (smallest insert statement)*SQLITE_MAX_COMPOUND_SELECT.  for example 24*500 = 12000.  use 10k for now
-        $ignoreTablesString = implode(' ', array_map(function ($table) {
-            return '--ignore-table="$DB_DATABASE".' . escapeshellarg($table);
-        }, $this->option('exclude')));
+
+        $excludedTables = array_merge($this->option('exclude'), ['datum', 'datum_choice', 'datum_geo', 'datum_group_tag', 'datum_photo', 'edge_datum']);
+
+        $DB_HOST = env('DB_HOST');
+        $DB_PORT = env('DB_PORT');
+        $DB_USERNAME = env('DB_USERNAME');
+        $DB_DATABASE = env('DB_DATABASE');
+
+        $ignoreTablesString = implode(' ', array_map(function ($table) use ($DB_DATABASE) {
+            return "--ignore-table=$DB_DATABASE." . escapeshellarg($table);
+        }, $excludedTables));
 
         if (!is_null($this->argument('storage_path'))) {
             $dumpPath = FileHelper::storagePath($this->argument('storage_path'));
@@ -51,24 +59,32 @@ class ExportMySQL extends Command
         // mysql_config_editor print --all
         // # to run mysql utilities with config:
         // mysqldump --login-path=client --host="\$DB_HOST" --port="\$DB_PORT" --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
-        $process = new Process(<<<EOT
-mysqldump --host="\$DB_HOST" --port="\$DB_PORT" --user="\$DB_USERNAME" --net-buffer-length=$length --single-transaction --complete-insert --compact $ignoreTablesString "\$DB_DATABASE" $dumpPathString
-EOT
-, base_path(), [
-    'DB_HOST' => env('DB_HOST'),
-    'DB_PORT' => env('DB_PORT'),
-    'DB_USERNAME' => env('DB_USERNAME'),
-    'MYSQL_PWD' => env('DB_PASSWORD'),  // use MYSQL_PWD to suppress "mysqldump: [Warning] Using a password on the command line interface can be insecure." instead of passing --password="$DB_PASSWORD"  //BUG decide whether to use mysql_config_editor
-    'DB_DATABASE' => env('DB_DATABASE'),
-]);
-
-        $process->setTimeout(null)->run(function ($type, $buffer) {
-            fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
-        });
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
+        $mainDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert --compact $ignoreTablesString $DB_DATABASE $dumpPathString";
+        if (substr($dumpPathString, 0, 1) === '>') {
+            $dumpPathString = '>'.$dumpPathString;
         }
+        $datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null) or preload_id is not null"'." $dumpPathString";
+        $datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null) or preload_id is not null)"'." $dumpPathString";
+
+        $cmds = [$mainDumpCmd, $datumDumpCmd, $datumRelatedCmd];
+        foreach ($cmds as $cmd) {
+            $process = new Process($cmd, base_path(), [
+                    'DB_HOST' => env('DB_HOST'),
+                    'DB_PORT' => env('DB_PORT'),
+                    'DB_USERNAME' => env('DB_USERNAME'),
+                    'MYSQL_PWD' => env('DB_PASSWORD'),  // use MYSQL_PWD to suppress "mysqldump: [Warning] Using a password on the command line interface can be insecure." instead of passing --password="$DB_PASSWORD"  //BUG decide whether to use mysql_config_editor
+                    'DB_DATABASE' => env('DB_DATABASE'),
+                ]);
+
+            $process->setTimeout(null)->run(function ($type, $buffer) {
+                fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
+            });
+
+            if (!$process->isSuccessful()) {
+                throw new ProcessFailedException($process);
+            }
+        }
+
 
         return 0;
     }

@@ -60,7 +60,7 @@ class Survey extends Model
     }
 
 
-    public function questionData () {
+    public function data () {
         return $this->hasMany('App\Models\QuestionDatum', 'survey_id')
             ->whereNull('question_datum.deleted_at')
             ->with('data');
