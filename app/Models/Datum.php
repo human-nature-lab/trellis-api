@@ -13,7 +13,7 @@ class Datum extends Model
 
     protected $table = 'datum';
 
-    protected $fillable = [
+    public $fillable = [
         'id',
         'name',
         'val',
@@ -28,7 +28,8 @@ class Datum extends Model
         'geo_id',
         'edge_id',
         'photo_id',
-        'roster_id'
+        'roster_id',
+        'event_order'
     ];
 
     public function choices () {

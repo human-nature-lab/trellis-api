@@ -42,6 +42,8 @@ class UpdateQuestionDatumAndAction extends Migration
         Schema::table('datum', function (Blueprint $table) {
             $table->dropForeign('datum_question_id_foreign');
             $table->dropColumn('question_id');
+            $table->string('question_datum_id', 41)->nullable()->change();
+            $table->smallInteger('event_order');
         });
 
         Schema::drop('action_type');
@@ -61,17 +63,17 @@ class UpdateQuestionDatumAndAction extends Migration
 
         Schema::table('action', function (Blueprint $table) {
             $table->text('action_text')->nullable();
-            $table->string('action_type_id', 41);
+            $table->string('action_type_id', 41)->nullable();
 
             $table->foreign('action_type_id')->references('id')->on('action_type');
 
-            $table->dropForeign('action_question_id_foreign')->null();
+            $table->dropForeign('action_question_id_foreign')->nullable();
             $table->dropColumn('payload');
             $table->dropColumn('action_type');
             $table->dropColumn('section');
             $table->dropColumn('page');
-            $table->dropColumn('sectionFollowUpRepetition')->null();
-            $table->dropColumn('sectionRepetition')->null();
+            $table->dropColumn('section_follow_up_repetition')->nullable();
+            $table->dropColumn('section_repetition')->nullable();
         });
 
         Schema::table('question_datum', function (Blueprint $table) {
@@ -81,6 +83,13 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->dropColumn('dk_rf_val');
             $table->dropColumn('section');
             $table->dropColumn('page');
+        });
+
+        Schema::table('datum', function (Blueprint $table) {
+            $table->string('question_id', 41)->nullable();
+            $table->foreign('question_id')->references('id')->on('question');
+            $table->string('question_datum_id', 41)->nullable(false)->change();
+            $table->dropColumn('event_order');
         });
     }
 }

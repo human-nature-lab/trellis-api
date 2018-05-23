@@ -2,8 +2,6 @@
 
 namespace App\Classes;
 
-use Log;
-
 class Memoization
 {
     /**
