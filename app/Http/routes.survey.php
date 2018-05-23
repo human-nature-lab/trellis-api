@@ -16,10 +16,11 @@ $app->group([
     $app->get('form/{form_id}',                             'FormController@getForm');
 
     $app->get('interview/{interview_id}/actions',           'InterviewDataController@getInterviewActionsByInterviewId');
-    $app->post('interview/{interview_id}/actions',          'InterviewDataController@saveInterviewActions');
     $app->get('interview/{interview_id}/data',              'InterviewDataController@getInterviewDataByInterviewId');
-    $app->post('interview/{interview_id}/data',             'InterviewDataController@updateInterviewData');
+    $app->get('interview/{interview_id}/preload',          'PreloadController@getPreloadDataByInterviewId');
     $app->get('interview/{interview_id}',                   'InterviewController@getInterview');
+    $app->post('interview/{interview_id}/actions',          'InterviewDataController@saveInterviewActions');
+    $app->post('interview/{interview_id}/data',             'InterviewDataController@updateInterviewData');
 
 
     $app->get('study/{study_id}/respondents/search',        'RespondentController@searchRespondentsByStudyId');

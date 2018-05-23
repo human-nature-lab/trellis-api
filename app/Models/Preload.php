@@ -25,15 +25,8 @@ class Preload extends Model
         'completed_at'
     ];
 
-    /*
-    public function delete()
-    {
-        $childDatum = Datum::where('survey_id', '=', $this->id)->get();
-        foreach ($childDatum as $childData) {
-            $childData->delete();
-        }
-
-        return parent::delete();
+    public function data () {
+        return $this->hasMany('App\Models\Datum', 'preload_id', 'id');
     }
-    */
+
 }
