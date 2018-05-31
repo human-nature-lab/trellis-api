@@ -77,50 +77,50 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
 
 
 // TODO: Temporary form navigation routes
-    $app->get(
-        'form/{formId}/structure',
-        'FormController@getFormStructure'
-    );
-
-    $app->get(
-        'study/{studyId}/locales',
-        'StudyController@getLocales'
-    );
-
-    $app->get(
-        'survey/{surveyId}/actions',
-        'ActionController@getSurveyActions'
-    );
-
-    $app->get(
-        'study/{studyId}/surveys',
-        'SurveyController@getStudySurveys'
-    );
-
-    $app->get(
-        'form/action-types',
-        'ActionTypeController@getActionTypes'
-    );
-
-    $app->get(
-        'respondent/{respondentId}/study/{studyId}/forms',
-        'RespondentController@getRespondentStudyForms'
-    );
-
-    $app->get(
-        'study/{studyId}/form',
-        'FormController@getAllStudyForms'
-    );
-
-    $app->get(
-        'respondent/{respondentId}',
-        'RespondentController@getRespondentById'
-    );
-
-    $app->get(
-        'respondent',
-        'RespondentController@getAllRespondents'
-    );
+//    $app->get(
+//        'form/{formId}/structure',
+//        'FormController@getFormStructure'
+//    );
+//
+//    $app->get(
+//        'study/{studyId}/locales',
+//        'StudyController@getLocales'
+//    );
+//
+//    $app->get(
+//        'survey/{surveyId}/actions',
+//        'ActionController@getSurveyActions'
+//    );
+//
+//    $app->get(
+//        'study/{studyId}/surveys',
+//        'SurveyController@getStudySurveys'
+//    );
+//
+//    $app->get(
+//        'form/action-types',
+//        'ActionTypeController@getActionTypes'
+//    );
+//
+//    $app->get(
+//        'respondent/{respondentId}/study/{studyId}/forms',
+//        'RespondentController@getRespondentStudyForms'
+//    );
+//
+//    $app->get(
+//        'study/{studyId}/form',
+//        'FormController@getAllStudyForms'
+//    );
+//
+//    $app->get(
+//        'respondent/{respondentId}',
+//        'RespondentController@getRespondentById'
+//    );
+//
+//    $app->get(
+//        'respondent',
+//        'RespondentController@getAllRespondents'
+//    );
 
     $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
 

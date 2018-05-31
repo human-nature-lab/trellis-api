@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\AssignConditionTag;
 use App\Models\ConditionTag;
 use App\Models\QuestionAssignConditionTag;
+use App\Models\RespondentConditionTag;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
@@ -215,12 +217,26 @@ class ConditionController extends Controller
         return response()->json($conditionNames, Response::HTTP_OK);
     }
 
-    public function getAllUniqueConditions(Request $request)
+    public function getAllUniqueConditions()
     {
         $conditionTagModel = ConditionTag::get();
 
         return response()->json([
             'conditions' => $conditionTagModel
+        ], Response::HTTP_OK);
+    }
+
+    public function getAllRespondentConditionTags() {
+        $tags = RespondentConditionTag::join('condition_tag', 'respondent_condition_tag.condition_tag_id', '=', 'condition_tag.id')
+            ->join('assign_condition_tag', function ($join) {
+                $join->on('assign_condition_tag.condition_tag_id', '=', 'condition_tag.id');
+                $join->on('assign_condition_tag.scope', '=', DB::raw("'respondent'"));
+            })
+            ->select('name')
+            ->distinct();
+        Log::debug('respondent-condition-tag query: ' . $tags->toSql());
+        return response()->json([
+            'conditions' => array_map(function ($t) {return $t['name'];}, $tags->get()->toArray())
         ], Response::HTTP_OK);
     }
 }
