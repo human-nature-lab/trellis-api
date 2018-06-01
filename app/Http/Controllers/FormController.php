@@ -36,6 +36,7 @@ use App\Services\TranslationTextService;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
@@ -1048,6 +1049,37 @@ class FormController extends Controller
 
         return response()->json([
             'msg' => 'Form prepped successfully.'
+        ], Response::HTTP_OK);
+    }
+
+
+    public function getPublishedForms ($studyId) {
+        $studyId = urldecode($studyId);
+
+        $validator = Validator::make([
+            'study' => $studyId
+        ], [
+            'study' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $q = Form::where('is_published', 1)
+                ->whereIn('id', function ($sub) use ($studyId) {
+                   $sub->select('form_master_id')
+                        ->from('study_form')
+                        ->where('study_id', $studyId);
+                })
+                ->with('studyForm', 'nameTranslation');
+
+        Log::debug($q->toSql());
+
+        return response()->json([
+            'forms' => $q->get()
         ], Response::HTTP_OK);
     }
 }

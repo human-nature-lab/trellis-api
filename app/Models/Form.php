@@ -33,6 +33,11 @@ class Form extends Model
             ->with('translationText');
     }
 
+    public function studyForm() {
+        return $this->hasMany('App\Models\StudyForm', 'form_master_id')
+            ->whereNull('study_form.deleted_at');
+    }
+
     public function sections()
     {
         return $this
