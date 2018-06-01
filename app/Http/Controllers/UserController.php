@@ -182,6 +182,23 @@ class UserController extends Controller
         return response()->json($request->user(), Response::HTTP_OK);
     }
 
+    /**
+     * Return all of the studies for the signed in user
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function getMyStudies (Request $request) {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'msg' => "Can't determine user automagically"
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        return response()->json([
+            'studies' => $user->studies
+        ], Response::HTTP_OK);
+    }
+
     public function createUser(Request $request)
     {
         $validator = Validator::make($request->all(), [

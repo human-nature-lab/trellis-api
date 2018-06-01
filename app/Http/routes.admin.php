@@ -107,10 +107,10 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
 //        'RespondentController@getRespondentStudyForms'
 //    );
 //
-//    $app->get(
-//        'study/{studyId}/form',
-//        'FormController@getAllStudyForms'
-//    );
+    $app->get(
+        'study/{studyId}/form',
+        'FormController@getAllStudyForms'
+    );
 //
 //    $app->get(
 //        'respondent/{respondentId}',
@@ -295,6 +295,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
             'user',
             'UserController@getAllUsers'
         );
+
 
         $app->put(
             'user/{user_id}/studies/{study_id}',
