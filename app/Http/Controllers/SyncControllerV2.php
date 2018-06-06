@@ -76,6 +76,7 @@ class SyncControllerV2 extends Controller
         return response()->json($size, Response::HTTP_OK);
     }
 
+
     public function downloadSnapshot(Request $request, $snapshotId) {
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $snapshotId
@@ -111,6 +112,7 @@ class SyncControllerV2 extends Controller
 
         return response()->download(storage_path() . '/snapshot/' . $snapshot->file_name);
     }
+
 
     public function getSnapshotInfo(Request $request, $deviceId) {
         $validator = Validator::make(array_merge($request->all(), [

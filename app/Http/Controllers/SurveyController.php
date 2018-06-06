@@ -3,6 +3,7 @@
 use App\Models\Survey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
 
@@ -21,6 +22,38 @@ class SurveyController extends Controller {
         ], Response::HTTP_OK);
 	}
 
+    /**
+     * Get all surveys completed by the respondent in this study
+     * @param {String} $studyId
+     * @param {String} $respondentId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+	public function getRespondentStudySurveys($studyId, $respondentId) {
+        $respondentId = urldecode($respondentId);
+        $studyId = urldecode($studyId);
+	    $validator = Validator::make([
+	        'study' => $studyId,
+            'respondent' => $respondentId
+        ], [
+            'study' => 'required|string|min:36|exists:study,id',
+            'respondent' => 'required|string|min:36|exists:respondent,id'
+        ]);
+
+	    if ($validator->fails()) {
+	        return response()->json([
+	            'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $q = Survey::where('respondent_id', $respondentId)
+            ->where('study_id', $studyId);
+
+	    Log::debug($q->toSql());
+
+	    return response()->json([
+	        'surveys' => $q->get()
+        ], Response::HTTP_OK);
+    }
 
 	public function getStudySurveys (Request $request, $studyId) {
 	    $validator = Validator::make(array_merge($request->all(), [
