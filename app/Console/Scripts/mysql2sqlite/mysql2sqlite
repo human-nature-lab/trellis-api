@@ -102,7 +102,7 @@ aInc == 1 && /PRIMARY KEY|primary key/ { next }
   gsub( /(CHARACTER SET|character set) [^ ]+[ ,]/, "" )
   gsub( /DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP|default current_timestamp on update current_timestamp/, "" )
   gsub( /(COLLATE|collate) [^ ]+ /, "" )
-# gsub( /(ENUM|enum)[^)]+\)/, "text " )	# disallow enum (until script is fixed) due to https://github.com/dumblob/mysql2sqlite/issues/12
+  gsub( /(ENUM|enum)[^)]+\)/, "text " )	# disallow enum (until script is fixed) due to https://github.com/dumblob/mysql2sqlite/issues/12
   gsub( /(SET|set)\([^)]+\)/, "text " )
   gsub( /UNSIGNED|unsigned/, "" )
   gsub( /` [^ ]*(INT|int)[^ ]*/, "` integer" )
