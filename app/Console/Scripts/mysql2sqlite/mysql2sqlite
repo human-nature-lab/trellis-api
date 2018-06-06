@@ -11,9 +11,9 @@ BEGIN {
       exit 1
   }
   FS=",$"
-  print "PRAGMA synchronous = OFF;"
-  print "PRAGMA journal_mode = MEMORY;"
-  print "BEGIN TRANSACTION;"
+  # print "PRAGMA synchronous = OFF;"
+  # print "PRAGMA journal_mode = MEMORY;"
+  # print "BEGIN TRANSACTION;"
 }
 
 # CREATE TRIGGER statements have funny commenting. Remember we are in trigger.
@@ -171,7 +171,7 @@ END {
   # print all `KEY` creation lines.
   for (table in key) printf key[table]
 
-  print "END TRANSACTION;"
+  # print "END TRANSACTION;"
 
   if ( hexIssue ){
     print "WARN Hexadecimal numbers longer than 16 characters has been trimmed." | "cat >&2"
