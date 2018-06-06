@@ -11,9 +11,11 @@ use App\Models\Survey;
 use App\Models\User;
 use App\Models\Token;
 use App\Services\DatumService;
+use Carbon\Carbon;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
@@ -69,6 +71,42 @@ class InterviewController extends Controller
             'survey-id' => $survey->id,
             'interview-id' => $interview->id
         ], Response::HTTP_OK);
+    }
+
+    public function completeInterview ($interviewId) {
+        $validator = Validator::make([
+            'interview' => $interviewId
+        ], [
+            'interview' => 'required|string|min:36|exists:interview,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::whereIn('id', function ($query) use ($interviewId) {
+            $query->select('survey_id')
+                ->from('interview')
+                ->where('id', $interviewId);
+        })->whereNull('deleted_at');
+
+        Log::debug($survey->toSql());
+
+        $survey = $survey->first();
+        if (!$survey) {
+            return response()->json([
+                'msg' => 'No survey exists for this interview'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $survey->completed_at = Carbon::now();
+        $survey->save();
+
+        return response()->json([
+            'msg' => 'donezo'
+        ], Response::HTTP_NO_CONTENT);
     }
 
     public function submit(Request $request, DatumService $datumService) {
@@ -347,4 +385,48 @@ class InterviewController extends Controller
         ], Response::HTTP_OK);
     }
 
+    /**
+     * Create new interview for the specified survey
+     * @param {String} $surveyId
+     */
+    public function createInterview (Request $request, $surveyId) {
+        $validator = Validator::make([
+            'survey' => $surveyId
+        ], [
+            'survey' => 'required|string|min:36|exists:survey,id'
+        ]);
+
+        $latitude = $request->get('latitude');
+        $longitude = $request->get('longitude');
+        $altitude = $request->get('altitude');
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::find($surveyId);
+        if ($survey->completed_at) {
+            return response()->json([
+                'msg' => "Can't create a new interview for a completed survey"
+            ], Response::HTTP_NOT_ACCEPTABLE);
+        }
+
+        $user = $request->user();
+        $interview = Interview::create([
+            'id' => Uuid::uuid4(),
+            'survey_id' => $surveyId,
+            'user_id' => $user->id,
+            'start_time' => Carbon::now(),
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'altitude' => $altitude,
+        ]);
+
+        return response()->json([
+            'interview' => $interview
+        ], Response::HTTP_OK);
+
+    }
 }
