@@ -14,11 +14,16 @@ class PreloadController extends Controller {
      * @return \Symfony\Component\HttpFoundation\Response
      */
     public function getPreloadDataByInterviewId ($interviewId) {
+        return response()->json([
+            'preload' => []
+        ], Response::HTTP_OK);
+
         $validator = Validator::make([
             'interview_id' => $interviewId
         ], [
             'interview_id' => 'required|exists:interview,id'
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'msg' => $validator->errors()

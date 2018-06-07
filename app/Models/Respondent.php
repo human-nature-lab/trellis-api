@@ -25,6 +25,10 @@ class Respondent extends Model
         'deleted_at'
     ];
 
+    public function names () {
+        return $this->hasMany('App\Models\RespondentName');
+    }
+
     public function photos()
     {
         return $this
