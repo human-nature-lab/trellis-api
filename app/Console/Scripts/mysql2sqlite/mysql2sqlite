@@ -11,9 +11,9 @@ BEGIN {
       exit 1
   }
   FS=",$"
-  print "PRAGMA synchronous = OFF;"
-  print "PRAGMA journal_mode = MEMORY;"
-  print "BEGIN TRANSACTION;"
+  # print "PRAGMA synchronous = OFF;"
+  # print "PRAGMA journal_mode = MEMORY;"
+  # print "BEGIN TRANSACTION;"
 }
 
 # CREATE TRIGGER statements have funny commenting. Remember we are in trigger.
@@ -102,7 +102,7 @@ aInc == 1 && /PRIMARY KEY|primary key/ { next }
   gsub( /(CHARACTER SET|character set) [^ ]+[ ,]/, "" )
   gsub( /DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP|default current_timestamp on update current_timestamp/, "" )
   gsub( /(COLLATE|collate) [^ ]+ /, "" )
-# gsub( /(ENUM|enum)[^)]+\)/, "text " )	# disallow enum (until script is fixed) due to https://github.com/dumblob/mysql2sqlite/issues/12
+  gsub( /(ENUM|enum)[^)]+\)/, "text " )	# disallow enum (until script is fixed) due to https://github.com/dumblob/mysql2sqlite/issues/12
   gsub( /(SET|set)\([^)]+\)/, "text " )
   gsub( /UNSIGNED|unsigned/, "" )
   gsub( /` [^ ]*(INT|int)[^ ]*/, "` integer" )
@@ -171,7 +171,7 @@ END {
   # print all `KEY` creation lines.
   for (table in key) printf key[table]
 
-  print "END TRANSACTION;"
+  # print "END TRANSACTION;"
 
   if ( hexIssue ){
     print "WARN Hexadecimal numbers longer than 16 characters has been trimmed." | "cat >&2"
