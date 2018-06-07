@@ -121,7 +121,7 @@ class ExportSnapshotV2 extends Command
             FileHelper::mkdir($tempDirPath);
             FileHelper::cleanDirectory($tempDirPath, config('temp.directory.size.max'));
 
-            ///// dump sqlite and gzip output /////
+            ///// dump sqlite and zip output /////
             $excludeTablesString = implode(' ', array_map(function ($table) {
                 return "--exclude=" . escapeshellarg($table);
             }, $excludeTables));
@@ -133,15 +133,30 @@ class ExportSnapshotV2 extends Command
             $this->info("sqliteDumpName: $sqliteDumpName");
             $sqliteDumpPath = "$tempDirPath/$sqliteDumpName";
             $this->info("sqliteDumpPath: $sqliteDumpPath");
-            $zipPath = $sqliteDumpPath . '.gz';
+            $zipPath = $sqliteDumpPath . '.zip';
             $this->info("zipPath: $zipPath");
-            $zipPathString = '> ' . escapeshellarg($zipPath);
+            $zipPathString = escapeshellarg($zipPath);
             $this->info("zipPathString: $zipPathString");
 
 
             $this->info("Starting trellis:export:sqlite process...");
             $process = new Process(<<<EOT
-php artisan trellis:export:sqlite $excludeTablesString | gzip --best $zipPathString
+php artisan trellis:export:sqlite $excludeTablesString > $sqliteDumpPath
+EOT
+                , base_path());
+
+            $process->setTimeout(null)->run(function ($type, $buffer) {
+                fwrite($type === Process::OUT ? STDOUT : STDERR, $buffer);
+            });
+
+            if (!$process->isSuccessful()) {
+                $this->error('trellis:export:sqlite process failed!');
+                throw new ProcessFailedException($process);
+            }
+
+            $this->info("Zipping sqlite export...");
+            $process = new Process(<<<EOT
+zip -j $zipPath $sqliteDumpPath
 EOT
                 , base_path());
 
@@ -161,7 +176,7 @@ EOT
 
             $this->info("Moving temporary file to snapshot directory...");
             ///// move zip file to destination atomically /////
-            $snapshotName = $snapshotId . '.sqlite.sql.gz';
+            $snapshotName = $snapshotId . '.sqlite.sql.zip';
             $this->info("snapshotName: $snapshotName");
             $snapshotPath = $snapshotDirPath . '/' . $snapshotName;
             $this->info("snapshotPath: $snapshotPath");
