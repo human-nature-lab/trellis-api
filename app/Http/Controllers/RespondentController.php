@@ -270,7 +270,7 @@ class RespondentController extends Controller
                 Response::HTTP_OK
             );
         } else {
-            $respondents = Respondent::with('photos', 'respondentConditionTags')
+            $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
                 ->selectRaw("*, 1 as score")
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
 
@@ -325,7 +325,7 @@ class RespondentController extends Controller
             $query->where('study.id', '=', $study_id);
         })->count();
 
-        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($study_id) {
+        $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
         })
             ->limit($limit)
