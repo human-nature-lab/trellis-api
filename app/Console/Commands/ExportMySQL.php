@@ -59,12 +59,12 @@ class ExportMySQL extends Command
         // mysql_config_editor print --all
         // # to run mysql utilities with config:
         // mysqldump --login-path=client --host="\$DB_HOST" --port="\$DB_PORT" --single-transaction --skip-extended-insert --compact trellis > trellis_mysql.sql
-        $mainDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --complete-insert --compact --skip-triggers $ignoreTablesString $DB_DATABASE $dumpPathString";
+        $mainDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert --compact --skip-triggers $ignoreTablesString $DB_DATABASE $dumpPathString";
         if (substr($dumpPathString, 0, 1) === '>') {
             $dumpPathString = '>'.$dumpPathString;
         }
-        $datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --complete-insert  --compact --skip-triggers $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null) or preload_id is not null"'." $dumpPathString";
-        $datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --complete-insert  --compact --skip-triggers $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null) or preload_id is not null)"'." $dumpPathString";
+        $datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  --compact --skip-triggers $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null) or preload_id is not null"'." $dumpPathString";
+        $datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  --compact --skip-triggers $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null) or preload_id is not null)"'." $dumpPathString";
 
         $cmds = [$mainDumpCmd, $datumDumpCmd, $datumRelatedCmd];
         foreach ($cmds as $cmd) {

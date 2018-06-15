@@ -35,12 +35,12 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->integer('section_follow_up_repetition')->nullable();
             $table->integer('section_repetition')->nullable();
 
-            $table->dropForeign('action_question_datum_id_foreign');
+            $table->dropForeign('fk__action__question_datum');
             $table->dropColumn('question_datum_id');
         });
 
         Schema::table('datum', function (Blueprint $table) {
-            $table->dropForeign('datum_question_id_foreign');
+            $table->dropForeign('fk__datum__question');
             $table->dropColumn('question_id');
             $table->string('question_datum_id', 41)->nullable()->change();
             $table->smallInteger('event_order');
@@ -66,8 +66,6 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->string('action_type_id', 41)->nullable();
 
             $table->foreign('action_type_id')->references('id')->on('action_type');
-
-            $table->dropForeign('action_question_id_foreign')->nullable();
             $table->dropColumn('payload');
             $table->dropColumn('action_type');
             $table->dropColumn('section');
@@ -87,9 +85,14 @@ class UpdateQuestionDatumAndAction extends Migration
 
         Schema::table('datum', function (Blueprint $table) {
             $table->string('question_id', 41)->nullable();
-            $table->foreign('question_id')->references('id')->on('question');
-            $table->string('question_datum_id', 41)->nullable(false)->change();
+            $table->foreign('question_id', 'fk__datum__question')->references('id')->on('question');
+            // $table->string('question_datum_id', 41)->nullable(false)->change();
             $table->dropColumn('event_order');
+        });
+
+        Schema::table('action', function (Blueprint $table) {
+            $table->foreign('question_datum_id', 'fk__action__question_datum')
+                ->references('id')->on('question_datum');
         });
     }
 }

@@ -46,8 +46,7 @@ class SurveyController extends Controller {
         }
 
         $q = Survey::where('respondent_id', $respondentId)
-            ->where('study_id', $studyId)
-            ->with('interviews');
+            ->where('study_id', $studyId);
 
 	    Log::debug($q->toSql());
 
@@ -90,38 +89,23 @@ class SurveyController extends Controller {
 	 *
 	 * @return Response
 	 */
-	public function createSurvey ($studyId, $respondentId, $formId)
+	public function create($formId)
 	{
-	    $studyId = urldecode($studyId);
-	    $respondentId = urldecode($respondentId);
-	    $formId = urldecode($formId);
-
 		$validator = Validator::make([
-		    'study' => $studyId,
-		    'respondent' => $respondentId,
-		    'form' => $formId
+		    'formId' => $formId
         ], [
-            'study' => 'required|string|min:36|exists:study,id',
-            'respondent' => 'required|string|min:36|exists:respondent,id',
-            'form' => 'required|string|min:36|exists:form,id'
+            'formId' => 'required|string|min:36|exists:form,id'
         ]);
 
 		if($validator->fails()){
 		    return response()->json([
-		        'msg' => $validator->errors()
+		        'msg' => "Invalid formId",
+		        'err' => $validator->errors()
             ], $validator->statusCode());
         }
 
-        $survey = Survey::create([
-            'id' => Uuid::uuid4(),
-            'respondent_id' => $respondentId,
-            'form_id' => $formId,
-            'study_id' => $studyId
-        ]);
-
-		return response()->json([
-		    'survey' => $survey
-        ], Response::HTTP_OK);
+        $survey = new Survey();
+		$survey->id = Uuid::uuid4();
 	}
 
 	/**

@@ -8,7 +8,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Auth;
 use Session;
-use App\Http\Requests\Request;
+use App\Http\Request;
 
 class UserService
 {

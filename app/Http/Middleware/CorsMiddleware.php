@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 
 class CorsMiddleware
 {
@@ -24,7 +25,12 @@ class CorsMiddleware
         'PATCH'
     ];
 
-    public function handle($request, Closure $next)
+    /**
+     * @param  Request  $request
+     * @param  Closure  $next
+     * @return Response
+     */
+    public function handle(Request $request, Closure $next)
     {
         $allowedMethods = implode(', ', $this->methods);
         $allowedHeaders = implode(', ', $this->headers);

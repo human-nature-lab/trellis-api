@@ -15,16 +15,16 @@ class Action extends Model
 
     protected $fillable = [
         'id',
+        'survey_id',
+        'question_id',
+        'created_at',
+        'deleted_at',
         'action_type',
+        'payload',
         'section',
         'page',
-        'section_repetition',
         'section_follow_up_repetition',
-        'question_id',
-        'survey_id',
-        'payload',
-        'created_at',
-        'deleted_at'
+        'section_repetition'
     ];
 
 }

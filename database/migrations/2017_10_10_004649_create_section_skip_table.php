@@ -1,6 +1,6 @@
 <?php
 
-use App\Library\DatabaseHelper;
+// use App\Library\DatabaseHelper;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
@@ -32,7 +32,7 @@ class CreateSectionSkipTable extends Migration
             // $table->softDeletes();
         });
 
-        DatabaseHelper::updateSoftDeleteTriggersAndProcedures();
+        // DatabaseHelper::updateSoftDeleteTriggersAndProcedures();
     }
 
     /**

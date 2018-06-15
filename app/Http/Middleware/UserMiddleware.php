@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use App\Models\Token;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,12 @@ use Illuminate\Support\Facades\DB;
 class UserMiddleware
 {
 
-    public function handle($request, Closure $next)
+    /**
+     * @param  Request  $request
+     * @param  Closure  $next
+     * @return Response
+     */
+    public function handle(Request $request, Closure $next)
     {
         $request->setUserResolver(function () use ($request) {
             $token = $request->headers->get('X-Token');

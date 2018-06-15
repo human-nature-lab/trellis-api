@@ -14,7 +14,8 @@ class AddFollowUpQuestionIdToFormSectionTable extends Migration
     {
         Schema::table('form_section', function (Blueprint $table) {
             $table->string('follow_up_question_id', 41)->nullable()->after('repeat_prompt_translation_id');
-            $table->foreign('follow_up_question_id', 'fk__follow_up_question__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Set follow_up_question_id to null if the question is deleted
+            $table->foreign('follow_up_question_id', 'fk__follow_up_question__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
     }
 

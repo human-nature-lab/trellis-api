@@ -24,10 +24,10 @@ class Edge extends Model
 
 
     public function targetRespondent () {
-        return $this->hasOne('App\Models\Respondent', 'id', 'target_respondent_id')->with('photos', 'names');
+        return $this->hasOne('App\Models\Respondent', 'id', 'target_respondent_id')->with('photos');
     }
 
     public function sourceRespondent () {
-        return $this->hasOne('App\Models\Respondent', 'id', 'source_respondent_id')->with('photos', 'names');
+        return $this->hasOne('App\Models\Respondent', 'id', 'source_respondent_id')->with('photos');
     }
 }
