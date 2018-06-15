@@ -1,34 +1,33 @@
 <?php
 
-$app->group([
-    'namespace' => 'App\Http\Controllers',
+$router->group([
     'prefix' => 'sync'
-], function ($app) {
+], function () use ($router) {
 
     //**************************//
     //* Sync v2 Controller Routes *//
     //**************************//
-    $app->get(
+    $router->get(
         'heartbeat',
         'SyncController@heartbeat'
     );
 
-    $app->get(
+    $router->get(
         'device/{device_id}/syncv2/authenticate',
         'SyncControllerV2@authenticate'
     );
 
-    $app->get(
+    $router->get(
         'device/{device_id}/syncv2/snapshot',
         'SyncControllerV2@getSnapshotInfo'
     );
 
-    $app->get(
+    $router->get(
         'snapshot/{snapshot_id}/file_size',
         'SyncControllerV2@getSnapshotFileSize'
     );
 
-    $app->get(
+    $router->get(
         'snapshot/{snapshot_id}/download',
         'SyncControllerV2@downloadSnapshot'
     );

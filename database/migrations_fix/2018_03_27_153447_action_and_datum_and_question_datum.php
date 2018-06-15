@@ -17,10 +17,10 @@ class ActionAndDatumAndQuestionDatum extends Migration
 
             // Location information
             $table->integer('section_repetition');
-            $table->string('follow_up_datum_id', 41);
-            $table->string('question_id', 41);
-            $table->string('survey_id', 41)->nullable();
-            $table->string('preload_id', 41)->nullable();
+            $table->string('follow_up_datum_id', 41)->nullable()->index('fk__question_datum__datum_idx');
+            $table->string('question_id', 41)->index('fk__question_datum__question_idx');
+            $table->string('survey_id', 41)->nullable()->index('fk__question_datum__survey_idx');
+            $table->string('preload_id', 41)->nullable()->index('fk__question_datum__preload_idx');
 
             $table->dateTime('answered_at')->nullable();
             $table->dateTime('skipped_at')->nullable();
@@ -32,13 +32,13 @@ class ActionAndDatumAndQuestionDatum extends Migration
         });
 
         Schema::table('question_datum', function (Blueprint $table) {
-            $table->foreign('follow_up_datum_id')->references('id')->on('datum');
-            $table->foreign('question_id')->references('id')->on('question');
+            $table->foreign('follow_up_datum_id')->references('id')->on('datum')->onUpdate('no action')->onDelete('set null');
+            $table->foreign('question_id')->references('id')->on('question')->onUpdate('no action')->onDelete('cascade');
         });
 
         Schema::table('action', function (Blueprint $table) {
             $table->string('question_datum_id', 41)->nullable();
-            $table->foreign('question_datum_id')->references('id')->on('question_datum');
+            $table->foreign('question_datum_id', 'fk__action__question_datum')->references('id')->on('question_datum');
         });
 
         Schema::table('datum', function (Blueprint $table) {
@@ -46,7 +46,7 @@ class ActionAndDatumAndQuestionDatum extends Migration
             $table->dropForeign('datum_preload_id_foreign');
             $table->dropColumn('preload_id');
             $table->dropColumn('repetition');
-            $table->dropForeign('datum_parent_datum_id_foreign');
+            $table->dropForeign('fk__parent_datum_id__datum');
             $table->dropColumn('parent_datum_id');
             $table->dropColumn('opt_out');
             $table->dropColumn('opt_out_val');
@@ -71,7 +71,7 @@ class ActionAndDatumAndQuestionDatum extends Migration
     public function down()
     {
         Schema::table('action', function (Blueprint $table) {
-            $table->dropForeign('action_question_datum_id_foreign');
+            $table->dropForeign('fk__action__question_datum');
             $table->dropColumn('question_datum_id');
         });
 
@@ -92,8 +92,8 @@ class ActionAndDatumAndQuestionDatum extends Migration
             $table->dropColumn('edge_id');
             $table->dropColumn('photo_id');
 
-            $table->foreign('preload_id')->references('id')->on('preload');
-            $table->foreign('parent_datum_id')->references('id')->on('datum');
+            $table->foreign('preload_id')->references('id')->on('preload')->onUpdate('no action')->onDelete('cascade');
+            $table->foreign('parent_datum_id', 'fk__parent_datum_id__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
 
         Schema::drop('question_datum');

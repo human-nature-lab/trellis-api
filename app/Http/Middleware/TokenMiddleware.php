@@ -5,11 +5,17 @@ namespace App\Http\Middleware;
 use Closure;
 use DB;
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use App\Models\Token;
 
 class TokenMiddleware
 {
-    public function handle($request, Closure $next)
+    /**
+     * @param  Request  $request
+     * @param  Closure  $next
+     * @return Response
+     */
+    public function handle(Request $request, Closure $next)
     {
         $token = $request->headers->get('X-Token');
 

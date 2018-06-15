@@ -4,11 +4,9 @@
 //* Token Controller Routes *//
 //***************************//
 
-use Illuminate\Support\Facades\Artisan;
+$router->group(['middleware' => 'key'], function () use ($router) {
 
-$app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], function ($app) {
-
-    $app->post(
+    $router->post(
         'token',
         'TokenController@createToken'
     );
@@ -18,94 +16,94 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
     //* Sync Controller Routes *//
     //**************************//
 
-    $app->get(
+    $router->get(
         'heartbeat',
         'SyncController@heartbeat'
     );
 
-    $app->post(
+    $router->post(
         'device/{device_id}/image',
         'SyncController@syncImages'
     );
 
-    $app->get(
+    $router->get(
         'device/{device_id}/image',
         'SyncController@listImages'
     );
 
-    $app->put(
+    $router->put(
         'device/{device_id}/sync',
         'SyncController@upload'
     );
 
-    $app->post(
+    $router->post(
         'device/{device_id}/sync',
         'SyncController@download'
     );
 
-    $app->post(
+    $router->post(
         'device/{device_id}/upload',
         'SyncController@uploadSync'
     );
 
-    $app->get(
+    $router->get(
         'device/{device_id}/download',
         'SyncController@downloadSync'
     );
 
 
 // TODO: Temporary form navigation routes
-//    $app->get(
+//    $router->get(
 //        'form/{formId}/structure',
 //        'FormController@getFormStructure'
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'study/{studyId}/locales',
 //        'StudyController@getLocales'
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'survey/{surveyId}/actions',
 //        'ActionController@getSurveyActions'
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'study/{studyId}/surveys',
 //        'SurveyController@getStudySurveys'
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'form/action-types',
 //        'ActionTypeController@getActionTypes'
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'respondent/{respondentId}/study/{studyId}/forms',
 //        'RespondentController@getRespondentStudyForms'
 //    );
 //
-    $app->get(
+    $router->get(
         'study/{studyId}/form',
         'FormController@getAllStudyForms'
     );
 //
-//    $app->get(
+//    $router->get(
 //        'respondent/{respondentId}',
 //        'RespondentController@getRespondentById'
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'respondent',
 //        'RespondentController@getAllRespondents'
 //    );
 
-    $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'token'], function ($app) {
+    $router->group(['middleware' => 'token'], function () use ($router) {
 
         //**************************//
         //* Photo Controller Routes *//
         //**************************//
-//        $app->get(
+//        $router->get(
 //            'photo/{id}',
 //            'PhotoController@getPhoto'
 //        );
@@ -114,69 +112,69 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Form Controller Routes *//
         //**************************//
 
-//        $app->get(
+//        $router->get(
 //            'form/{id}',
 //            'FormController@getForm'
 //        );
 
-        $app->delete(
+        $router->delete(
             'form/{id}',
             'FormController@removeForm'
         );
 
-        $app->post(
+        $router->post(
             'form/{id}',
             'FormController@updateForm'
         );
 
-        $app->post(
+        $router->post(
             'form/{form_master_id}/publish',
             'FormController@publishForm'
         );
 
-        $app->get(
+        $router->get(
             'form',
             'FormController@getAllForms'
         );
 
-        $app->put(
+        $router->put(
             'form',
             'FormController@createForm'
         );
 
-        $app->patch(
+        $router->patch(
             'form/reorder',
             'FormController@reorderForms'
         );
 
         /*
-        $app->put(
+        $router->put(
             'census_form',
             'FormController@createCensusForm'
         );
         */
 
-        $app->get(
+        $router->get(
             'study/{studyId}/form/{formId}/master/{formMasterId}/edit',
             'FormController@editFormPrep'
         );
 
-        $app->post(
+        $router->post(
             'study/{studyId}/form/import',
             'FormController@importForm'
         );
 
-        $app->post(
+        $router->post(
             'study/{studyId}/form/assign',
             'FormController@assignForm'
         );
 
-        $app->post(
+        $router->post(
             'study/form/{formId}/section/import',
             'FormController@importSection'
         );
 
-        $app->get(
+        $router->get(
             'study/{studyId}/forms',
             'RespondentController@getRespondentStudyForms'
         );
@@ -185,12 +183,12 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //*******************************//
         //* Interview Controller Routes *//
         //*******************************//
-        $app->get(
+        $router->get(
             'study/{id}/interview',
             'InterviewController@getInterviewPage'
         );
 
-        $app->get(
+        $router->get(
             'study/{id}/interview/count',
             'InterviewController@getInterviewCount'
         );
@@ -200,52 +198,52 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Study Controller Routes *//
         //***************************//
 
-        $app->get(
+        $router->get(
             'study/parameter/types',
             'QuestionParamController@getParameterTypes'
         );
 
-        $app->delete(
+        $router->delete(
             'study/{id}/parameter/{parameter_id}',
             'StudyController@deleteParameter'
         );
 
-        $app->post(
+        $router->post(
             'study/{id}/parameter',
             'StudyController@createOrUpdateParameter'
         );
 
-//        $app->get(
+//        $router->get(
 //            'study/{id}',
 //            'StudyController@getStudy'
 //        );
 
-        $app->delete(
+        $router->delete(
             'study/{id}',
             'StudyController@removeStudy'
         );
 
-        $app->post(
+        $router->post(
             'study/{id}',
             'StudyController@updateStudy'
         );
 
-        $app->get(
+        $router->get(
             'study',
             'StudyController@getAllStudies'
         );
 
-        $app->put(
+        $router->put(
             'study',
             'StudyController@createStudy'
         );
 
-        $app->put(
+        $router->put(
             'study/{study_id}/locales/{locale_id}',
             'StudyController@saveLocale'
         );
 
-        $app->delete(
+        $router->delete(
             'study/{study_id}/locales/{locale_id}',
             'StudyController@deleteLocale'
         );
@@ -254,33 +252,33 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* User Controller Routes *//
         //**************************//
 
-        $app->get(
+        $router->get(
             'user/me',
             'UserController@getMe'
         );
 
-        $app->get(
+        $router->get(
             'user/{id}',
             'UserController@getUser'
         );
 
-        $app->delete(
+        $router->delete(
             'user/{id}',
             'UserController@removeUser'
         );
 
-        $app->get(
+        $router->get(
             'user',
             'UserController@getAllUsers'
         );
 
 
-        $app->put(
+        $router->put(
             'user/{user_id}/studies/{study_id}',
             'UserController@saveStudy'
         );
 
-        $app->delete(
+        $router->delete(
             'user/{user_id}/studies/{study_id}',
             'UserController@deleteStudy'
         );
@@ -289,27 +287,27 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Locale Controller Routes *//
         //****************************//
 
-        $app->get(
+        $router->get(
             'locale/{id}',
             'LocaleController@getLocale'
         );
 
-        $app->delete(
+        $router->delete(
             'locale/{id}',
             'LocaleController@removeLocale'
         );
 
-        $app->post(
+        $router->post(
             'locale/{id}',
             'LocaleController@updateLocale'
         );
 
-        $app->get(
+        $router->get(
             'locale',
             'LocaleController@getAllLocales'
         );
 
-        $app->put(
+        $router->put(
             'locale',
             'LocaleController@createLocale'
         );
@@ -318,17 +316,17 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Group Tag Type Controller Routes *//
         //************************************//
 
-        $app->delete(
+        $router->delete(
             'group_tag_type/{id}',
             'GroupTagTypeController@removeGroupTagType'
         );
 
-        $app->get(
+        $router->get(
             'group_tag_type',
             'GroupTagTypeController@getAllGroupTagTypes'
         );
 
-        $app->put(
+        $router->put(
             'group_tag_type',
             'GroupTagTypeController@createGroupTagType'
         );
@@ -337,27 +335,27 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Device Controller Routes *//
         //****************************//
 
-        $app->get(
+        $router->get(
             'device/{id}',
             'DeviceController@getDevice'
         );
 
-        $app->delete(
+        $router->delete(
             'device/{id}',
             'DeviceController@removeDevice'
         );
 
-        $app->post(
+        $router->post(
             'device/{id}',
             'DeviceController@updateDevice'
         );
 
-        $app->get(
+        $router->get(
             'device',
             'DeviceController@getAllDevices'
         );
 
-        $app->put(
+        $router->put(
             'device',
             'DeviceController@createDevice'
         );
@@ -366,52 +364,52 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Respondent Controller Routes *//
         //****************************//
 
-        $app->post(
+        $router->post(
             'study/{studyId}/respondent/import',
             'RespondentController@importRespondents'
         );
 
-        $app->post(
+        $router->post(
             'study/{studyId}/respondent-photo/import',
             'RespondentController@importRespondentPhotos'
         );
 
-//        $app->get(
+//        $router->get(
 //            'study/{study_id}/respondents',
 //            'RespondentController@getAllRespondentsByStudyId'
 //        );
 
-        $app->get(
+        $router->get(
             'respondent/{study_id}/count',
             'RespondentController@getRespondentCountByStudyId'
         );
 
-        $app->get(
+        $router->get(
             'respondent/{study_id}/search',
             'RespondentController@searchRespondentsByStudyId'
         );
 
-        $app->put(
+        $router->put(
             'respondent',
             'RespondentController@createRespondent'
         );
 
-        $app->delete(
+        $router->delete(
             'respondent/{id}',
             'RespondentController@removeRespondent'
         );
 
-        $app->post(
+        $router->post(
             'respondent/{id}',
             'RespondentController@updateRespondent'
         );
 
-        $app->post(
+        $router->post(
             'respondent/{respondent_id}/photos',
             'RespondentController@addPhoto'
         );
 
-        $app->delete(
+        $router->delete(
             'respondent/{respondent_id}/photo/{photo_id}',
             'RespondentController@removeRespondentPhoto'
         );
@@ -420,37 +418,37 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Translation Controller Routes *//
         //**************************************//
 
-        $app->get(
+        $router->get(
             'translation/{translation_id}/text/{text_id}',
             'TranslationTextController@getTranslationText'
         );
 
-        $app->delete(
+        $router->delete(
             'translation/{translation_id}',
             'TranslationController@removeTranslation'
         );
 
-        $app->delete(
+        $router->delete(
             'translation/{translation_id}/text/{text_id}',
             'TranslationTextController@removeTranslationText'
         );
 
-        $app->post(
+        $router->post(
             'translation/{translation_id}/text/{text_id}',
             'TranslationTextController@updateTranslationText'
         );
 
-        $app->get(
+        $router->get(
             'translation/{translation_id}/text',
             'TranslationTextController@getAllTranslationText'
         );
 
-        $app->put(
+        $router->put(
             'translation',
             'TranslationController@createTranslation'
         );
 
-        $app->put(
+        $router->put(
             'translation/{translation_id}/text',
             'TranslationTextController@createTranslationText'
         );
@@ -459,33 +457,33 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Question Group Controller Routes *//
         //************************************//
 
-        $app->get(
+        $router->get(
             'form/section/group/{group_id}/question/',
             'QuestionGroupController@getQuestionGroup'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/group/{group_id}',
             'QuestionGroupController@removeQuestionGroup'
         );
 
-        $app->get(
+        $router->get(
             'form/{form_id}/section/group/locale/{locale_id}',
             'QuestionGroupController@getAllQuestionGroups'
         );
 
-        $app->put(
+        $router->put(
             'form/section/{section_id}/group/question',
             'QuestionGroupController@createQuestionGroup'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/{group_id}/question/',
             'QuestionGroupController@updateQuestionGroup'
         );
 
         // Route to update / reorder multiple section questions groups at once
-        $app->patch(
+        $router->patch(
             'form/section/groups',
             'QuestionGroupController@updateSectionQuestionGroups'
         );
@@ -494,33 +492,33 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Section Controller Routes *//
         //*****************************//
 
-        $app->get(
+        $router->get(
             'form/section/{section_id}',
             'SectionController@getSection'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/{section_id}',
             'SectionController@removeSection'
         );
 
-        $app->post(
+        $router->post(
             'form/section/{section_id}',
             'SectionController@updateSection'
         );
 
-        $app->get(
+        $router->get(
             'form/{form_id}/section/locale/{locale_id}',
             'SectionController@getAllSections'
         );
 
-        $app->put(
+        $router->put(
             'form/{form_id}/section',
             'SectionController@createSection'
         );
 
         // Route to update / reorder multiple form_section rows at once
-        $app->patch(
+        $router->patch(
             'form/sections',
             'SectionController@updateSections'
         );
@@ -529,7 +527,7 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Form Section Controller Routes *//
         //**********************************//
 
-        $app->post(
+        $router->post(
             'form_section/{form_section_id}',
             'FormSectionController@updateFormSection'
         );
@@ -539,47 +537,47 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Question Condition Controller Routes *//
         //****************************************//
 
-        $app->put(
+        $router->put(
             'form/section/group/question/condition/logic',
             'ConditionController@editConditionLogic'
         );
 
-        $app->put(
+        $router->put(
             'form/section/group/question/condition/scope',
             'ConditionController@editConditionScope'
         );
 
-        $app->put(
+        $router->put(
             'form/section/group/question/condition/tag',
             'ConditionController@createCondition'
         );
 
-        $app->get(
+        $router->get(
             'form/section/group/question/condition/tag',
             'ConditionController@getAllConditions'
         );
 
-        $app->get(
+        $router->get(
             'form/section/group/question/condition/tag/unique',
             'ConditionController@getAllUniqueConditions'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/condition/tag/search',
             'ConditionController@searchAllConditions'
         );
 
-        $app->put(
+        $router->put(
             'question/{question_id}/assign_condition_tag',
             'QuestionController@createAssignConditionTag'
         );
 
-        $app->post(
+        $router->post(
             'question/{question_id}/assign_condition_tag',
             'QuestionController@updateAssignConditionTag'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/group/question/condition/{id}',
             'ConditionController@deleteAssignConditionTag'
         );
@@ -588,27 +586,27 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Skip Controller Routes *//
         //**************************//
 
-        $app->put(
+        $router->put(
             'form/skip/',
             'SkipController@createSkipGeneralized'
         );
 
-        $app->put(
+        $router->put(
             'form/section/group/skip/',
             'SkipController@createQuestionGroupSkip'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/skip/{id}',
             'SkipController@updateQuestionGroupSkip'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/group/skip/{id}',
             'SkipController@deleteQuestionGroupSkip'
         );
 
-        $app->get(
+        $router->get(
             'form/section/group/skip/',
             'SkipController@getAllQuestionGroupSkips'
         );
@@ -617,45 +615,45 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Question Controller Routes *//
         //******************************//
 
-        $app->put(
+        $router->put(
             'form/section/group/{group_id}/question/',
             'QuestionController@createQuestion'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/{group_id}/question/{question_id}',
             'QuestionController@moveQuestion'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/group/question/{question_id}',
             'QuestionController@removeQuestion'
         );
 
 
-        $app->get(
+        $router->get(
             'form/section/group/question/{question_id}',
             'QuestionController@getQuestion'
         );
 
-        $app->get(
+        $router->get(
             'form/{form_id}/section/group/question/locale/{locale_id}',
             'QuestionController@getAllQuestions'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/{question_id}',
             'QuestionController@updateQuestion'
         );
 
         // Route to update / reorder multiple questions at once
-        $app->patch(
+        $router->patch(
             'form/section/group/questions',
             'QuestionController@updateQuestions'
         );
 
         // Route to update / reorder multiple question_choice rows at once
-        $app->patch(
+        $router->patch(
             'form/section/group/question/choices',
             'QuestionController@updateChoices'
         );
@@ -664,27 +662,27 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Question Type Controller Routers *//
         //************************************//
 
-        $app->put(
+        $router->put(
             'question/type',
             'QuestionTypeController@createQuestionType'
         );
 
-        $app->delete(
+        $router->delete(
             'question/type/{question_type_id}',
             'QuestionTypeController@removeQuestionType'
         );
 
-        $app->get(
+        $router->get(
             'question/type/{question_type_id}',
             'QuestionTypeController@getQuestionType'
         );
 
-        $app->get(
+        $router->get(
             'question/type',
             'QuestionTypeController@getAllQuestionTypes'
         );
 
-        $app->post(
+        $router->post(
             'question/type/{question_type_id}',
             'QuestionTypeController@updateQuestionType'
         );
@@ -693,37 +691,37 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Question Choice Controller Routes *//
         //*************************************//
 
-        $app->put(
+        $router->put(
             'form/section/group/question/{question_id}/choice',
             'QuestionChoiceController@createNewQuestionChoice'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/group/question/choice/{question_choice_id}',
             'QuestionChoiceController@removeQuestionChoice'
         );
 
-        $app->delete(
+        $router->delete(
             'form/section/group/question/{question_id}/choice/{choice_id}',
             'QuestionChoiceController@removeChoice'
         );
 
-        $app->get(
+        $router->get(
             'form/section/group/question/choice/{choice_id}',
             'QuestionChoiceController@getQuestionChoice'
         );
 
-        $app->get(
+        $router->get(
             'form/{form_id}/section/group/question/choice/locale/{locale_id}',
             'QuestionChoiceController@getAllQuestionChoices'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/choice/{choice_id}',
             'QuestionChoiceController@updateQuestionChoice'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/{question_id}/choices',
             'QuestionChoiceController@updateQuestionChoices'
         );
@@ -732,37 +730,37 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Geo Controller Routes *//
         //*************************//
 
-        $app->put(
+        $router->put(
             'geo/id/locale/{locale_id}',
             'GeoController@createGeo'
         );
 
-        $app->delete(
+        $router->delete(
             'geo/id/{geo_id}',
             'GeoController@removeGeo'
         );
 
-        $app->get(
+        $router->get(
             'geo/id/locale/{locale_id}',
             'GeoController@getAllGeos'
         );
 
-        $app->get(
+        $router->get(
             'study/{study_id}/geo',
             'GeoController@getAllGeosByStudyId'
         );
 
-        $app->get(
+        $router->get(
             'study/{study_id}/geo/count',
             'GeoController@getGeoCountByStudyId'
         );
 
-        $app->get(
+        $router->get(
             'geo/id/{geo_id}',
             'GeoController@getGeo'
         );
 
-        $app->post(
+        $router->post(
             'geo/id/{geo_id}',
             'GeoController@updateGeo'
         );
@@ -771,38 +769,38 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Geo Type Controller Routes *//
         //******************************//
 
-        $app->put(
+        $router->put(
             'geo/type',
             'GeoTypeController@createGeoType'
         );
 
-        $app->delete(
+        $router->delete(
             'geo/type/{geo_type_id}',
             'GeoTypeController@removeGeoType'
         );
 
-        $app->get(
+        $router->get(
             'geo/type/{geo_type_id}',
             'GeoTypeController@getGeoType'
         );
 
-        $app->get(
+        $router->get(
             'geo/type',
             'GeoTypeController@getAllGeoTypes'
         );
 
-        $app->get(
+        $router->get(
             'study/{study_id}/geo/type',
             'GeoTypeController@getAllGeoTypesByStudyId'
         );
 
 
-        $app->get(
+        $router->get(
             'geo/type/{parent_geo_id}/parent',
             'GeoTypeController@getAllEligibleGeoTypesOfParentGeo'
         );
 
-        $app->post(
+        $router->post(
             'geo/type/{geo_type_id}',
             'GeoTypeController@updateGeoType'
         );
@@ -811,34 +809,34 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //* Question Param Controller Routes *//
         //************************************//
 
-        $app->post(
+        $router->post(
             'form/section/group/question/{question_id}/type/numeric',
             'QuestionParamController@updateQuestionNumeric'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/{question_id}/type/multiple',
             'QuestionController@updateQuestionTypeMultiple'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/{question_id}/type/datetime',
             'QuestionParamController@updateQuestionDateTime'
         );
 
 
         // Web app
-        $app->get(
+        $router->get(
             'form/parameter/types',
             'QuestionParamController@getParameterTypes'
         );
 
-        $app->post(
+        $router->post(
             'form/section/group/question/{question_id}/parameter',
             'QuestionParamController@createOrUpdateParameter'
         );
 
-        $app->delete(
+        $router->delete(
             'parameter/{parameter_id}',
             'QuestionParamController@deleteQuestionParameter'
         );
@@ -847,17 +845,17 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
     });
 
 
-    $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => ['token', 'role:whitelist,ADMIN']], function ($app) {
+    $router->group(['middleware' => ['token', 'role:whitelist,ADMIN']], function () use ($router) {
 
         //**********************//
         //* Create User Route *//
         //**********************//
-        $app->put(
+        $router->put(
             'user',
             'UserController@createUser'
         );
 
-        $app->post(
+        $router->post(
             'user/{id}',
             'UserController@updateUser'
         );
@@ -865,74 +863,74 @@ $app->group(['namespace' => 'App\Http\Controllers', 'middleware' => 'key'], func
         //**********************//
         //* Report Routes *//
         //**********************//
-        $app->get(
+        $router->get(
             'report/completed',
             'ReportController@getAllSavedReports'
         );
 
-        $app->get(
+        $router->get(
             'report/download/{file_name}',
             'ReportController@downloadFile'
         );
 
-        $app->post(
+        $router->post(
             'report/form/{form_id}',
             'ReportController@dispatchFormReport'
         );
 
-        $app->post(
+        $router->post(
             'report/study/{study_id}/respondents',
             'ReportController@dispatchRespondentReport'
         );
 
-        $app->post(
+        $router->post(
             'report/study/{study_id}/edges',
             'ReportController@dispatchEdgesReport'
         );
 
-        $app->post(
+        $router->post(
             'report/study/{study_id}/geo',
             'ReportController@dispatchGeoReport'
         );
 
-        $app->post(
+        $router->post(
             'report/study/{study_id}/interview',
             'ReportController@dispatchInterviewReport'
         );
 
-        $app->post(
+        $router->post(
             'report/study/{study_id}/timing',
             'ReportController@dispatchTimingReport'
         );
 
-        $app->get(
+        $router->get(
             'report/{report_id}',
             'ReportController@getReport'
         );
 
-        $app->get(
+        $router->get(
             'report/{report_id}/status',
             'ReportController@getReportStatus'
         );
 
-        $app->post(
+        $router->post(
             'report/images',
             'PhotoController@getZipPhotos'
         );
 
-        $app->post(
+        $router->post(
             'report/clean',
             'ReportController@cleanReports'
         );
 //
-//    $app->get(
+//    $router->get(
 //        'report/generate',
 //        function(){
 //            Artisan::call("trellis:make:reports");
 //        }
 //    );
 //
-//    $app->get(
+//    $router->get(
 //        'report/bundle',
 //        function(){
 //            Artisan::call("trellis:bundle:reports");

@@ -12,16 +12,19 @@ use App\Models\Report;
 use App\Models\Study;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Queue\Job;
-use Laravel\Lumen\Routing\DispatchesJobs;
+// use Laravel\Lumen\Routing\DispatchesJobs;
 use Log;
 use Queue;
 use Ramsey\Uuid\Uuid;
 
 class MakeReports extends Command
 {
+
+    /*
     use DispatchesJobs, AutoDispatch {
         AutoDispatch::dispatch insteadof DispatchesJobs;
     }
+    */
 
     /**
      * The name and signature of the console command.

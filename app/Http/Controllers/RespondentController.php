@@ -326,7 +326,7 @@ class RespondentController extends Controller
             $query->where('study.id', '=', $study_id);
         })->count();
 
-        $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')->whereHas('studies', function ($query) use ($study_id) {
+        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($study_id) {
             $query->where('study.id', '=', $study_id);
         })
             ->limit($limit)

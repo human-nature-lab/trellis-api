@@ -66,7 +66,9 @@ class DatabaseHelper
      */
     public static function fetch($mode, $callable)
     {
-        $oldMode = DB::getFetchMode();
+        // In Laravel 5.4 we can no longer specify the fetch mode, instead we'll cast from
+        // the default, an object, to an associative array
+        /* $oldMode = DB::getFetchMode();
 
         try {
             DB::setFetchMode($mode);
@@ -76,9 +78,9 @@ class DatabaseHelper
             throw $e;
         } finally {
             DB::setFetchMode($oldMode);
-        }
+        }*/
 
-        return $value;
+        return array(value($callable));
     }
 
     /**

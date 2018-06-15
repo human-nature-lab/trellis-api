@@ -4,11 +4,18 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 
 class RoleAuthMiddleware
 {
 
-    public function handle($request, Closure $next, $type)
+    /**
+     * @param  Request  $request
+     * @param  Closure  $next
+     * @param  String   $type
+     * @return Response
+     */
+    public function handle(Request $request, Closure $next, $type)
     {
         $roles = array_slice(func_get_args(), 3);
         $user = $request->user();

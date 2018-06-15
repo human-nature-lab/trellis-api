@@ -33,7 +33,7 @@ class TokenController extends Controller
         $tokenModel->id = Uuid::uuid4();
         $tokenModel->token_hash = Token::createHash();
         $tokenModel->user_id = $userModel->id;
-        $tokenModel->key_id  = $request->session()->get('key');
+        // $tokenModel->key_id  = $request->session()->get('key');
         $tokenModel->save();
 
         return response()->json([
