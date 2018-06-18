@@ -13,8 +13,6 @@ class UpdateQuestionDatumAndAction extends Migration
     public function up()
     {
         Schema::table('question_datum', function (Blueprint $table) {
-            $table->string('section', 41);
-            $table->string('page', 41);
             $table->boolean('dk_rf')->nullable();
             $table->text('dk_rf_val')->nullable();
 
@@ -30,8 +28,6 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->string('question_id', 41)->nullable()->change();
             $table->string('action_type', 41);
             $table->text('payload')->nullable();
-            $table->integer('section');
-            $table->integer('page');
             $table->integer('section_follow_up_repetition')->nullable();
             $table->integer('section_repetition')->nullable();
 
@@ -68,8 +64,6 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->foreign('action_type_id')->references('id')->on('action_type');
             $table->dropColumn('payload');
             $table->dropColumn('action_type');
-            $table->dropColumn('section');
-            $table->dropColumn('page');
             $table->dropColumn('section_follow_up_repetition')->nullable();
             $table->dropColumn('section_repetition')->nullable();
         });
@@ -79,8 +73,6 @@ class UpdateQuestionDatumAndAction extends Migration
             $table->text('opt_out_val')->nullable();
             $table->dropColumn('dk_rf');
             $table->dropColumn('dk_rf_val');
-            $table->dropColumn('section');
-            $table->dropColumn('page');
         });
 
         Schema::table('datum', function (Blueprint $table) {
