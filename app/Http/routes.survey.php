@@ -46,6 +46,7 @@ $app->group([
     $app->post('study/{s_id}/respondent/{r_id}/form/{f_id}/survey', 'SurveyController@createSurvey');
 
     $app->get('respondent/{r_id}',                                  'RespondentController@getRespondentById');
+    $app->get('respondent/{r_id}/fills',                            'RespondentController@getRespondentFillsById');
 
 
     $app->post('edges',                                             'EdgeController@createEdges');

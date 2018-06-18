@@ -21,4 +21,8 @@ class RespondentConditionTag extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public function conditionTag () {
+        return $this->belongsTo('App\Models\ConditionTag');
+    }
 }
