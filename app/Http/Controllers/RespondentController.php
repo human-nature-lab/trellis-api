@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Respondent;
 use App\Models\Photo;
+use App\Models\RespondentFill;
 use App\Models\Study;
 use App\Models\RespondentPhoto;
 use App\Models\StudyRespondent;
@@ -270,7 +271,7 @@ class RespondentController extends Controller
                 Response::HTTP_OK
             );
         } else {
-            $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
+            $respondents = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
 
@@ -558,6 +559,31 @@ class RespondentController extends Controller
         $respondent = Respondent::with('respondentConditionTags', 'photos')->find($respondentId);
         return response()->json([
             'respondent' => $respondent
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * Get an array of respondent fills for the specified respondent
+     * @param {String} $respondentId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function getRespondentFillsById ($respondentId) {
+        $respondentId = urldecode($respondentId);
+        $validator = Validator::make([
+            'respondent' => $respondentId
+        ], [
+            'respondent' => 'required|string|min:32|exists:respondent,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $fills = RespondentFill::where('respondent_id', $respondentId)->get();
+        return response()->json([
+            'fills' => $fills
         ], Response::HTTP_OK);
     }
 

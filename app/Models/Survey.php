@@ -55,8 +55,7 @@ class Survey extends Model
     }
 
     public function respondent(){
-        return $this->belongsTo("App\Models\Respondent", "respondent_id")
-            ->with('respondentConditionTags');
+        return $this->belongsTo("App\Models\Respondent", "respondent_id");
     }
 
 
@@ -74,5 +73,10 @@ class Survey extends Model
     public function surveyConditionTags () {
         return $this->hasMany('App\Models\SurveyConditionTag', 'survey_id')
             ->whereNull('survey_condition_tag.deleted_at');
+    }
+
+    public function respondentConditionTags () {
+        return $this->hasMany('App\Models\RespondentConditionTag', 'respondent_id', 'respondent_id')
+            ->with('conditionTag');
     }
 }

@@ -208,7 +208,12 @@ class InterviewDataController
 
         $interview = Interview::with('surveyData')->find($interviewId);
         return response()->json([
-            'interview' => $interview
+            'data' => $interview->surveyData['data'],
+            'conditionTags' => [
+                'survey' => $interview->surveyData['surveyConditionTags'],
+                'section' => $interview->surveyData['sectionConditionTags'],
+                'respondent' => $interview->surveyData['respondentConditionTags'],
+            ]
         ], Response::HTTP_OK);
 
     }

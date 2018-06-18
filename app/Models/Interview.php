@@ -42,6 +42,6 @@ class Interview extends Model
 
     public function surveyData() {
         return $this->belongsTo('App\Models\Survey', 'survey_id')
-            ->with('respondent', 'data', 'sectionConditionTags', 'surveyConditionTags');
+            ->with('respondent', 'data', 'sectionConditionTags', 'surveyConditionTags', 'respondentConditionTags');
     }
 }
