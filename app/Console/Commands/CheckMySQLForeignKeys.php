@@ -3,10 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Library\DatabaseHelper;
-use DB;
 use Faker;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use PDO;
 
 class CheckMySQLForeignKeys extends Command
@@ -46,9 +47,13 @@ class CheckMySQLForeignKeys extends Command
             return 1;
         }
 
-        DB::setFetchMode(PDO::FETCH_ASSOC);
-
-        $tables = DatabaseHelper::tables();
+//        DB::setFetchMode(PDO::FETCH_ASSOC);
+        $tables = [];
+        foreach (DB::select("show tables") as $row) {
+            foreach ($row as $key => $val) {
+                array_push($tables, $val);
+            }
+        }
         $foreignKeys = DatabaseHelper::foreignKeys();
         $tableColumnForeignKeys = array_merge(array_combine($tables, array_fill(0, count($tables), [])), collect($foreignKeys)->groupBy('table_name')->map(function ($attributes) {
             return collect($attributes)->keyBy('column_name')->toArray();
