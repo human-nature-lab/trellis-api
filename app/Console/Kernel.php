@@ -13,7 +13,33 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        //
+        Commands\CheckModels::class,
+        Commands\CheckMySQLForeignKeys::class,
+        Commands\CheckMySQLJSON::class,
+        Commands\CheckMySQLSoftDeletes::class,
+        Commands\CheckMySQLTriggersAndProcedures::class,
+        Commands\ExportMySQL::class,
+        Commands\ExportSnapshot::class,
+        Commands\ExportSQLite::class,
+        Commands\FillMySQL::class,
+        Commands\ImportMySQL::class,
+        Commands\ImportSnapshot::class,
+        Commands\ImportSQLite::class,
+        Commands\MergeMigrations::class,
+        Commands\MigrationsBegin::class,
+        Commands\MigrationsEnd::class,
+        Commands\ShowMySQLJSON::class,
+        Commands\ShowMySQLForeignKeys::class,
+        Commands\ShowMySQLForeignKeyCycles::class,
+        Commands\ShowMySQLTriggerCycles::class,
+        Commands\SimulateMigrate::class,
+        Commands\SimulateMigrateRollback::class,
+        Commands\ToTable::class,
+        Commands\MakeReports::class,
+        Commands\BundleLatestReports::class,
+
+        // overrides:   //TODO take this out if switched to Laravel
+        Commands\MakeModel::class,
     ];
 
     /**
