@@ -193,6 +193,10 @@ class UserController extends Controller
             return response()->json([
                 'msg' => "Can't determine user automagically"
             ], Response::HTTP_BAD_REQUEST);
+        } else if ($user->role === 'ADMIN') {
+            return response()->json([
+                'studies' => Study::whereNull('deleted_at')->get()
+            ], Response::HTTP_OK);
         }
         return response()->json([
             'studies' => $user->studies

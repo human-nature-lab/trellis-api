@@ -16,8 +16,12 @@ class FixActionDatumQuestionDatum extends Migration
         Schema::table('action', function (Blueprint $table) {
             $table->dropForeign('action_action_type_id_foreign');
             $table->dropColumn('action_type_id');
-            $table->renameColumn('action_text', 'payload');
+            $table->dropColumn('action_text');
 
+            $table->string('question_id', 41)->nullable()->change();
+            $table->text('payload')->nullable();
+
+            $table->string('action_type');
             $table->string('interview_id', 41);
             $table->integer('section_follow_up_repetition')->nullable();
             $table->integer('section_repetition')->nullable();
@@ -85,6 +89,7 @@ class FixActionDatumQuestionDatum extends Migration
             $table->dropColumn('section_repetition');
             $table->dropColumn('section_follow_up_repetition');
             $table->dropColumn('interview_id');
+            $table->dropColumn('action_type');
 
             $table->renameColumn('payload', 'action_text');
             $table->string('action_type_id', 41)->nullabe();

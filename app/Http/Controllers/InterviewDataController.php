@@ -238,8 +238,9 @@ class InterviewDataController
 
         $interview = Interview::find($interviewId);
 
-        $actions = Action::where('action.survey_id', '=', $interview->survey_id)
-            ->get();
+        $actions = Action::whereIn('action.interview_id', function ($q) use ($interview) {
+            $q->select('id')->from('interview')->where('survey_id', $interview->survey_id);
+        })->get();
 
         return response()->json([
             'actions' => $actions
@@ -263,13 +264,13 @@ class InterviewDataController
         if ($validator->fails()) {
             return response()->json([
                 'err' => $validator->errors()
-            ], $validator->statusCode());
+            ], Response::HTTP_BAD_REQUEST);
         }
         $actions = array_map(function ($action) {
             if (isset($action['payload']) && !is_string($action['payload'])) {
                 $action['payload'] = json_encode($action['payload']);
             }
-            $fields = ['created_at', 'payload', 'action_type', 'survey_id', 'deleted_at','section','page','section_repetition','section_follow_up_repetition','question_id'];
+            $fields = ['created_at', 'payload', 'action_type', 'survey_id', 'deleted_at','section_repetition','section_follow_up_repetition','question_id'];
             foreach ($fields as $field) {
                 if (!isset($action[$field])) {
                     $action[$field] = null;

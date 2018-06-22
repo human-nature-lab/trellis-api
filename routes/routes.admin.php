@@ -112,10 +112,10 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         //* Form Controller Routes *//
         //**************************//
 
-//        $router->get(
-//            'form/{id}',
-//            'FormController@getForm'
-//        );
+        $router->get(
+            'form/{id}',
+            'FormController@getForm'
+        );
 
         $router->delete(
             'form/{id}',
