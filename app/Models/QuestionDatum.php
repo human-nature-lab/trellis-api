@@ -35,6 +35,11 @@ class QuestionDatum extends Model
         'dk_rf_val'
     ];
 
+    public $dates = [
+        'created_at',
+        'updated_at',
+        'deleted_at'
+    ];
 
     public function data () {
         return $this->hasMany('App\Models\Datum', 'question_datum_id')
