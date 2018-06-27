@@ -395,7 +395,7 @@ class QuestionChoiceController extends Controller
             return response()->json([
                     'msg' => 'Validation failed',
                     'err' => $validator->errors()
-            ], $validator->statusCode());
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $questionChoiceModel = QuestionChoice::find($id);

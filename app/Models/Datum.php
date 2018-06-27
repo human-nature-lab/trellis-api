@@ -32,6 +32,12 @@ class Datum extends Model
         'event_order'
     ];
 
+    public $dates = [
+        'created_at',
+        'updated_at',
+        'deleted_at'
+    ];
+
     public function choices () {
         return $this->hasMany('App\Models\Choice', 'choice')
             ->whereNull('choice.deleted_at')

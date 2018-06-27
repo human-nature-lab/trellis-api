@@ -33,17 +33,17 @@ class GeoController extends Controller
             'study' => $study,
             'types' => $types
         ], [
-            'limit' => 'max:100',
-            'offset' => 'min:0',
-            'study' => 'exists:study,id',
-            'parent' => 'exists:geo,id',
-            'type' => 'array|exists:geo_type,id'
+            'limit' => 'nullable|max:100',
+            'offset' => 'nullable|min:0',
+            'study' => 'nullable|exists:study,id',
+            'parent' => 'nullable|exists:geo,id',
+            'type' => 'nullable|array|exists:geo_type,id'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'msg' => $validator->errors()
-            ], $validator->statusCode());
+            ], Response::HTTP_BAD_REQUEST);
         }
 
 
