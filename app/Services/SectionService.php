@@ -13,7 +13,7 @@ use DB;
 
 class SectionService
 {
-    public function createTranslatedSection($formId, $nameTranslationId, $sortOrder)
+    public function createTranslatedSection($formId, $nameTranslationId, $sortOrder, $followUpQuestionId = null, $isRepeatable = false, $maxRepetitions = 0)
     {
         $studyModel = Study::select('study.*')
             ->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
@@ -28,7 +28,7 @@ class SectionService
         $sectionId = Uuid::uuid4();
         $formSectionId = Uuid::uuid4();
 
-        DB::transaction(function () use ($formId, $nameTranslationId, $sortOrder, $studyLocaleId, $newSectionModel, $sectionId, $formSectionId) {
+        DB::transaction(function () use ($formId, $nameTranslationId, $sortOrder, $studyLocaleId, $newSectionModel, $sectionId, $formSectionId, $isRepeatable, $followUpQuestionId, $maxRepetitions) {
             $newSectionModel->id = $sectionId;
             $newSectionModel->name_translation_id = $nameTranslationId;
             $newSectionModel->save();
@@ -38,6 +38,9 @@ class SectionService
             $newFormSectionModel->form_id = $formId;
             $newFormSectionModel->section_id = $sectionId;
             $newFormSectionModel->sort_order = $sortOrder;
+            $newFormSectionModel->is_repeatable = $isRepeatable;
+            $newFormSectionModel->follow_up_question_id = $followUpQuestionId;
+            $newFormSectionModel->max_repetitions = $maxRepetitions;
             $newFormSectionModel->save();
         });
 
