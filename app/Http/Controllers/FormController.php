@@ -33,13 +33,15 @@ use App\Services\SelfAdministeredSurveyService;
 use App\Services\SkipService;
 use App\Services\TranslationService;
 use App\Services\TranslationTextService;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Log;
 use Ramsey\Uuid\Uuid;
+use Throwable;
 use Validator;
-use DB;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 use League\Csv\Reader;
@@ -127,7 +129,7 @@ class FormController extends Controller
 
             // Skip past header-row
             $skipHeader = $request->input('skipHeader');
-            \Log::info('$skipHeader: ' . $skipHeader);
+            Log::info('$skipHeader: ' . $skipHeader);
 
             if ($skipHeader === "true") {
                 $assignFormCsv->setOffset(1);
@@ -140,12 +142,12 @@ class FormController extends Controller
                 // $nAssigned += 1;
                 $respondentAssignedId = trim($row[0]);
                 $respondentPassword = trim($row[1]);
-                \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
-                \Log::info('$respondentPassword: ' . $respondentPassword);
+                Log::info('$respondentAssignedId: ' . $respondentAssignedId);
+                Log::info('$respondentPassword: ' . $respondentPassword);
 
                 $respondentModel = Respondent::where('assigned_id', $respondentAssignedId)->first();
                 if ($respondentModel !== null) {
-                    \Log::info('$respondentId: ' . $respondentModel->id);
+                    Log::info('$respondentId: ' . $respondentModel->id);
                     //public static function assignSurvey ($respondentId, $formId, $studyId, $password)
                 }
                 $sasService->assignSurvey($respondentModel->id, $formId, $studyId, $respondentPassword);
@@ -166,9 +168,11 @@ class FormController extends Controller
 
     public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService, QuestionParameterService $questionParameterService)
     {
-        $validator = Validator::make(array_merge($request->all(), [
-            'studyId' => $studyId
-        ]), [
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'formName' => $request->get('formName'),
+            'formType' => $request->get('formType')
+        ], [
             'studyId' => 'required|string|min:36|exists:study,id',
             'formName' => 'required|string',
             'formType' => 'required|integer'
@@ -184,54 +188,79 @@ class FormController extends Controller
         $formName = $request->input('formName');
         $formType = $request->input('formType');
 
-        // Create the form
-        $importedForm = $formService->createForm($formName, $studyId, $formType);
-        $importedFormId = $importedForm['id'];
+        $oldQuestionIdToNewQuestionIdMap = []; // Used for follow up questions
 
         $hasFormFile = $request->hasFile('formJsonFile');
         if ($hasFormFile) {
-            $formFile = $request->file('formJsonFile');
-            $formFileStream = fopen($formFile->getRealPath(), 'r+');
-            $formJsonString = stream_get_contents($formFileStream);
-            $jsonObject = json_decode($formJsonString, true);
-            $formObject = $jsonObject["form"];
+            try {
+                DB::beginTransaction();
 
-            foreach ($formObject["sections"] as $sectionObject) {
-                $sectionSortOrder = $sectionObject["form_sections"][0]["sort_order"];
-                $sectionNameTranslationId = $translationService->importTranslation($sectionObject["name_translation"], $translationTextService);
-                $importedSection = $sectionService->createTranslatedSection($importedFormId, $sectionNameTranslationId, $sectionSortOrder);
+                // Create the form
+                $importedForm = $formService->createForm($formName, $studyId, $formType);
+                $importedFormId = $importedForm['id'];
+                $formFile = $request->file('formJsonFile');
+                $formFileStream = fopen($formFile->getRealPath(), 'r+');
+                $formJsonString = stream_get_contents($formFileStream);
+                $jsonObject = json_decode($formJsonString, true);
+                $formObject = $jsonObject["form"];
 
-                foreach ($sectionObject["question_groups"] as $questionGroupObject) {
-                    $questionGroupSortOrder = $questionGroupObject["pivot"]["question_group_order"];
-                    $importedQuestionGroup = $questionGroupService->createQuestionGroup($importedSection["id"], $questionGroupSortOrder);
+                // It is essential to insert in the same order that the form is conducted in so that follow up questions exist
+                // before their follow up sections
+                uasort($formObject["sections"], function ($a, $b) {
+                    return $a['form_sections'][0]["sort_order"] - $b['form_sections'][0]["sort_order"];
+                });
 
-                    foreach($questionGroupObject["skips"] as $skipObject) {
-                        $importedSkip = $skipService->createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"]);
+                foreach ($formObject["sections"] as $sectionObject) {
+                    $sectionSortOrder = $sectionObject["form_sections"][0]["sort_order"];
+                    $maxRepetitions = $sectionObject['form_sections'][0]['max_repetitions'];
+                    $isRepeatable = $sectionObject['form_sections'][0]['is_repeatable'];
 
-                        foreach($skipObject["conditions"] as $skipConditionTagObject) {
-                            $skipService->createSkipConditionTag($importedSkip["id"], $skipConditionTagObject["condition_tag_name"]);
+                    // This will fail if the sections with follow up questions aren't inserted after the referenced questions
+                    $newFollowUpQuestionId = $sectionObject['form_sections'][0]['follow_up_question_id'] ? $oldQuestionIdToNewQuestionIdMap[$sectionObject['form_sections'][0]['follow_up_question_id']] : null;
+
+                    $sectionNameTranslationId = $translationService->importTranslation($sectionObject["name_translation"], $translationTextService);
+                    $importedSection = $sectionService->createTranslatedSection($importedFormId, $sectionNameTranslationId, $sectionSortOrder, $newFollowUpQuestionId, $isRepeatable, $maxRepetitions);
+
+                    foreach ($sectionObject["question_groups"] as $questionGroupObject) {
+                        $questionGroupSortOrder = $questionGroupObject["pivot"]["question_group_order"];
+                        $importedQuestionGroup = $questionGroupService->createQuestionGroup($importedSection["id"], $questionGroupSortOrder);
+
+                        foreach ($questionGroupObject["skips"] as $skipObject) {
+                            $importedSkip = $skipService->createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"]);
+
+                            foreach ($skipObject["conditions"] as $skipConditionTagObject) {
+                                $skipService->createSkipConditionTag($importedSkip["id"], $skipConditionTagObject["condition_tag_name"]);
+                            }
                         }
-                    }
 
-                    foreach($questionGroupObject["questions"] as $questionObject) {
-                        $questionTranslationId = $translationService->importTranslation($questionObject["question_translation"], $translationTextService);
-                        $importedQuestion = $questionService->createTranslatedQuestion($importedQuestionGroup["id"], $questionTranslationId, $questionObject["var_name"], $questionObject["question_type"]["id"], $questionObject["sort_order"]);
+                        foreach ($questionGroupObject["questions"] as $questionObject) {
+                            $questionTranslationId = $translationService->importTranslation($questionObject["question_translation"], $translationTextService);
+                            $importedQuestion = $questionService->createTranslatedQuestion($importedQuestionGroup["id"], $questionTranslationId, $questionObject["var_name"], $questionObject["question_type"]["id"], $questionObject["sort_order"]);
+                            $oldQuestionIdToNewQuestionIdMap[$questionObject['id']] = $importedQuestion['id'];
+                            foreach ($questionObject["question_parameters"] as $questionParameterObject) {
+                                $questionParameterService->createQuestionParameter($importedQuestion["id"], $questionParameterObject["parameter_id"], $questionParameterObject["val"]);
+                            }
 
-                        foreach($questionObject["question_parameters"] as $questionParameterObject) {
-                            $questionParameterService->createQuestionParameter($importedQuestion["id"], $questionParameterObject["parameter_id"], $questionParameterObject["val"]);
-                        }
+                            foreach ($questionObject["assign_condition_tags"] as $assignConditionTagObject) {
+                                $importedConditionTag = $conditionTagService->createConditionTag($assignConditionTagObject['condition']['name']);
+                                $assignConditionTagService->createAssignConditionTag($importedQuestion["id"], $importedConditionTag["id"], $assignConditionTagObject["logic"], $assignConditionTagObject["scope"]);
+                            }
 
-                        foreach($questionObject["assign_condition_tags"] as $assignConditionTagObject) {
-                            $importedConditionTag = $conditionTagService->createConditionTag($assignConditionTagObject['condition']['name']);
-                            $assignConditionTagService->createAssignConditionTag($importedQuestion["id"], $importedConditionTag["id"], $assignConditionTagObject["logic"], $assignConditionTagObject["scope"]);
-                        }
-
-                        foreach($questionObject["choices"] as $choiceObject) {
-                            $choiceTranslationId = $translationService->importTranslation($choiceObject['choice_translation'], $translationTextService);
-                            $questionChoiceService->createTranslatedQuestionChoice($importedQuestion["id"], $choiceTranslationId, $choiceObject["val"], $choiceObject["pivot"]["sort_order"]);
+                            foreach ($questionObject["choices"] as $choiceObject) {
+                                $choiceTranslationId = $translationService->importTranslation($choiceObject['choice_translation'], $translationTextService);
+                                $questionChoiceService->createTranslatedQuestionChoice($importedQuestion["id"], $choiceTranslationId, $choiceObject["val"], $choiceObject["pivot"]["sort_order"]);
+                            }
                         }
                     }
                 }
+
+                DB::commit();
+            } catch (QueryException $e) {
+                Log::error($e);
+                DB::rollBack();
+            } catch (Throwable $e) {
+                Log::error($e);
+                DB::rollBack();
             }
 
             $studyModel = Study::find($studyId);
