@@ -14,6 +14,9 @@ use App\Models\Datum;
 use App\Models\Interview;
 use App\Models\Question;
 use App\Models\QuestionDatum;
+use App\Models\RespondentConditionTag;
+use App\Models\SectionConditionTag;
+use App\Models\SurveyConditionTag;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -247,6 +250,7 @@ class InterviewDataController
 
         } catch (QueryException $exception) {
             Log::debug('rolling back transaction');
+            Log::debug($exception);
             DB::rollBack();
             return response()->json([
                 'msg' => $exception
