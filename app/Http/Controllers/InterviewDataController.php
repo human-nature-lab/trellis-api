@@ -12,14 +12,11 @@ namespace App\Http\Controllers;
 use App\Models\Action;
 use App\Models\Datum;
 use App\Models\Interview;
+use App\Models\Question;
 use App\Models\QuestionDatum;
-use App\Models\RespondentConditionTag;
-use App\Models\SectionConditionTag;
-use App\Models\SurveyConditionTag;
-use DB;
-use Doctrine\DBAL\Driver\PDOException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use League\Flysystem\Exception;
 use Validator;
@@ -74,8 +71,10 @@ class InterviewDataController
         $added = [];
 
         $addToBranch = function (&$branch, $id) use (&$treeMap, &$added) {
-            $branch[$id] = [];
-            $treeMap[$id] = $branch[$id];
+            if (!isset($branch[$id])) {
+                $branch[$id] = [];
+            }
+            $treeMap[$id] = &$branch[$id];
             $added[$id] = 1;
             Log::debug("Added $id");
         };
@@ -94,6 +93,9 @@ class InterviewDataController
         foreach ($data as $d) {
             if (isset($treeMap[$d['question_datum_id']])) {
                 $addToBranch($treeMap[$d['question_datum_id']], $d['id']);
+            } else if (!isset($qDIndex[$d['id']])){
+                $addToBranch($tree, '');
+                $addToBranch($treeMap[''], $d['id']);
             }
         }
 
@@ -104,7 +106,7 @@ class InterviewDataController
             $c++;
             foreach ($questionData as $qd) {
                 if (isset($qd['follow_up_datum_id'])) {
-                    if (isset($added[$qd['follow_up_datum_id']])) {
+                    if (!isset($added[$qd['follow_up_datum_id']])) {
                         $addToBranch($treeMap[$qd['follow_up_datum_id']], $qd['id']);
                         $hasChanged = true;
                     }
@@ -161,7 +163,7 @@ class InterviewDataController
                 return $d['id'];
             }, $questionDatum['removed']);
             Datum::destroy($removedDatumIds);
-            Questiondatum::destroy($removedQuestionDatumIds);
+            QuestionDatum::destroy($removedQuestionDatumIds);
 
             // Update modified values
             foreach ($datum['modified'] as $d) {
@@ -173,58 +175,77 @@ class InterviewDataController
                     ->update($d);
             }
 
-            function makeIndex ($block, $name = 'id') {
-                $idx = [];
-                foreach (['added', 'removed', 'modified'] as $key) {
-                    foreach ($block[$key] as $v) {
-                        $idx[$v[$name]] = $v;
+            $questionDatumToDatumMap = array_reduce($datum['added'], function ($map, $d) {
+                if (!isset($map[$d['question_datum_id']])) {
+                    $map[$d['question_datum_id']] = [];
+                }
+                array_push($map[$d['question_datum_id']], $d);
+                return $map;
+            }, []);
+
+            $questionIdToQuestionDatumMap = array_reduce($questionDatum['added'], function ($map, $qd){
+                $map[$qd['question_id']] = $qd;
+                return $map;
+            },[]);
+            $questionIds = array_keys($questionIdToQuestionDatumMap);
+
+            DB::enableQueryLog();
+
+            $sectionQuery = Question::whereIn('id', $questionIds)
+                ->select('question.id',
+                    DB::raw('(select `form_section`.`sort_order` from `form_section` where `form_section`.`section_id` in 
+                    (select `section_question_group`.`section_id` from `section_question_group` where `section_question_group`.`question_group_id` = question.question_group_id)) as sort_order'));
+
+            Log::debug($sectionQuery->toSql());
+            $questionIdInsertOrderMap = $sectionQuery->get()->reduce(function ($map, $r) {
+                $map[$r->id] = $r->sort_order;
+                return $map;
+            }, []);
+
+            Log::debug(DB::getQueryLog());
+            Log::debug($questionIdInsertOrderMap);
+
+            uasort($questionDatum['added'], function ($a, $b) use ($questionIdInsertOrderMap) {
+               return $questionIdInsertOrderMap[$a['question_id']] - $questionIdInsertOrderMap[$b['question_id']];
+            });
+
+            $dontChangeVals = ['id', 'created_at'];
+            $firstOrNew = function ($class, $o) use ($dontChangeVals) {
+                $m = QuestionDatum::firstOrNew([
+                    'id' => $o['id']
+                ]);
+                foreach ($o as $key => $val) {
+                    if (!isset($dontChangeVals[$key])) {
+                        $m->$key = $val;
                     }
                 }
-                return $idx;
-            }
-            $qdIndex = makeIndex($questionDatum);
-            $dIndex = makeIndex($datum);
-            $tree = self::makeTree($questionDatum['added'], $datum['added'], $qdIndex, $dIndex);
-            $notModified = [
-                'created_at' => true,
-                'id' => true
-            ];
-            // Recursive call to the data in each branch of the tree
-            $insertBranch = function ($branch) use ($qdIndex, $dIndex, &$insertBranch, $notModified) {
-                foreach ($branch as $id => $leaves) {
-                    // Insert each questionDatum then insert the child datum
-                    $qd = $qdIndex[$id];
-                    $qdModel = QuestionDatum::firstOrNew([
-                        'id' => $id
-                    ]);
-                    foreach ($qd as $key => $val) {
-                        if (!isset($notModified[$key])) {
-                            $qdModel->$key = $val;
-                        }
-                    }
-                    $qdModel->save();
-                    foreach ($leaves as $id => $branch) {
-                        $d = $dIndex[$id];
-                        $dModel = Datum::firstOrNew([
-                            'id' => $id
-                        ]);
-                        foreach ($d as $key => $val) {
-                            if (!isset($notModified[$key])) {
-                                $dModel->$key = $val;
-                            }
-                        }
-                        $dModel->save();
-                        $insertBranch($branch);
-                    }
-                }
+                $m->save();
             };
 
-            $insertBranch($tree);
+            foreach ($datum['added'] as $d) {
+                if (!isset($questionDatumToDatumMap[$d['question_datum_id']])) {
+                    $firstOrNew(Datum::class, $d);
+                }
+            }
+
+            $dontChangeVals = ['id', 'created_at'];
+            foreach ($questionDatum['added'] as $qd) {
+                $qid = $qd['id'];
+                Log::debug("Inserting qd $qid");
+                $firstOrNew(QuestionDatum::class, $qd);
+                if (isset($questionDatumToDatumMap[$qd['id']])) {
+                    foreach ($questionDatumToDatumMap[$qd['id']] as $d) {
+                        $did = $d['id'];
+                        Log::debug("Inserting d $did");
+                        $firstOrNew(Datum::class, $d);
+                    }
+                }
+            }
 
             // Add all of the condition tags last
-            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
-            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
+//            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
+//            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
+//            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
 
         } catch (Exception $exception) {
             Log::debug('rolling back transaction');
