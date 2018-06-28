@@ -14,6 +14,7 @@ use App\Models\Datum;
 use App\Models\Interview;
 use App\Models\Question;
 use App\Models\QuestionDatum;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -148,7 +149,6 @@ class InterviewDataController
         }
 
         $patch = $request->all();
-        Log::debug(json_encode($patch));
         $datum = $patch['data']['datum'];
         $questionDatum = $patch['data']['questionDatum'];
 
@@ -175,6 +175,10 @@ class InterviewDataController
                     ->update($d);
             }
 
+            $questionDatumIdSieve = array_reduce($questionDatum['added'], function ($map, $qd) {
+                $map[$qd['id']] = true;
+                return $map;
+            }, []);
             $questionDatumToDatumMap = array_reduce($datum['added'], function ($map, $d) {
                 if (!isset($map[$d['question_datum_id']])) {
                     $map[$d['question_datum_id']] = [];
@@ -189,21 +193,16 @@ class InterviewDataController
             },[]);
             $questionIds = array_keys($questionIdToQuestionDatumMap);
 
-            DB::enableQueryLog();
-
             $sectionQuery = Question::whereIn('id', $questionIds)
                 ->select('question.id',
                     DB::raw('(select `form_section`.`sort_order` from `form_section` where `form_section`.`section_id` in 
                     (select `section_question_group`.`section_id` from `section_question_group` where `section_question_group`.`question_group_id` = question.question_group_id)) as sort_order'));
 
-            Log::debug($sectionQuery->toSql());
             $questionIdInsertOrderMap = $sectionQuery->get()->reduce(function ($map, $r) {
                 $map[$r->id] = $r->sort_order;
                 return $map;
             }, []);
 
-            Log::debug(DB::getQueryLog());
-            Log::debug($questionIdInsertOrderMap);
 
             uasort($questionDatum['added'], function ($a, $b) use ($questionIdInsertOrderMap) {
                return $questionIdInsertOrderMap[$a['question_id']] - $questionIdInsertOrderMap[$b['question_id']];
@@ -211,7 +210,7 @@ class InterviewDataController
 
             $dontChangeVals = ['id', 'created_at'];
             $firstOrNew = function ($class, $o) use ($dontChangeVals) {
-                $m = QuestionDatum::firstOrNew([
+                $m = $class::firstOrNew([
                     'id' => $o['id']
                 ]);
                 foreach ($o as $key => $val) {
@@ -223,15 +222,14 @@ class InterviewDataController
             };
 
             foreach ($datum['added'] as $d) {
-                if (!isset($questionDatumToDatumMap[$d['question_datum_id']])) {
+                if (!isset($questionDatumIdSieve[$d['question_datum_id']])) {
+                    $did = $d['id'];
                     $firstOrNew(Datum::class, $d);
                 }
             }
 
-            $dontChangeVals = ['id', 'created_at'];
             foreach ($questionDatum['added'] as $qd) {
                 $qid = $qd['id'];
-                Log::debug("Inserting qd $qid");
                 $firstOrNew(QuestionDatum::class, $qd);
                 if (isset($questionDatumToDatumMap[$qd['id']])) {
                     foreach ($questionDatumToDatumMap[$qd['id']] as $d) {
@@ -243,11 +241,11 @@ class InterviewDataController
             }
 
             // Add all of the condition tags last
-//            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
-//            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-//            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
+            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
+            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
+            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
 
-        } catch (Exception $exception) {
+        } catch (QueryException $exception) {
             Log::debug('rolling back transaction');
             DB::rollBack();
             return response()->json([
