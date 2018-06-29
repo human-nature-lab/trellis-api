@@ -70,6 +70,27 @@ class FormController extends Controller
 
         $formModel = Form::with('sections', 'nameTranslation')->find($id);
 
+        // Transform the model into its old format
+        foreach ($formModel->sections as $section) {
+            foreach ($section->questionGroups as $qGroup) {
+                foreach ($qGroup->questions as $question) {
+                    foreach ($question->choices as $key => $choice) {
+                        $newChoice = (object) [
+                            'id' => $choice->choice->id,
+                            'choice_translation' => $choice->choice->choiceTranslation,
+                            'val' => $choice->choice->val,
+                            'pivot' => [
+                                'id' => $choice->id,
+                                'question_id' => $choice->question_id,
+                                'sort_order' => $choice->sort_order
+                            ]
+                        ];
+                        $question->choices[$key] = $newChoice;
+                    }
+                }
+            }
+        }
+
         return response()->json([
             'form' => $formModel
         ], Response::HTTP_OK);
