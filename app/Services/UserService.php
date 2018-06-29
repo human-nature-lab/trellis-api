@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Token;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\Exception\UnsatisfiedDependencyException;
 use Auth;
@@ -48,7 +49,7 @@ class UserService
         $user->id = Uuid::uuid4();
         $user->name = $request->input('name');
         $user->username = $request->input('username');
-        $user->password = bcrypt($request->input('password'));
+        $user->password = Hash::make($request->input('password'));
 
         $user->save();
 
@@ -69,7 +70,7 @@ class UserService
             $updated = true;
         }
         if ($request->input('password') != '') {
-            $user->password = bcrypt($request->input('password'));
+            $user->password = Hash::make($request->input('password'));
             $updated = true;
         }
         if ($updated) {

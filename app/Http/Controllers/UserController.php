@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Hash;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -139,7 +140,7 @@ class UserController extends Controller
                 'msg' => 'URL resource not found'
             ], Response::HTTP_NOT_FOUND);
         }
-        $userPassword = bcrypt($request->input('password'));
+        $userPassword = Hash::make($request->input('password'));
         $userModel->fill($request->input());
         $userModel->password = $userPassword;
         $userModel->save();
@@ -234,7 +235,7 @@ class UserController extends Controller
         $userId = Uuid::uuid4();
         $userName = $request->input('name');
         $userUsername = $request->input('username');
-        $userPassword = bcrypt($request->input('password'));
+        $userPassword = Hash::make($request->input('password'));
         $userRole = $request->input('role');
         $userSelectedStudyId = $request->input('selected_study_id');
 
