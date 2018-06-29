@@ -47,11 +47,9 @@ class Question extends Model
     public function choices()
     {
         return $this
-            ->belongsToMany('App\Models\Choice', 'question_choice')
-            ->withPivot('sort_order', 'id')
+            ->hasMany('App\Models\QuestionChoice')
             ->whereNull('question_choice.deleted_at')
-            ->withTimestamps()
-            ->with('choiceTranslation');
+            ->with('choice');
     }
 
     public function assignConditionTags()
