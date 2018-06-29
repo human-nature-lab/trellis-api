@@ -175,8 +175,8 @@ class SectionController extends Controller
     public function createSection(Request $request, SectionService $sectionService, $formId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'form_id' => $formId]), [
-            'form_id' => 'required|string|min:36',
+            'formId' => $formId]), [
+            'formId' => 'required|string|min:36|exists:form,id',
             'translated_text' => 'required|string|min:1'
         ]);
 

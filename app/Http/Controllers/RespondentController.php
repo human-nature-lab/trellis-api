@@ -191,12 +191,17 @@ class RespondentController extends Controller
         );
     }
 
-    public function searchRespondentsByStudyId(Request $request, $study_id)
+    public function searchRespondentsByStudyId(Request $request, $studyId)
     {
-        $validator = Validator::make(
-            ['study_id' => $study_id],
-            ['study_id' => 'required|string|min:36|exists:study,id']
-        );
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'limit' => $request->get('limit'),
+            'offset' => $request->get('offset')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'limit' => 'nullable|integer|max:200|min:0',
+            'offset' => 'nullable|integer|min:0'
+        ]);
 
         // Default to limit = 50 and offset = 0
         $limit = $request->input('limit', 50);
@@ -216,11 +221,11 @@ class RespondentController extends Controller
             $searchTerms = explode(" ", $q);
             $r1 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
 
             $r2 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 2 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
 
             if ($c) {
                 $cArray = explode(",", $c);
@@ -273,7 +278,7 @@ class RespondentController extends Controller
         } else {
             $respondents = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
 
             if ($c) {
                 $cArray = explode(",", $c);
@@ -303,12 +308,17 @@ class RespondentController extends Controller
         }
     }
 
-    public function getAllRespondentsByStudyId(Request $request, $study_id)
+    public function getAllRespondentsByStudyId(Request $request, $studyId)
     {
-        $validator = Validator::make(
-            ['study_id' => $study_id],
-            ['study_id' => 'required|string|min:36|exists:study,id']
-        );
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'limit' => $request->get('limit'),
+            'offset' => $request->get('offset')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'limit' => 'nullable|integer|max:200|min:0',
+            'offset' => 'nullable|integer|min:0'
+        ]);
 
         // Default to limit = 100 and offset = 0
         $limit = $request->input('limit', 100);
@@ -321,13 +331,13 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
-        $count = Respondent::whereHas('studies', function ($query) use ($study_id) {
-            $query->where('study.id', '=', $study_id);
+        //$studyModel = Study::with('respondents.photos')->where('id', $studyId)->get();
+        $count = Respondent::whereHas('studies', function ($query) use ($studyId) {
+            $query->where('study.id', '=', $studyId);
         })->count();
 
-        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($study_id) {
-            $query->where('study.id', '=', $study_id);
+        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($studyId) {
+            $query->where('study.id', '=', $studyId);
         })
             ->limit($limit)
             ->offset($offset)
@@ -342,11 +352,11 @@ class RespondentController extends Controller
         );
     }
 
-    public function getRespondentCountByStudyId(Request $request, $study_id)
+    public function getRespondentCountByStudyId(Request $request, $studyId)
     {
         $validator = Validator::make(
-            ['study_id' => $study_id],
-            ['study_id' => 'required|string|min:36|exists:study,id']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -356,8 +366,8 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $count = Respondent::whereHas('studies', function ($query) use ($study_id) {
-            $query->where('study.id', '=', $study_id);
+        $count = Respondent::whereHas('studies', function ($query) use ($studyId) {
+            $query->where('study.id', '=', $studyId);
         })->count();
 
         return response()->json(
@@ -369,8 +379,8 @@ class RespondentController extends Controller
     public function addPhoto(Request $request, $respondent_id, RespondentPhotoService $respondentPhotoService)
     {
         $validator = Validator::make([
-            'respondent_id' => $respondent_id], [
-            'respondent_id' => 'required|string|min:36'
+            'respondentId' => $respondent_id], [
+            'respondentId' => 'required|string|min:36|exists:respondent,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -432,8 +442,12 @@ class RespondentController extends Controller
 
     public function updateRespondent(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'string|min:1|max:65535|required'
+        $validator = Validator::make([
+            'respondentId' => $id,
+            'name' => $request->get('name')
+        ], [
+            'respondentId' => 'required|string|min:36|exists:respondent,id',
+            'name' => 'required|string|min:1|max:65535'
         ]);
 
         if ($validator->fails() === true) {
@@ -455,8 +469,8 @@ class RespondentController extends Controller
     public function createRespondent(Request $request, RespondentService $respondentService)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'string|min:1|max:65535',
-            'study_id' => 'required|string|min:36|exists:study,id'
+            'name' => 'required|string|min:1|max:65535',
+            'studyId' => 'required|string|min:36|exists:study,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -476,8 +490,8 @@ class RespondentController extends Controller
     public function removeRespondent($id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['respondentId' => $id],
+            ['respondentId' => 'required|string|min:36|exists:respondent,id']
         );
 
         if ($validator->fails() === true) {
@@ -504,12 +518,13 @@ class RespondentController extends Controller
 
     public function removeRespondentPhoto($respondentId, $photoId)
     {
-        $validator = Validator::make(
-            ['respondent_id' => $respondentId,
-                'photo_id' => $photoId],
-            ['respondent_id' => 'required|string|min:36|exists:respondent_photo,respondent_id',
-                'photo_id' => 'required|string|min:36|exists:respondent_photo,photo_id']
-        );
+        $validator = Validator::make([
+            'respondentId' => $respondentId,
+            'photoId' => $photoId
+        ], [
+            'respondentId' => 'required|string|min:36|exists:respondent_photo,respondent_id',
+            'photoId' => 'required|string|min:36|exists:respondent_photo,photo_id'
+        ]);
 
         if ($validator->fails() === true) {
             return response()->json([

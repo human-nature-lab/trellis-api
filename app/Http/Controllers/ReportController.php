@@ -25,8 +25,8 @@ class ReportController extends Controller {
         $config = new \stdClass();
 
         $validator = Validator::make(
-            ['id' => $studyId],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -34,12 +34,6 @@ class ReportController extends Controller {
                 'msg' => 'Study id invalid',
                 'err' => $validator->errors()
             ], $validator->statusCode());
-        }
-
-        if(Study::where('id', $studyId)->count() === 0){
-            return response()->json([
-                'msg' => "Study with id, $studyId doesn't exist"
-            ], Response::HTTP_NOT_FOUND);
         }
 
         // Generate the report csv contents and store is with a unique filename
@@ -60,8 +54,8 @@ class ReportController extends Controller {
         $config = new \stdClass();
 
         $validator = Validator::make(
-            ['id' => $studyId],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -69,13 +63,6 @@ class ReportController extends Controller {
                 'msg' => 'Study id invalid',
                 'err' => $validator->errors()
             ], $validator->statusCode());
-        }
-
-
-        if(Study::where('id', $studyId)->count() === 0){
-            return response()->json([
-                'msg' => "Study with id, $studyId doesn't exist"
-            ], Response::HTTP_NOT_FOUND);
         }
 
         // Generate the report csv contents and store is with a unique filename
@@ -96,8 +83,8 @@ class ReportController extends Controller {
         $config = new \stdClass();
 
         $validator = Validator::make(
-            ['id' => $studyId],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -107,12 +94,6 @@ class ReportController extends Controller {
             ], $validator->statusCode());
         }
 
-
-        if(Study::where('id', $studyId)->count() === 0){
-            return response()->json([
-                'msg' => "Study with id, $studyId doesn't exist"
-            ], Response::HTTP_NOT_FOUND);
-        }
 
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
@@ -133,8 +114,8 @@ class ReportController extends Controller {
         $config = new \stdClass();
 
         $validator = Validator::make(
-            ['id' => $studyId],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -144,12 +125,6 @@ class ReportController extends Controller {
             ], $validator->statusCode());
         }
 
-
-        if(Study::where('id', $studyId)->count() === 0){
-            return response()->json([
-                'msg' => "Study with id, $studyId doesn't exist"
-            ], Response::HTTP_NOT_FOUND);
-        }
 
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
@@ -170,8 +145,8 @@ class ReportController extends Controller {
         $config = new \stdClass();
 
         $validator = Validator::make(
-            ['id' => $studyId],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -182,13 +157,7 @@ class ReportController extends Controller {
         }
 
 
-        if(Study::where('id', $studyId)->count() === 0){
-            return response()->json([
-                'msg' => "Study with id, $studyId doesn't exist"
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        // Generate the report csv contents and store is with a unique filename
+           // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
         $reportJob = new RespondentReportJob($studyId, $reportId, $config);
 
@@ -211,16 +180,16 @@ class ReportController extends Controller {
 
         $validator = Validator::make(
             [
-                'id' => $formId,
+                'formId' => $formId,
                 'studyId' => $config->studyId,
                 'useChoiceNames' => $config->useChoiceNames,
                 'locale' => $config->locale,
             ],
             [
-                'id' => 'required|string|min:36',
+                'formId' => 'required|string|min:36|exists:form,id',
                 'studyId' => 'required|string|min:36',
-                'useChoiceNames' => 'boolean',
-                'locale' => 'string|min:36',
+                'useChoiceNames' => 'nullable|boolean',
+                'locale' => 'nullable|string|min:36',
             ]
         );
 
@@ -230,13 +199,6 @@ class ReportController extends Controller {
                 'err' => $validator->errors()
             ], $validator->statusCode());
         }
-
-		// Validate that the form with this id exists
-		if(Form::where('id', $formId)->count() === 0){
-			return response()->json([
-				'msg' => "Form with id, $formId doesn't exist"
-			], Response::HTTP_NOT_FOUND);
-		}
 
 		// Try the get the user supplied locale
         $localeModel = null;
@@ -311,11 +273,6 @@ class ReportController extends Controller {
             ->orderBy('updated_at', 'desc')
             ->get();
 
-//	    foreach($reports as &$report){
-//            $report->files = ReportFile::where('report_id', '=', $report->id)
-//                ->get();
-//        }
-
 	    return response()->json([
 	        'reports' => $reports
         ], Response::HTTP_OK);
@@ -328,7 +285,7 @@ class ReportController extends Controller {
 	    // TODO: validate the exportId
         $validator = Validator::make(
             ['id' => $reportId],
-            ['id' => 'required|string|min:36']
+            ['id' => 'required|string|min:36|exists:report,id']
         );
 
         if ($validator->fails() === true) {
@@ -340,13 +297,6 @@ class ReportController extends Controller {
 
 	    $report = Report::find($reportId);
 
-        if($report === null){
-            return response()->json([
-                'msg' => "Report matching $reportId not found",
-                'err' => "Report matching $reportId not found"
-            ], Response::HTTP_NOT_FOUND);
-        }
-
 	    return response()->json([
 	        'status' => $report->status
         ], Response::HTTP_OK);
@@ -357,7 +307,7 @@ class ReportController extends Controller {
     public function getReport(Request $request, $reportId){
         $validator = Validator::make(
             ['id' => $reportId],
-            ['id' => 'required|string|min:36']
+            ['id' => 'required|string|min:36|exists:report,id']
         );
 
         if ($validator->fails() === true) {
@@ -368,13 +318,6 @@ class ReportController extends Controller {
         }
 
         $report = Report::with('files')->find($reportId);
-
-        if($report === null){
-            return response()->json([
-                'msg' => "Report matching $reportId not found",
-                'err' => "Report matching $reportId not found"
-            ], Response::HTTP_NOT_FOUND);
-        }
 
         return response()->json($report, Response::HTTP_OK);
 
