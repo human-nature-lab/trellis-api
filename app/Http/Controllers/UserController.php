@@ -118,12 +118,12 @@ class UserController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $id
         ]), [
-            'id' => 'required|string|min:36',
-            'name' => 'string|min:1|max:255',
-            'username' => 'string|min:1|max:63',
-            'password' => 'string|min:1|max:63',
-            'role' => 'string|min:1|max:64',
-            'selected_study_id' => 'string|min:36'
+            'id' => 'required|string|min:36|exists:user,id',
+            'name' => 'nullable|string|min:1|max:255',
+            'username' => 'nullable|string|min:1|max:63',
+            'password' => 'nullable|string|min:1|max:63',
+            'role' => 'nullable|string|min:1|max:64',
+            'selected_study_id' => 'nullable|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -211,8 +211,8 @@ class UserController extends Controller
             'username' => 'required|string|min:1|max:63',
             'password' => 'required|string|min:1|max:63',
             'password_confirmation' => 'required|string|min:1|max:63',
-            'role' => 'string|min:1|max:64',
-            'selected_study_id' => 'string|min:36'
+            'role' => 'nullable|string|min:1|max:64',
+            'selected_study_id' => 'nullable|string|min:36'
         ]);
 
 
