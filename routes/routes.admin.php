@@ -228,6 +228,8 @@ $router->group(['middleware' => 'key'], function () use ($router) {
             'StudyController@updateStudy'
         );
 
+        $router->get('study/{id}', 'StudyController@getStudy');
+
         $router->get(
             'study',
             'StudyController@getAllStudies'
