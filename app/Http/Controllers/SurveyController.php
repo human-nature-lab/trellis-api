@@ -60,7 +60,7 @@ class SurveyController extends Controller {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
         ]), [
-            'respondent_id' => 'string|min:32|exists:respondent,id',
+            'respondent_id' => 'nullable|string|min:32|exists:respondent,id',
             'studyId' => 'required|string|min:32|exists:study,id'
         ]);
 
@@ -122,54 +122,6 @@ class SurveyController extends Controller {
         return response()->json([
             'survey' => $survey
         ], Response::HTTP_OK);
-    }
-
-    /**
-     * Display the specified resource.
-     * GET /survey/{id}
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     * GET /survey/{id}/edit
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     * PUT /survey/{id}
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update($id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * DELETE /survey/{id}
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy($id)
-    {
-        //
     }
 
 }

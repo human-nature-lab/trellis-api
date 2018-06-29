@@ -15,8 +15,8 @@ class TranslationController extends Controller
     public function removeTranslation(Request $request, $id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['translationId' => $id],
+            ['translationId' => 'required|string|min:36|exists:translation,id']
         );
 
         if ($validator->fails() === true) {
@@ -27,13 +27,6 @@ class TranslationController extends Controller
         }
 
         $translationModel = Translation::find($id);
-
-        if ($translationModel === null) {
-            return response()->json([
-                'msg' => 'URL resource was not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
         $translationTextModel = TranslationText::where('translation_id', '=', $id)->get();
 
         if ($translationTextModel !== null) {

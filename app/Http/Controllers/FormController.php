@@ -463,8 +463,8 @@ class FormController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'form_master_id' => 'string|min:36',
-            'name_translation_id' => 'string|min:36'
+            'form_master_id' => 'nullable|string|min:36',
+            'name_translation_id' => 'nullable|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -495,7 +495,7 @@ class FormController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'form_master_id' => $form_master_id
         ]), [
-            'form_master_id' => 'string|min:36|exists:form,form_master_id',
+            'form_master_id' => 'nullable|string|min:36|exists:form,form_master_id',
             'published' => 'required|integer|min:0|max:1'
         ]);
 

@@ -15,8 +15,8 @@ class TranslationTextController extends Controller
     public function getTranslationText(Request $request, $id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['translationTextId' => $id],
+            ['translationTextId' => 'required|string|min:36|exists:translation_text,id']
         );
 
         if ($validator->fails() === true) {
@@ -27,12 +27,6 @@ class TranslationTextController extends Controller
         }
 
         $translationTextModel = TranslationText::find($id);
-
-        if ($translationTextModel === null) {
-            return response()->json([
-                'msg' => 'URL resource not found'
-            ], Response::HTTP_OK);
-        }
 
         return response()->json([
             'translationText' => $translationTextModel
@@ -49,13 +43,15 @@ class TranslationTextController extends Controller
         );
     }
 
-    public function updateTranslationText(Request $request, $translation_id, $text_id)
+    public function updateTranslationText(Request $request, $translationId, $textId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'translation_id' => $translation_id,
-            'text_id' => $text_id
+            'translationId' => $translationId,
+            'translationTextId' => $textId
         ]), [
-            'translated_text' => 'required|string'
+            'translated_text' => 'required|string',
+            'translationId' => 'nullable|string',
+            'translationTextId' => 'required|string|min:36|exists:translation_text,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -65,14 +61,7 @@ class TranslationTextController extends Controller
             ], $validator->statusCode());
         }
 
-        $translationTextModel = TranslationText::find($text_id);
-
-        if ($translationTextModel === null) {
-            return response()->json([
-                'msg' => 'URL resource not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
+        $translationTextModel = TranslationText::find($textId);
         $translationTextModel->translated_text = $request->input('translated_text');
         $translationTextModel->save();
 
@@ -84,8 +73,8 @@ class TranslationTextController extends Controller
     public function removeTranslationText(Request $request, $id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['translationTextId' => $id],
+            ['translationTextId' => 'required|string|min:36|exists:translation_text,id']
         );
 
         if ($validator->fails() === true) {
@@ -96,13 +85,6 @@ class TranslationTextController extends Controller
         }
 
         $translationTextModel = TranslationText::find($id);
-
-        if ($translationTextModel === null) {
-            return response()->json([
-                'msg' => 'URL resource was not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
         $translationTextModel->delete();
 
         return response()->json([
@@ -110,13 +92,13 @@ class TranslationTextController extends Controller
         ], Response::HTTP_NO_CONTENT);
     }
 
-    public function createTranslationText(Request $request, $translation_id)
+    public function createTranslationText(Request $request, $translationId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'translation_id' => $translation_id
+            'translationId' => $translationId
         ]), [
-            'translation_id' => 'required|string|min:36',
-            'locale_id' => 'string|min:36',
+            'translationId' => 'required|string|min:36|exists:translation,id',
+            'locale_id' => 'required|string|min:36|exists:locale,id',
             'translated_text' => 'required|string'
         ]);
 
@@ -129,7 +111,6 @@ class TranslationTextController extends Controller
 
         $translationTextId = Uuid::uuid4();
         $localeId = $request->input('locale_id');
-        $translationId = $translation_id;
         $translatedText = $request->input('translated_text');
 
         $newTranslationTextModel = new TranslationText;
@@ -139,10 +120,7 @@ class TranslationTextController extends Controller
         $newTranslationTextModel->translated_text = $translatedText;
         $newTranslationTextModel->save();
 
-        //$returnTranslationTextModel = $newTranslationTextModel->create();
         $returnTranslationTextModel = TranslationText::with('locale')->find($translationTextId);
-        //\Log::Debug("returnTranslationTextModel");
-        //\Log::Debug($returnTranslationTextModel);
 
         return response()->json([
             'translationText' => $returnTranslationTextModel

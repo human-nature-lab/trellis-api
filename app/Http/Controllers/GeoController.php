@@ -237,12 +237,12 @@ class GeoController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'geo_type_id' => 'string|min:36',
-            'parent_id' => 'string|min:36',
-            'latitude' => 'integer|min:1',
-            'longitude' => 'integer|min:1',
-            'altitude' => 'integer|min:1',
-            'name_translation_id' => 'string|min:36'
+            'geo_type_id' => 'nullable|string|min:36',
+            'parent_id' => 'nullable|string|min:36',
+            'latitude' => 'nullable|integer|min:1',
+            'longitude' => 'nullable|integer|min:1',
+            'altitude' => 'nullable|integer|min:1',
+            'name_translation_id' => 'nullable|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -304,10 +304,10 @@ class GeoController extends Controller
         ]), [
             'localeId' => 'required|string|min:36|exists:locale,id',
             'geo_type_id' => 'required|string|min:36|exists:geo_type,id',
-            'parent_id' => 'string|min:36|exists:geo,id',
-            'latitude' => 'string|min:1',
-            'longitude' => 'string|min:1',
-            'altitude' => 'string|min:1',
+            'parent_id' => 'nullable|string|min:36|exists:geo,id',
+            'latitude' => 'nullable|string|min:1',
+            'longitude' => 'nullable|string|min:1',
+            'altitude' => 'nullable|string|min:1',
             'name' => 'required|string|min:1'
         ]);
 

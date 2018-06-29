@@ -17,9 +17,9 @@ class RosterController extends Controller {
 	public function getRostersById ($ids) {
 	    $rosterIds = explode(',', $ids);
 	    $validator = Validator::make([
-	        'roster_ids' => $rosterIds
+	        'rosterIds' => $rosterIds
         ], [
-            'roster_ids' => 'required|exists:roster,id'
+            'rosterIds' => 'required|array|exists:roster,id'
         ]);
 
 	    if ($validator->fails()) {
@@ -85,9 +85,9 @@ class RosterController extends Controller {
         }, []);
 
         $validator = Validator::make([
-            'roster_ids' => $rosterIds
+            'rosterIds' => $rosterIds
         ], [
-            'roster_ids' => 'required|array|git exists:roster,id'
+            'rosterIds' => 'required|array|exists:roster,id'
         ]);
 
         if ($validator->fails()) {
