@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\RespondentName;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Ramsey\Uuid\Uuid;
 use App\Models\Respondent;
 use App\Models\StudyRespondent;
@@ -57,10 +58,10 @@ class RespondentService
         $name = $oldName->replicate();
         $name->fill([
             'id' => Uuid::uuid4(),
-            'name' => $newName || $oldName->name,
+            'name' => $newName,
             'previous_respondent_name_id' => $oldName->id,
-            'locale_id' => $localeId || $oldName->locale_id,
-            'is_display_name' => $isDisplayName || $oldName->is_display_name
+            'locale_id' => $localeId,
+            'is_display_name' => $isDisplayName === true
         ]);
         DB::transaction(function () use (&$name, &$oldName) {
             $name->save();
