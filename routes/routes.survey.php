@@ -52,11 +52,11 @@ $router->group([
 
     // Respondent survey routes
     $router->group(['prefix' => 'respondent/{respondent_id}'], function () use ($router) {
-        $router->get('/',                            'RespondentController@getRespondentById');
-        $router->get('fills',                        'RespondentController@getRespondentFillsById');
-        $router->post('name',                        'RespondentNameController@createRespondentName');
-        $router->delete('name/{respondent_name_id}', 'RespondentNameController@deleteRespondentName');
-        $router->put('name/{respondent_name_id}',    'RespondentNameController@editRespondentName');
+        $router->get('/',                                     'RespondentController@getRespondentById');
+        $router->get('fills',                                 'RespondentController@getRespondentFillsById');
+        $router->post('name',                                 'RespondentNameController@createRespondentName');
+        $router->delete('name/{respondent_name_id}',          'RespondentNameController@deleteRespondentName');
+        $router->put('name/{respondent_name_id}',             'RespondentNameController@editRespondentName');
     });
 
 
