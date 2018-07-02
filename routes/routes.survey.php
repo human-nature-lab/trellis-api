@@ -38,9 +38,9 @@ $router->group([
     $router->post('survey/{s_id}/interview',                           'InterviewController@createInterview');
 
     $router->get('studies',                                            'StudyController@getAllStudiesComplete');
-    $router->group([
-        'prefix' => 'study/{s_id}'
-    ], function () use ($router) {
+
+    // Study routes
+    $router->group(['prefix' => 'study/{s_id}'], function () use ($router) {
         $router->post('respondent/{r_id}/form/{f_id}/survey', 'SurveyController@createSurvey');
         $router->get('respondents/search',                    'RespondentController@searchRespondentsByStudyId');
         $router->get('respondents',                           'RespondentController@getAllRespondentsByStudyId');
@@ -50,8 +50,14 @@ $router->group([
     });
 
 
-    $router->get('respondent/{r_id}',                                  'RespondentController@getRespondentById');
-    $router->get('respondent/{r_id}/fills',                            'RespondentController@getRespondentFillsById');
+    // Respondent survey routes
+    $router->group(['prefix' => 'respondent/{respondent_id}'], function () use ($router) {
+        $router->get('/',                            'RespondentController@getRespondentById');
+        $router->get('fills',                        'RespondentController@getRespondentFillsById');
+        $router->post('name',                        'RespondentNameController@createRespondentName');
+        $router->delete('name/{respondent_name_id}', 'RespondentNameController@deleteRespondentName');
+        $router->put('name/{respondent_name_id}',    'RespondentNameController@editRespondentName');
+    });
 
 
     $router->post('edges',                                             'EdgeController@createEdges');
