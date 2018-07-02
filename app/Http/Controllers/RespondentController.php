@@ -276,7 +276,7 @@ class RespondentController extends Controller
                 Response::HTTP_OK
             );
         } else {
-            $respondents = Respondent::with('photos', 'respondentConditionTags')
+            $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
                 ->selectRaw("*, 1 as score")
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
 
@@ -336,20 +336,20 @@ class RespondentController extends Controller
             $query->where('study.id', '=', $studyId);
         })->count();
 
-        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($studyId) {
-            $query->where('study.id', '=', $studyId);
-        })
+        $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
+            ->whereHas('studies', function ($query) use ($studyId) {
+                $query->where('study.id', '=', $studyId);
+            })
             ->limit($limit)
             ->offset($offset)
             ->get();
 
-        return response()->json(
-            ['respondents' => $respondents,
-                'count' => $count,
-                'limit' => $limit,
-                'offset' => $offset],
-            Response::HTTP_OK
-        );
+        return response()->json([
+            'respondents' => $respondents,
+            'count' => $count,
+            'limit' => $limit,
+            'offset' => $offset
+        ],Response::HTTP_OK);
     }
 
     public function getRespondentCountByStudyId(Request $request, $studyId)
@@ -466,11 +466,11 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function createRespondent(Request $request, RespondentService $respondentService)
+    public function createRespondent (Request $request, RespondentService $respondentService)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:1|max:65535',
-            'studyId' => 'required|string|min:36|exists:study,id'
+            'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -708,4 +708,5 @@ class RespondentController extends Controller
             self::get_geo_tree($row->id, $level+1);
         }
     }
+
 }
