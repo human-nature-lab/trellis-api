@@ -27,7 +27,7 @@ class StudyForm extends Model
     ];
 
     public function type () {
-        return $this->hasOne('App\Models\FormType');
+        return $this->belongsTo('App\Models\FormType');
     }
 
     /*
