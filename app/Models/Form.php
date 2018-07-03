@@ -35,7 +35,8 @@ class Form extends Model
 
     public function studyForm() {
         return $this->hasMany('App\Models\StudyForm', 'form_master_id')
-            ->whereNull('study_form.deleted_at');
+            ->whereNull('study_form.deleted_at')
+            ->with('type');
     }
 
     public function sections()
@@ -58,26 +59,4 @@ class Form extends Model
             ->with('conditions');
     }
 
-    /*
-    public function delete()
-    {
-        //\Log::info("Form->delete()");
-        $childFormSections = FormSection::where('form_id', '=', $this->id)->get();
-        foreach ($childFormSections as $childFormSection) {
-            $childFormSection->delete();
-        }
-
-        $childSurveys = Survey::where('form_id', '=', $this->id)->get();
-        foreach ($childSurveys as $childSurvey) {
-            $childSurvey->delete();
-        }
-
-        $studyForms = StudyForm::where('form_master_id', '=', $this->form_master_id)->get();
-        foreach ($studyForms as $studyForm) {
-            $studyForm->delete();
-        }
-
-        return parent::delete();
-    }
-    */
 }
