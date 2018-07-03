@@ -5,21 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\Respondent;
 use App\Models\Photo;
 use App\Models\RespondentFill;
+use App\Models\RespondentName;
 use App\Models\Study;
 use App\Models\RespondentPhoto;
 use App\Models\StudyRespondent;
 use App\Services\RespondentPhotoService;
 use App\Services\RespondentService;
 use \DateTime;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use \Input;
-use \DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
 use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
-use Log;
 use League\Csv\Reader;
 
 class RespondentController extends Controller
@@ -177,6 +178,7 @@ class RespondentController extends Controller
 
         $count = Respondent::count();
         $respondents = Respondent::with('photos', 'respondentConditionTags')
+            ->whereNull('associated_respondent_id')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -191,14 +193,15 @@ class RespondentController extends Controller
         );
     }
 
-    public function searchRespondentsByStudyId(Request $request, $studyId)
-    {
+    public function searchRespondentsByStudyId (Request $request, $studyId) {
         $validator = Validator::make([
             'studyId' => $studyId,
+            'associatedRespondent' => $request->get('associated_respondent_id'),
             'limit' => $request->get('limit'),
             'offset' => $request->get('offset')
         ], [
             'studyId' => 'required|string|min:36|exists:study,id',
+            'associatedRespondent' => 'nullable|string|min:36|exists:respondent,id',
             'limit' => 'nullable|integer|max:200|min:0',
             'offset' => 'nullable|integer|min:0'
         ]);
@@ -206,6 +209,7 @@ class RespondentController extends Controller
         // Default to limit = 50 and offset = 0
         $limit = $request->input('limit', 50);
         $offset = $request->input('offset', 0);
+        $associatedRespondentId = $request->get('associated_respondent_id');
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -217,15 +221,85 @@ class RespondentController extends Controller
         $q = $request->query('q');
         $c = $request->query('c');
 
+        DB::enableQueryLog();
+        $respondentQuery = Respondent::where(function ($q) use ($associatedRespondentId) {
+            $q->whereNull('associated_respondent_id');
+            $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
+        })->with('photos', 'respondentConditionTags', 'names');
+
+        // Add name search
+        if ($q) {
+            $nameQuery = RespondentName::select('respondent_id')->distinct();
+            $terms = explode(',', $q);
+            foreach ($terms as $term) {
+                $nameQuery = $nameQuery->where('name', 'like', "%$term%");
+            }
+            $respondentQuery = $respondentQuery->whereIn('id', $nameQuery);
+        }
+
+        // Add condition tag search
+        if ($c) {
+            $tagNames = explode(',', $c);
+            $respondentQuery = $respondentQuery
+                ->whereHas('respondentConditionTags', function ($query) use ($tagNames) {
+                    $query->whereIn('condition_tag.name', $tagNames);
+                }, '=', count($tagNames));
+        }
+
+        $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
+        $currentQuery = DB::getQueryLog();
+        Log::info(json_encode($currentQuery));
+        DB::disableQueryLog();
+        return response()->json(
+            ['respondents' => $respondents,
+                'count' => count($respondents),
+                'limit' => $limit,
+                'offset' => $offset],
+            Response::HTTP_OK
+        );
+    }
+
+    public function searchRespondentsByStudyIdOld(Request $request, $studyId)
+    {
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'associatedRespondent' => $request->get('associated_respondent_id'),
+            'limit' => $request->get('limit'),
+            'offset' => $request->get('offset')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'associatedRespondent' => 'nullable|string|min:36|exists:respondent,id',
+            'limit' => 'nullable|integer|max:200|min:0',
+            'offset' => 'nullable|integer|min:0'
+        ]);
+
+        // Default to limit = 50 and offset = 0
+        $limit = $request->input('limit', 50);
+        $offset = $request->input('offset', 0);
+        $associatedRespondentId = $request->get('associated_respondent_id');
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $q = $request->query('q');
+        $c = $request->query('c');
+
+        DB::enableQueryLog();
         if ($q) {
             $searchTerms = explode(" ", $q);
             $r1 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId])
+                ->whereRaw('`respondent`.`associated_respondent_id` is null or `respondent`.`associated_respondent_id` = ?', [$associatedRespondentId]);
 
             $r2 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 2 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId])
+                ->whereRaw('(associated_respondent_id is null or associated_respondent_id = ?)', [$associatedRespondentId]);
 
             if ($c) {
                 $cArray = explode(",", $c);
@@ -261,23 +335,10 @@ class RespondentController extends Controller
 
             $respondents = $r1->union($r2)->orderBy('score', 'asc');
 
-            //$currentQuery = $respondents->toSql();
-            //Log::info('$currentQuery: ' . $currentQuery);
-
-
-            $respondents = $respondents->limit($limit)->offset($offset)->get()->unique();
-            $count = count($respondents);
-
-            return response()->json(
-                ['respondents' => $respondents,
-                    'count' => $count,
-                    'limit' => $limit,
-                    'offset' => $offset],
-                Response::HTTP_OK
-            );
         } else {
             $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
                 ->selectRaw("*, 1 as score")
+                ->whereNull('associated_respondent_id')
                 ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
 
             if ($c) {
@@ -292,20 +353,21 @@ class RespondentController extends Controller
                     //Log::info('$currentQuery: ' . $currentQuery);
                 }
             }
-
-            $respondents = $respondents->limit($limit)->offset($offset)->get();
-            $count = count($respondents);
-
-            return response()->json(
-                ['respondents' => $respondents,
-                    'count' => $count,
-                    'limit' => $limit,
-                    'offset' => $offset],
-                Response::HTTP_OK
-            );
-
-
+            $respondents = $respondents->distinct();
         }
+//        $currentQuery = $respondents->toSql();
+        $respondents = $respondents->limit($limit)->offset($offset)->get();
+        $count = count($respondents);
+        $currentQuery = DB::getQueryLog();
+        Log::info(json_encode($currentQuery));
+        DB::disableQueryLog();
+        return response()->json(
+            ['respondents' => $respondents,
+                'count' => $count,
+                'limit' => $limit,
+                'offset' => $offset],
+            Response::HTTP_OK
+        );
     }
 
     public function getAllRespondentsByStudyId(Request $request, $studyId)

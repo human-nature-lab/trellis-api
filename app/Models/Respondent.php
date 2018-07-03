@@ -20,6 +20,7 @@ class Respondent extends Model
         'notes',
         'geo_notes',
         'name',
+        'associated_respondent_id',
         'created_at',
         'updated_at',
         'deleted_at'
