@@ -25,6 +25,10 @@ class Respondent extends Model
         'deleted_at'
     ];
 
+    public function geos () {
+        return $this->belongsToMany('App\Models\Geo', 'respondent_geo');
+    }
+
     public function names () {
         return $this->hasMany('App\Models\RespondentName');
     }

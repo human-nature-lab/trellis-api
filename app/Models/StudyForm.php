@@ -23,8 +23,12 @@ class StudyForm extends Model
         'created_at',
         'updated_at',
         'deleted_at',
-        'form_type'
+        'form_type_id'
     ];
+
+    public function type () {
+        return $this->hasOne('App\Models\FormType');
+    }
 
     /*
     public function delete()
