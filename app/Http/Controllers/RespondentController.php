@@ -528,10 +528,45 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function createStudyRespondent (Request $request, RespondentService $respondentService, $studyId) {
+        $validator = Validator::make([
+            'name' => $request->get('name'),
+            'geoId' => $request->get('geo_id'),
+            'associatedRespondentId' => $request->get('associated_respondent_id'),
+            'studyId' => $studyId
+        ], [
+            'name' => 'required|string|min:1|max:65535',
+            'associatedRespondentId' => 'nullable|string|max:36|exists:respondent,id',
+            'geoId' => 'nullable|string|max:36|exists:geo,id',
+            'studyId' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $newRespondentModel = $respondentService->createRespondent(
+            $request->input('name'),
+            $studyId,
+            null,
+            $request->get('geo_id'),
+            $request->get('associated_respondent_id')
+        );
+
+        return response()->json([
+            'respondent' => $newRespondentModel
+        ], Response::HTTP_OK);
+    }
+
     public function createRespondent (Request $request, RespondentService $respondentService)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:1|max:65535',
+            'associated_respondent_id' => 'nullable|string|max:36|exists:respondent,id',
+            'geo_id' => 'nullable|string|max:36|exists:geo,id',
             'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
@@ -542,7 +577,12 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $newRespondentModel = $respondentService->createRespondent ($request->input('name'), $request->input('study_id'));
+        $newRespondentModel = $respondentService->createRespondent(
+            $request->input('name'),
+            $request->input('study_id'),
+            $request->get('geo_id'),
+            $request->get('associated_respondent_id')
+        );
 
         return response()->json([
             'respondent' => $newRespondentModel

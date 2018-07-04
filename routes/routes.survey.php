@@ -47,6 +47,7 @@ $router->group([
         $router->get('/',                                     'StudyController@getStudy');
         $router->get('respondent/{r_id}/surveys',             'SurveyController@getRespondentStudySurveys');
         $router->get('forms/published',                       'FormController@getPublishedForms');
+        $router->post('respondent',                           'RespondentController@createStudyRespondent');
     });
 
 

@@ -17,6 +17,8 @@ class RespondentGeo extends Model
         'id',
         'geo_id',
         'respondent_id',
+        'notes',
+        'is_current',
         'created_at',
         'updated_at',
         'deleted_at'
