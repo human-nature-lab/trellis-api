@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\RespondentGeo;
 use App\Models\RespondentName;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -17,19 +18,28 @@ class RespondentService
      * @param string $respondentName - The name of the respondent
      * @param string $studyId - The study that the respondent should be assigned to
      * @param string $assignedId - The human readable, assignable id to use for this respondent
+     * @param {string} [$geoId] - A single geo id to add this respondent to
+     * @param {string} [$associatedRespondentId] - A respondent to associate this respondent with
      * @return Respondent
      */
-    public static function createRespondent ($respondentName, $studyId, $assignedId = "") {
+    public static function createRespondent ($respondentName, $studyId, $assignedId = null, $geoId = null, $associatedRespondentId = null) {
 
         $newRespondentModel = null;
-        DB::transaction(function () use ($respondentName, $studyId, $assignedId, &$newRespondentModel) {
+        DB::transaction(function () use ($respondentName, $studyId, $assignedId, &$newRespondentModel, $geoId, $associatedRespondentId) {
             $respondentId = Uuid::uuid4();
 
             $newRespondentModel = new Respondent;
             $newRespondentModel->id = $respondentId;
             $newRespondentModel->name = $respondentName;
             $newRespondentModel->assigned_id = $assignedId;
+            $newRespondentModel->geo_id = $geoId;
+            $newRespondentModel->associated_respondent_id = $associatedRespondentId;
             $newRespondentModel->save();
+
+            // Create the corresponding respondent geo
+            if ($geoId) {
+                self::createRespondentGeo($respondentId, $geoId, true);
+            }
 
             self::createRespondentName($respondentId, $respondentName, null, true);
 
@@ -42,6 +52,60 @@ class RespondentService
         });
 
         return $newRespondentModel;
+    }
+
+    /**
+     * Create a respondent geo for the given respondent
+     * @param {string} $respondentId
+     * @param {string} $geoId
+     * @param {bool} $isCurrent
+     * @param {string} $notes
+     * @param {string} $previousRespondentGeoId
+     * @returns RespondentGeo
+     */
+    public static function createRespondentGeo ($respondentId, $geoId, $isCurrent = false, $notes = null, $previousRespondentGeoId= null) {
+        $rGeo = new RespondentGeo;
+        $rGeo->fill([
+            'id' => Uuid::uuid4(),
+            'respondent_id' => $respondentId,
+            'geo_id' => $geoId,
+            'is_current' => $isCurrent,
+            'notes' => $notes,
+            'previous_respondent_geo_id' => $previousRespondentGeoId
+        ]);
+        DB::transaction(function () use ($rGeo) {
+            $rGeo->save();
+            if ($rGeo->is_current) {
+                self::setIsCurrentFalseExceptFor($rGeo->respondent_id, $rGeo->id);
+            }
+        });
+        return $rGeo;
+    }
+
+    /**
+     * Delete the old respondent_geo and link it to the new respondent geo with the new geo_id
+     * @param {string} $oldRespondentGeoId
+     * @param {string} $newGeoId
+     * @return RespondentGeo
+     */
+    public static function moveRespondentGeo ($oldRespondentGeoId, $newGeoId) {
+        $oldRGeo = RespondentGeo::find($oldRespondentGeoId);
+        $newRGeo = $oldRGeo->replicate();
+        $newRGeo->fill([
+            'id' => Uuid::uuid4(),
+            'geo_id' => $newGeoId,
+            'previous_respondent_geo_id' => $oldRGeo->id
+        ]);
+
+        DB::transaction(function () use (&$newRGeo, &$oldRGeo) {
+            $newRGeo->save();
+            $oldRGeo->delete();
+            if ($oldRGeo->is_current) {
+                self::setIsCurrentFalseExceptFor($newRGeo->respondent_id, $newRGeo->id);
+            }
+        });
+
+        return $newRGeo;
     }
 
     /**
@@ -83,21 +147,21 @@ class RespondentService
      * @return RespondentName
      */
     public static function createRespondentName ($respondentId, $nameString, $localeId, $isDisplay) {
-        $name = new RespondentName;
-        $name->fill([
+        $rName = new RespondentName;
+        $rName->fill([
             'id' => Uuid::uuid4(),
             'respondent_id' => $respondentId,
             'name' => $nameString,
             'locale_id' => $localeId,
             'is_display_name' => $isDisplay
         ]);
-        DB::transaction(function () use ($name) {
-            $name->save();
-            if ($name->is_display_name) {
-                self::setDisplayNameFalseExceptFor($name->respondent_id, $name->id);
+        DB::transaction(function () use ($rName) {
+            $rName->save();
+            if ($rName->is_display_name) {
+                self::setDisplayNameFalseExceptFor($rName->respondent_id, $rName->id);
             }
         });
-        return $name;
+        return $rName;
     }
 
     /**
@@ -117,14 +181,27 @@ class RespondentService
 
     /**
      * Make only this respondent name the display name
-     * @param $respondentId
-     * @param $respondentNameId
+     * @param {string} $respondentId
+     * @param {string} $respondentNameId
      */
     private static function setDisplayNameFalseExceptFor ($respondentId, $respondentNameId) {
         RespondentName::where('respondent_id', $respondentId)
             ->where('id', '!=', $respondentNameId)
             ->update([
                 'is_display_name' => false
+            ]);
+    }
+
+    /**
+     * Make only this respondent geo the current respondent geo
+     * @param {string} $respondentId
+     * @param {string} $respondentGeoId
+     */
+    private static function setIsCurrentFalseExceptFor ($respondentId, $respondentGeoId) {
+        RespondentGeo::where('respondent_id', $respondentId)
+            ->where('id', '!=', $respondentGeoId)
+            ->update([
+                'is_current' => false
             ]);
     }
 }
