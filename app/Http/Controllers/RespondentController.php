@@ -218,32 +218,45 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $q = $request->query('q');
-        $c = $request->query('c');
+        $query = $request->query('q');
+        $conditionTags = $request->query('c');
+        $geos = $request->query('g');
 
         DB::enableQueryLog();
-        $respondentQuery = Respondent::where(function ($q) use ($associatedRespondentId) {
-            $q->whereNull('associated_respondent_id');
-            $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
-        })->with('photos', 'respondentConditionTags', 'names');
+        $respondentQuery = Respondent::whereRaw('`respondent`.`id` in (select respondent_id from study_respondent where study_id = ?)', [$studyId])
+            ->where(function ($q) use ($associatedRespondentId) {
+                $q->whereNull('associated_respondent_id');
+                $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
+            })
+            ->with('photos', 'respondentConditionTags', 'names');
 
         // Add name search
-        if ($q) {
+        if ($query) {
             $nameQuery = RespondentName::select('respondent_id')->distinct();
-            $terms = explode(',', $q);
+            $terms = explode(',', $query);
             foreach ($terms as $term) {
                 $nameQuery = $nameQuery->where('name', 'like', "%$term%");
             }
             $respondentQuery = $respondentQuery->whereIn('id', $nameQuery);
         }
 
-        // Add condition tag search
-        if ($c) {
-            $tagNames = explode(',', $c);
+        // Add condition tag filter
+        if ($conditionTags) {
+            $tagNames = explode(',', $conditionTags);
             $respondentQuery = $respondentQuery
                 ->whereHas('respondentConditionTags', function ($query) use ($tagNames) {
                     $query->whereIn('condition_tag.name', $tagNames);
                 }, '=', count($tagNames));
+        }
+
+        // TODO: Make this include any childre on the parent geo ids
+        // Add geo id filter
+        if ($geos) {
+            $geoIds = explode(',', $geos);
+            $respondentQuery = $respondentQuery
+                ->whereHas('geos', function ($q) use ($geoIds) {
+                    $q->whereIn('respondent_geo.geo_id', $geoIds);
+                });
         }
 
         $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
