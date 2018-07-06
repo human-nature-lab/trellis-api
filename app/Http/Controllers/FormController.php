@@ -463,8 +463,8 @@ class FormController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'form_master_id' => 'nullable|string|min:36',
-            'name_translation_id' => 'nullable|string|min:36'
+            'form_master_id' => 'nullable|string|min:36|exists:form,id',
+            'name_translation_id' => 'nullable|string|min:36|exists:translation,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -476,17 +476,37 @@ class FormController extends Controller
 
         $formModel = Form::find($id);
 
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $formModel->fill->input();
+        $formModel->fill($request->all());
         $formModel->save();
 
         return response()->json([
             'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
+
+    public function updateStudyForm (Request $request, $studyId, $formId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'studyId' => $studyId,
+            'formId' => $formId
+        ]), [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'formId' => 'required|string|min:36|exists:form,id',
+            'sort_order' => 'nullable|number',
+            'census_type_id' => 'nullable|string|min:36|exists:census_type,id',
+            'form_type_id' => 'nullable|string|min:36|exists:form_type,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $studyForm = StudyForm::where('study_id', $studyId)->where('form_master_id', $formId)->first();
+        $studyForm->fill($request->all());
+        $studyForm->save();
+        return response()->json([
+            'study_form' => $studyForm
         ], Response::HTTP_OK);
     }
 

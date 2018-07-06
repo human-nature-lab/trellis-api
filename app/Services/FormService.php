@@ -177,6 +177,7 @@ class FormService
             $newStudyFormModel->sort_order = $maxSortOrder + 1;
 
             $newStudyFormModel->form_type_id = 1*$formType;
+
             $newStudyFormModel->save();
         });
 
