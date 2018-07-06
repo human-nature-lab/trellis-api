@@ -41,23 +41,25 @@ $router->group([
 
     // Study routes
     $router->group(['prefix' => 'study/{s_id}'], function () use ($router) {
-        $router->post('respondent/{r_id}/form/{f_id}/survey', 'SurveyController@createSurvey');
-        $router->get('respondents/search',                    'RespondentController@searchRespondentsByStudyId');
-        $router->get('respondents',                           'RespondentController@getAllRespondentsByStudyId');
-        $router->get('/',                                     'StudyController@getStudy');
-        $router->get('respondent/{r_id}/surveys',             'SurveyController@getRespondentStudySurveys');
-        $router->get('forms/published',                       'FormController@getPublishedForms');
-        $router->post('respondent',                           'RespondentController@createStudyRespondent');
+        $router->get('respondent/{r_id}/form/{f_id}/survey',    'SurveyController@getStudySurveyByFormId');
+        $router->post('respondent/{r_id}/form/{f_id}/survey',   'SurveyController@createSurvey');
+        $router->get('respondents/search',                      'RespondentController@searchRespondentsByStudyId');
+        $router->get('respondents',                             'RespondentController@getAllRespondentsByStudyId');
+        $router->get('/',                                       'StudyController@getStudy');
+        $router->get('respondent/{r_id}/surveys',               'SurveyController@getRespondentStudySurveys');
+        $router->post('respondent',                             'RespondentController@createStudyRespondent');
+        $router->get('forms/published',                         'FormController@getPublishedForms');
+        $router->get('form/census',                             'CensusFormController@getStudyCensusForm');
     });
 
 
     // Respondent survey routes
     $router->group(['prefix' => 'respondent/{respondent_id}'], function () use ($router) {
-        $router->get('/',                                     'RespondentController@getRespondentById');
-        $router->get('fills',                                 'RespondentController@getRespondentFillsById');
-        $router->post('name',                                 'RespondentNameController@createRespondentName');
-        $router->delete('name/{respondent_name_id}',          'RespondentNameController@deleteRespondentName');
-        $router->put('name/{respondent_name_id}',             'RespondentNameController@editRespondentName');
+        $router->get('/',                                       'RespondentController@getRespondentById');
+        $router->get('fills',                                   'RespondentController@getRespondentFillsById');
+        $router->post('name',                                   'RespondentNameController@createRespondentName');
+        $router->delete('name/{respondent_name_id}',            'RespondentNameController@deleteRespondentName');
+        $router->put('name/{respondent_name_id}',               'RespondentNameController@editRespondentName');
     });
 
 
