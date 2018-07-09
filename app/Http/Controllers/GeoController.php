@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RespondentGeo;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -354,6 +355,9 @@ class GeoController extends Controller
      */
     public function getGeosById ($ids) {
         $geoIds = explode(',', $ids);
+        $geoIds = array_map(function ($id) {
+            return urldecode($id);
+        }, $geoIds);
         $validator = Validator::make([
             'geo_ids' => $geoIds
         ], [
@@ -370,6 +374,41 @@ class GeoController extends Controller
 
         return response()->json([
             'geos' => $geos
+        ], Response::HTTP_OK);
+    }
+
+
+    /**
+     * Get an array of all ancestors for a specific geoId (not exceeding 25 levels)
+     * @param $geoId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAncestorsForGeoId ($geoId) {
+        $geoId = urldecode($geoId);
+        $validator = Validator::make([
+            'geoId' => $geoId
+        ], [
+            'geoId' => 'required|string|min:36|exists:geo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $ancestors = [];
+        $c = 0;
+        while ($geoId && !isset($ancestors[$geoId]) && $c < 25) {
+            $geo = Geo::with('nameTranslation', 'geoType')->find($geoId);
+            $ancestors[$geo->id] = $geo;
+            $geoId = $geo->parent_id;
+        }
+
+        return response()->json([
+            'ancestors' => array_reverse(array_map(function ($i) {
+                return $i;
+            }, $ancestors))
         ], Response::HTTP_OK);
     }
 }
