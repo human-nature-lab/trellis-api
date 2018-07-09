@@ -72,6 +72,7 @@ $router->group([
 
     $router->get('geos/{g_ids}',                                       'GeoController@getGeosById');
     $router->get('geo/search',                                         'GeoController@searchGeos');
+    $router->get('geo/{geo_id}/ancestors',                             'GeoController@getAncestorsForGeoId');
 
     $router->get('photo/{p_id}',                                       'PhotoController@getPhoto');
 

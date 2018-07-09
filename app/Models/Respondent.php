@@ -27,7 +27,9 @@ class Respondent extends Model
     ];
 
     public function geos () {
-        return $this->belongsToMany('App\Models\Geo', 'respondent_geo');
+        return $this->belongsToMany('App\Models\Geo', 'respondent_geo')
+            ->withPivot('is_current', 'notes')
+            ->with('geoType', 'nameTranslation', 'photos');
     }
 
     public function names () {
