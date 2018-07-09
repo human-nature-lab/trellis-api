@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 use DB;
 
-class QuestionChoice extends Model
+class QuestionChoice extends Pivot
 {
     use SoftDeletes;
 
@@ -24,6 +25,12 @@ class QuestionChoice extends Model
         'updated_at',
         'deleted_at'
     ];
+
+
+    public function choice () {
+        return $this->hasOne('App\Models\Choice', 'id', 'choice_id')
+            ->with('choiceTranslation');
+    }
 
     /*
     public function delete()
