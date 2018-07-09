@@ -1027,13 +1027,16 @@ class FormController extends Controller
     }
 
 
-    public function getPublishedForms ($studyId) {
+    public function getPublishedForms (Request $request, $studyId) {
         $studyId = urldecode($studyId);
+        $formTypeId = $request->get('form_type_id');
 
         $validator = Validator::make([
-            'study' => $studyId
+            'study' => $studyId,
+            'formType' => $formTypeId
         ], [
-            'study' => 'required|string|min:36|exists:study,id'
+            'study' => 'required|string|min:36|exists:study,id',
+            'formType' => 'nullable|integer|exists:form_type,id'
         ]);
 
         if ($validator->fails()) {
@@ -1043,10 +1046,13 @@ class FormController extends Controller
         }
 
         $q = Form::where('is_published', 1)
-                ->whereIn('id', function ($sub) use ($studyId) {
+                ->whereIn('id', function ($sub) use ($studyId, $formTypeId) {
                    $sub->select('form_master_id')
                         ->from('study_form')
                         ->where('study_id', $studyId);
+                   if ($formTypeId !== null) {
+                       $sub->where('form_type_id', $formTypeId);
+                   }
                 })
                 ->with('studyForm', 'nameTranslation');
 
