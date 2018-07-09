@@ -188,85 +188,12 @@ class FormController extends Controller
         $formName = $request->input('formName');
         $formType = $request->input('formType');
 
-        $oldQuestionIdToNewQuestionIdMap = []; // Used for follow up questions
-
         $hasFormFile = $request->hasFile('formJsonFile');
         if ($hasFormFile) {
-            try {
-                DB::beginTransaction();
-
-                // Create the form
-                $importedForm = $formService->createForm($formName, $studyId, $formType);
-                $importedFormId = $importedForm['id'];
-                $formFile = $request->file('formJsonFile');
-                $formFileStream = fopen($formFile->getRealPath(), 'r+');
-                $formJsonString = stream_get_contents($formFileStream);
-                $jsonObject = json_decode($formJsonString, true);
-                $formObject = $jsonObject["form"];
-
-                // It is essential to insert in the same order that the form is conducted in so that follow up questions exist
-                // before their follow up sections
-                uasort($formObject["sections"], function ($a, $b) {
-                    return $a['form_sections'][0]["sort_order"] - $b['form_sections'][0]["sort_order"];
-                });
-
-                foreach ($formObject["sections"] as $sectionObject) {
-                    $sectionSortOrder = $sectionObject["form_sections"][0]["sort_order"];
-                    $maxRepetitions = $sectionObject['form_sections'][0]['max_repetitions'];
-                    $isRepeatable = $sectionObject['form_sections'][0]['is_repeatable'];
-
-                    // This will fail if the sections with follow up questions aren't inserted after the referenced questions
-                    $newFollowUpQuestionId = $sectionObject['form_sections'][0]['follow_up_question_id'] ? $oldQuestionIdToNewQuestionIdMap[$sectionObject['form_sections'][0]['follow_up_question_id']] : null;
-
-                    $sectionNameTranslationId = $translationService->importTranslation($sectionObject["name_translation"], $translationTextService);
-                    $importedSection = $sectionService->createTranslatedSection($importedFormId, $sectionNameTranslationId, $sectionSortOrder, $newFollowUpQuestionId, $isRepeatable, $maxRepetitions);
-
-                    foreach ($sectionObject["question_groups"] as $questionGroupObject) {
-                        $questionGroupSortOrder = $questionGroupObject["pivot"]["question_group_order"];
-                        $importedQuestionGroup = $questionGroupService->createQuestionGroup($importedSection["id"], $questionGroupSortOrder);
-
-                        foreach ($questionGroupObject["skips"] as $skipObject) {
-                            $importedSkip = $skipService->createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"]);
-
-                            foreach ($skipObject["conditions"] as $skipConditionTagObject) {
-                                $skipService->createSkipConditionTag($importedSkip["id"], $skipConditionTagObject["condition_tag_name"]);
-                            }
-                        }
-
-                        foreach ($questionGroupObject["questions"] as $questionObject) {
-                            $questionTranslationId = $translationService->importTranslation($questionObject["question_translation"], $translationTextService);
-                            $importedQuestion = $questionService->createTranslatedQuestion($importedQuestionGroup["id"], $questionTranslationId, $questionObject["var_name"], $questionObject["question_type"]["id"], $questionObject["sort_order"]);
-                            $oldQuestionIdToNewQuestionIdMap[$questionObject['id']] = $importedQuestion['id'];
-                            foreach ($questionObject["question_parameters"] as $questionParameterObject) {
-                                $questionParameterService->createQuestionParameter($importedQuestion["id"], $questionParameterObject["parameter_id"], $questionParameterObject["val"]);
-                            }
-
-                            foreach ($questionObject["assign_condition_tags"] as $assignConditionTagObject) {
-                                $importedConditionTag = $conditionTagService->createConditionTag($assignConditionTagObject['condition']['name']);
-                                $assignConditionTagService->createAssignConditionTag($importedQuestion["id"], $importedConditionTag["id"], $assignConditionTagObject["logic"], $assignConditionTagObject["scope"]);
-                            }
-
-                            foreach ($questionObject["choices"] as $choiceObject) {
-                                $choiceTranslationId = $translationService->importTranslation($choiceObject['choice_translation'], $translationTextService);
-                                $questionChoiceService->createTranslatedQuestionChoice($importedQuestion["id"], $choiceTranslationId, $choiceObject["val"], $choiceObject["pivot"]["sort_order"]);
-                            }
-                        }
-                    }
-                }
-
-                DB::commit();
-            } catch (QueryException $e) {
-                Log::error($e);
-                DB::rollBack();
-            } catch (Throwable $e) {
-                Log::error($e);
-                DB::rollBack();
-            }
-
+            $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
             $studyModel = Study::find($studyId);
-            $returnForm = $studyModel->forms()->find($importedFormId);
-            //$returnForm = Form::with('sections', 'nameTranslation')->find($importedFormId);
-
+            $returnForm = $studyModel->forms()->find($importedForm->id);
+            $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
             return response()->json(
                 [ 'importedForm' => $returnForm,
                   'formObject' => $formObject ],
@@ -564,9 +491,7 @@ class FormController extends Controller
 
         $formModel->delete();
 
-        return response()->json([
-
-        ]);
+        return response()->json();
     }
 
     public function createForm(Request $request, FormService $formService)
@@ -587,7 +512,7 @@ class FormController extends Controller
         $formName = ($request->input('name') == null) ? "" : $request->input('name');
         $studyId = $request->input('study_id');
 
-        $newFormModel = $formService->createForm(
+        $newFormModel = FormService::createFormWithStudyForm(
             $formName,
             $studyId,
             $request->input('form_type')

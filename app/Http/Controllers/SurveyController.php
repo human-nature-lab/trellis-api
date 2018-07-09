@@ -30,6 +30,10 @@ class SurveyController extends Controller {
      * @return \Illuminate\Http\JsonResponse
      */
     public function getStudySurveyByFormId ($studyId, $respondentId, $formId) {
+        $studyId = urldecode($studyId);
+        $respondentId = urldecode($respondentId);
+        $formId = urldecode($formId);
+
         $validator = Validator::make([
             'studyId' => $studyId,
             'respondentId' => $respondentId,

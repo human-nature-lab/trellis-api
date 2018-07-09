@@ -13,7 +13,7 @@ use DB;
 
 class QuestionChoiceService
 {
-    public function createQuestionChoice($val, $text, $sortOrder, $localeId, $questionId)
+    public static function createQuestionChoice($val, $text, $sortOrder, $localeId, $questionId)
     {
         $localeTag = DB::table('locale')->where('id', '=', $localeId)->locale_tag;
 
@@ -21,12 +21,12 @@ class QuestionChoiceService
             $localeTag => $text
         );
 
-        $newQuestionChoiceModel = createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId);
+        $newQuestionChoiceModel = self::createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId);
 
         return $newQuestionChoiceModel;
     }
 
-    public function createTranslatedQuestionChoice($questionId, $choiceTranslationId, $val, $sortOrder) {
+    public static function createTranslatedQuestionChoice($questionId, $choiceTranslationId, $val, $sortOrder) {
         $questionChoiceId = Uuid::uuid4();
         $choiceId = Uuid::uuid4();
 
@@ -49,7 +49,7 @@ class QuestionChoiceService
         return $newQuestionChoiceModel;
     }
 
-    public function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId)
+    public static function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId)
     {
         $questionChoiceId = Uuid::uuid4();
         $choiceId = Uuid::uuid4();
