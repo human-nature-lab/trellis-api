@@ -408,7 +408,7 @@ class GeoController extends Controller
         return response()->json([
             'ancestors' => array_reverse(array_map(function ($i) {
                 return $i;
-            }, $ancestors))
+            }, array_values($ancestors)))
         ], Response::HTTP_OK);
     }
 }
