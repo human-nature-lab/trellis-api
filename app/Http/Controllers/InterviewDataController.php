@@ -213,9 +213,14 @@ class InterviewDataController
 
             $dontChangeVals = ['id', 'created_at'];
             $firstOrNew = function ($class, $o) use ($dontChangeVals) {
-                $m = $class::firstOrNew([
+                $m = $class::where([
                     'id' => $o['id']
-                ]);
+                ])->withTrashed()->first();
+                if (is_null($m)) {
+                    $m = new $class();
+                    $m->id = $o['id'];
+                    $m->created_at = $o['created_at'];
+                }
                 foreach ($o as $key => $val) {
                     if (!isset($dontChangeVals[$key])) {
                         $m->$key = $val;
