@@ -19,9 +19,12 @@ $router->group([
     'middleware' => ['key', 'token']
 ], function () use ($router) {
 
-    $router->get('condition-tags/respondent',                          'ConditionController@getAllRespondentConditionTags');
+    $router->get('user/me',                                             'UserController@getMe');
+    $router->post('condition-tag',                                      'ConditionTagController@createConditionTag');
+    $router->get('condition-tags',                                      'ConditionTagController@getAllConditionTags');
+    $router->get('condition-tags/respondent',                           'ConditionController@getAllRespondentConditionTags');
 
-    $router->get('form/{form_id}',                                     'FormController@getForm');
+    $router->get('form/{form_id}',                                      'FormController@getForm');
 
     $router->group([
         'prefix' => 'interview/{i_id}'
@@ -60,6 +63,8 @@ $router->group([
         $router->post('name',                                   'RespondentNameController@createRespondentName');
         $router->delete('name/{respondent_name_id}',            'RespondentNameController@deleteRespondentName');
         $router->put('name/{respondent_name_id}',               'RespondentNameController@editRespondentName');
+        $router->post('condition-tag/{c_id}',                   'ConditionTagController@createRespondentConditionTag');
+        $router->delete('condition-tag/{condition_tag_id}',     'ConditionTagController@deleteRespondentConditionTag');
     });
 
 
