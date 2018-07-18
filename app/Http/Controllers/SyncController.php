@@ -182,7 +182,7 @@ class SyncController extends Controller
             'id' => 'required|string|min:14|exists:device,device_id',
             'fileName' => 'required|string|min:1',
             'action' => 'required|string|min:1',
-            'base64' => 'string'
+            'base64' => 'nullable|string'
         ]);
 
         if ($validator->fails() === true) {

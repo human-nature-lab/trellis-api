@@ -19,8 +19,8 @@ class StudyController extends Controller
     public function getStudy(Request $request, $id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $id],
+            ['studyId' => 'required|string|min:36']
         );
 
         if ($validator->fails() === true) {
@@ -74,10 +74,10 @@ class StudyController extends Controller
     public function updateStudy(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'studyId' => $id
         ]), [
-            'id' => 'required|string|min:36|exists:study,id',
-            'name' => 'string|min:1',
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'name' => 'nullable|string|min:1',
             'photo_quality' => 'required|integer|between:1,100',
             'default_locale_id' => 'required|string|min:36|exists:locale,id'
         ]);
@@ -108,8 +108,8 @@ class StudyController extends Controller
     public function removeStudy(Request $request, $id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['studyId' => $id],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -120,13 +120,6 @@ class StudyController extends Controller
         }
 
         $studyModel = Study::find($id);
-
-        if ($studyModel === null) {
-            return response()->json([
-                'msg' => 'URL resource was not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
         $studyModel->delete();
 
         return response()->json([
@@ -174,10 +167,10 @@ class StudyController extends Controller
     public function saveLocale(StudyService $studyService, $studyId, $localeId)
     {
         $validator = Validator::make([
-            'study_id' => $studyId,
-            'locale_id' => $localeId], [
-            'study_id' => 'required|string|min:36',
-            'locale_id' => 'required|string|min:36'
+            'studyId' => $studyId,
+            'localeId' => $localeId], [
+            'studyId' => 'required|string|min:36',
+            'localeId' => 'required|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -209,10 +202,10 @@ class StudyController extends Controller
     public function deleteLocale($studyId, $localeId)
     {
         $validator = Validator::make([
-            'study_id' => $studyId,
-            'locale_id' => $localeId], [
-            'study_id' => 'required|string|min:36',
-            'locale_id' => 'required|string|min:36'
+            'studyId' => $studyId,
+            'localeId' => $localeId], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'localeId' => 'required|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -237,9 +230,9 @@ class StudyController extends Controller
     public function createOrUpdateParameter(Request $request, $studyId){
 
         $validator = Validator::make(array_merge($request->all(), [
-            'study_id' => $studyId
+            'studyId' => $studyId
         ]), [
-            'study_id' => 'required|string|min:36'
+            'studyId' => 'required|string|min:36'
         ]);
 
         if($validator->fails() === true){

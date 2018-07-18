@@ -23,6 +23,44 @@ class SurveyController extends Controller {
     }
 
     /**
+     * Get a single study object
+     * @param {string} $studyId
+     * @param {string} $respondentId
+     * @param {string} $formId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getStudySurveyByFormId ($studyId, $respondentId, $formId) {
+        $studyId = urldecode($studyId);
+        $respondentId = urldecode($respondentId);
+        $formId = urldecode($formId);
+
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'respondentId' => $respondentId,
+            'formId' => $formId
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'respondentId' => 'required|string|min:36|exists:respondent,id',
+            'formId' => 'required|string|min:36|exists:form,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::query()
+            ->where('study_id', $studyId)
+            ->where('respondent_id', $respondentId)
+            ->where('form_id', $formId)->first();
+
+        return response()->json([
+            'survey' => $survey
+        ], Response::HTTP_OK);
+    }
+
+    /**
      * Get all surveys completed by the respondent in this study
      * @param {String} $studyId
      * @param {String} $respondentId
@@ -60,7 +98,7 @@ class SurveyController extends Controller {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
         ]), [
-            'respondent_id' => 'string|min:32|exists:respondent,id',
+            'respondent_id' => 'nullable|string|min:32|exists:respondent,id',
             'studyId' => 'required|string|min:32|exists:study,id'
         ]);
 
@@ -122,54 +160,6 @@ class SurveyController extends Controller {
         return response()->json([
             'survey' => $survey
         ], Response::HTTP_OK);
-    }
-
-    /**
-     * Display the specified resource.
-     * GET /survey/{id}
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     * GET /survey/{id}/edit
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     * PUT /survey/{id}
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function update($id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * DELETE /survey/{id}
-     *
-     * @param  int  $id
-     * @return Response
-     */
-    public function destroy($id)
-    {
-        //
     }
 
 }

@@ -2,10 +2,13 @@
 
 
 
+use App\Models\ConditionTag;
 use App\Models\RespondentConditionTag;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Ramsey\Uuid\Uuid;
+use Throwable;
 use Validator;
 
 class ConditionTagController extends Controller {
@@ -21,6 +24,44 @@ class ConditionTagController extends Controller {
         $conditionTags = DB::table('respondent_condition_tag')
             ->join('');
 	}
+
+    /**
+     * Get an array of all of the condition tags in the database
+     * @return \Illuminate\Http\JsonResponse
+     */
+	public function getAllConditionTags () {
+	    return response()->json([
+	        'condition_tags' => ConditionTag::all()
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * Create a condition tag with the given name
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function createConditionTag (Request $request) {
+	    $validator = Validator::make([
+	        'name' => $request->get('name')
+        ], [
+            'name' => 'required|string|min:3'
+        ]);
+
+	    if ($validator->fails()) {
+	        return rsponse()->json([
+	            'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+	    $tag = ConditionTag::create([
+	        'id' => Uuid::uuid4(),
+            'name' => $request->get('name')
+        ]);
+
+	    return response()->json([
+	        'condition_tag' => $tag
+        ]);
+    }
 
 
 	public function respondentConditionTags($respondentId){
@@ -47,27 +88,59 @@ class ConditionTagController extends Controller {
 
     }
 
-	/**
-	 * TODO: Store a respondent condition tag. Creates the condition tag if it doesn't already exist
-	 * POST /conditiontag
-	 *
-	 * @return Response
-	 */
-	public function storeRespondentConditionTag(Request $request, $respondentId)
-	{
+    /**
+     * Creates a Respondent condition tag using a condition tag that already exists
+     * @param $respondentId
+     * @param $conditionTagId
+     * @return \Illuminate\Http\JsonResponse
+     */
+	public function createRespondentConditionTag ($respondentId, $conditionTagId) {
+	    $respondentId = urldecode($respondentId);
+	    $conditionTagId = urldecode($conditionTagId);
+        $validator = Validator::make([
+            'respondentId' => $respondentId,
+            'conditionTagId' => $conditionTagId
+        ], [
+            'respondentId' => 'required|string|min:36|exists:respondent,id',
+            'conditionTagId' => 'required|string|min:36|exists:condition_tag,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $tag = RespondentConditionTag::create([
+            'id' => Uuid::uuid4(),
+            'respondent_id' => $respondentId,
+            'condition_tag_id' => $conditionTagId
+        ]);
+
+        return response()->json([
+            'condition_tag' => $tag
+        ], Response::HTTP_CREATED);
 
 	}
 
-	/**
-	 * TODO: Remove the condition tag from the database
-	 * DELETE /conditiontag/{id}
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public function destroy($id)
-	{
-		//
+    /**
+     * Removes a respondent condition tag
+     * @param string $respondentId
+     * @param string $respondentConditionTagId
+     * @return \Illuminate\Http\JsonResponse
+     */
+	public function deleteRespondentConditionTag ($respondentId, $respondentConditionTagId) {
+		try {
+		    RespondentConditionTag::destroy($respondentConditionTagId);
+            return response()->json([
+                'msg' => "Respondent condition tag, $respondentConditionTagId, has been removed"
+            ], Response::HTTP_OK);
+        } catch (Throwable $e) {
+		    return response()->json([
+		        'msg' => "Unable to delete condition tag with id, $respondentConditionTagId"
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
 	}
 
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Hash;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -117,12 +118,12 @@ class UserController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $id
         ]), [
-            'id' => 'required|string|min:36',
-            'name' => 'string|min:1|max:255',
-            'username' => 'string|min:1|max:63',
-            'password' => 'string|min:1|max:63',
-            'role' => 'string|min:1|max:64',
-            'selected_study_id' => 'string|min:36'
+            'id' => 'required|string|min:36|exists:user,id',
+            'name' => 'nullable|string|min:1|max:255',
+            'username' => 'nullable|string|min:1|max:63',
+            'password' => 'nullable|string|min:1|max:63',
+            'role' => 'nullable|string|min:1|max:64',
+            'selected_study_id' => 'nullable|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -139,7 +140,7 @@ class UserController extends Controller
                 'msg' => 'URL resource not found'
             ], Response::HTTP_NOT_FOUND);
         }
-        $userPassword = bcrypt($request->input('password'));
+        $userPassword = Hash::make($request->input('password'));
         $userModel->fill($request->input());
         $userModel->password = $userPassword;
         $userModel->save();
@@ -210,8 +211,8 @@ class UserController extends Controller
             'username' => 'required|string|min:1|max:63',
             'password' => 'required|string|min:1|max:63',
             'password_confirmation' => 'required|string|min:1|max:63',
-            'role' => 'string|min:1|max:64',
-            'selected_study_id' => 'string|min:36'
+            'role' => 'nullable|string|min:1|max:64',
+            'selected_study_id' => 'nullable|string|min:36'
         ]);
 
 
@@ -234,7 +235,7 @@ class UserController extends Controller
         $userId = Uuid::uuid4();
         $userName = $request->input('name');
         $userUsername = $request->input('username');
-        $userPassword = bcrypt($request->input('password'));
+        $userPassword = Hash::make($request->input('password'));
         $userRole = $request->input('role');
         $userSelectedStudyId = $request->input('selected_study_id');
 

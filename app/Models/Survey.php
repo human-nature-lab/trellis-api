@@ -55,7 +55,8 @@ class Survey extends Model
     }
 
     public function respondent(){
-        return $this->belongsTo("App\Models\Respondent", "respondent_id");
+        return $this->belongsTo("App\Models\Respondent", "respondent_id")
+            ->with('geos', 'names', 'photos');
     }
 
 
