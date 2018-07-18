@@ -210,7 +210,7 @@ class FormController extends Controller
         $formType = $request->input('formType');
 
         $hasFormFile = $request->hasFile('formJsonFile');
-        if ($hasFormFile) {
+        try {
             $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
             $studyModel = Study::find($studyId);
             $returnForm = $studyModel->forms()->find($importedForm->id);
@@ -220,7 +220,7 @@ class FormController extends Controller
                   'formObject' => $formObject ],
                 Response::HTTP_OK
             );
-        } else {
+        } catch (Throwable $e) {
             return response()->json([
                 'msg' => 'Request failed',
                 'err' => 'Provide a JSON file exported from Trellis'

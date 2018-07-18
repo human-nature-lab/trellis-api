@@ -725,6 +725,9 @@ class RespondentController extends Controller
         }
 
         $respondent = Respondent::with('respondentConditionTags', 'photos', 'names', 'geos')->find($respondentId);
+        foreach ($respondent->respondentConditionTags as $tag) {
+            Log::debug($tag->pivot['id']);
+        }
         return response()->json([
             'respondent' => $respondent
         ], Response::HTTP_OK);
