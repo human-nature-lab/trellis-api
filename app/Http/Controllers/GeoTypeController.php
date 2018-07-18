@@ -92,8 +92,8 @@ class GeoTypeController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'parent_id' => 'string|min:36',
-            'name' => 'string|min:1',
+            'parent_id' => 'nullable|string|min:36',
+            'name' => 'nullable|string|min:1',
             'can_enumerator_add' => 'required|boolean',
             'can_contain_respondent' => 'required|boolean'
             //'can_enumerator_add' => 'integer|min:1|max:1',
@@ -154,7 +154,7 @@ class GeoTypeController extends Controller
     public function createGeoType(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'parent_id' => 'string|min:36',
+            'parent_id' => 'nullable|string|min:36',
             'name' => 'required|string|min:1',
             'can_enumerator_add' => 'required|boolean',
             'can_contain_respondent' => 'required|boolean'

@@ -20,10 +20,21 @@ class Respondent extends Model
         'notes',
         'geo_notes',
         'name',
+        'associated_respondent_id',
         'created_at',
         'updated_at',
         'deleted_at'
     ];
+
+    public function geos () {
+        return $this->belongsToMany('App\Models\Geo', 'respondent_geo')
+            ->withPivot('is_current', 'notes')
+            ->with('geoType', 'nameTranslation', 'photos');
+    }
+
+    public function names () {
+        return $this->hasMany('App\Models\RespondentName');
+    }
 
     public function photos()
     {
@@ -40,9 +51,10 @@ class Respondent extends Model
             ->withTimestamps();
     }
 
-    public function respondentConditionTags()
-    {
+    public function respondentConditionTags () {
         return $this->belongsToMany('App\Models\ConditionTag', 'respondent_condition_tag')
+            ->using('App\Models\RespondentConditionTag')
+            ->withPivot('id')
             ->whereNull('respondent_condition_tag.deleted_at')
             ->withTimestamps();
     }

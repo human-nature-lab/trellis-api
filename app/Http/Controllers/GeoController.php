@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RespondentGeo;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -33,17 +34,17 @@ class GeoController extends Controller
             'study' => $study,
             'types' => $types
         ], [
-            'limit' => 'max:100',
-            'offset' => 'min:0',
-            'study' => 'exists:study,id',
-            'parent' => 'exists:geo,id',
-            'type' => 'array|exists:geo_type,id'
+            'limit' => 'nullable|max:100',
+            'offset' => 'nullable|min:0',
+            'study' => 'nullable|exists:study,id',
+            'parent' => 'nullable|exists:geo,id',
+            'type' => 'nullable|array|exists:geo_type,id'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'msg' => $validator->errors()
-            ], $validator->statusCode());
+            ], Response::HTTP_BAD_REQUEST);
         }
 
 
@@ -237,12 +238,12 @@ class GeoController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'geo_type_id' => 'string|min:36',
-            'parent_id' => 'string|min:36',
-            'latitude' => 'integer|min:1',
-            'longitude' => 'integer|min:1',
-            'altitude' => 'integer|min:1',
-            'name_translation_id' => 'string|min:36'
+            'geo_type_id' => 'nullable|string|min:36',
+            'parent_id' => 'nullable|string|min:36',
+            'latitude' => 'nullable|integer|min:1',
+            'longitude' => 'nullable|integer|min:1',
+            'altitude' => 'nullable|integer|min:1',
+            'name_translation_id' => 'nullable|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
@@ -304,10 +305,10 @@ class GeoController extends Controller
         ]), [
             'localeId' => 'required|string|min:36|exists:locale,id',
             'geo_type_id' => 'required|string|min:36|exists:geo_type,id',
-            'parent_id' => 'string|min:36|exists:geo,id',
-            'latitude' => 'string|min:1',
-            'longitude' => 'string|min:1',
-            'altitude' => 'string|min:1',
+            'parent_id' => 'nullable|string|min:36|exists:geo,id',
+            'latitude' => 'nullable|string|min:1',
+            'longitude' => 'nullable|string|min:1',
+            'altitude' => 'nullable|string|min:1',
             'name' => 'required|string|min:1'
         ]);
 
@@ -354,6 +355,9 @@ class GeoController extends Controller
      */
     public function getGeosById ($ids) {
         $geoIds = explode(',', $ids);
+        $geoIds = array_map(function ($id) {
+            return urldecode($id);
+        }, $geoIds);
         $validator = Validator::make([
             'geo_ids' => $geoIds
         ], [
@@ -370,6 +374,41 @@ class GeoController extends Controller
 
         return response()->json([
             'geos' => $geos
+        ], Response::HTTP_OK);
+    }
+
+
+    /**
+     * Get an array of all ancestors for a specific geoId (not exceeding 25 levels)
+     * @param $geoId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAncestorsForGeoId ($geoId) {
+        $geoId = urldecode($geoId);
+        $validator = Validator::make([
+            'geoId' => $geoId
+        ], [
+            'geoId' => 'required|string|min:36|exists:geo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $ancestors = [];
+        $c = 0;
+        while ($geoId && !isset($ancestors[$geoId]) && $c < 25) {
+            $geo = Geo::with('nameTranslation', 'geoType')->find($geoId);
+            $ancestors[$geo->id] = $geo;
+            $geoId = $geo->parent_id;
+        }
+
+        return response()->json([
+            'ancestors' => array_reverse(array_map(function ($i) {
+                return $i;
+            }, array_values($ancestors)))
         ], Response::HTTP_OK);
     }
 }

@@ -3,27 +3,28 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class RespondentConditionTag extends Pivot
+class RespondentGeo extends Model
 {
     use SoftDeletes;
 
     public $incrementing = false;
 
-    protected $table = 'respondent_condition_tag';
+    protected $table = 'respondent_geo';
 
     protected $fillable = [
         'id',
+        'geo_id',
         'respondent_id',
-        'condition_tag_id',
+        'notes',
+        'is_current',
         'created_at',
         'updated_at',
         'deleted_at'
     ];
 
-    public function conditionTag () {
-        return $this->belongsTo('App\Models\ConditionTag');
+    public function geo () {
+        return $this->hasOne('App/Models/Geo');
     }
 }

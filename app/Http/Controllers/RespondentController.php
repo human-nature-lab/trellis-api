@@ -2,24 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Geo;
 use App\Models\Respondent;
 use App\Models\Photo;
 use App\Models\RespondentFill;
+use App\Models\RespondentName;
 use App\Models\Study;
 use App\Models\RespondentPhoto;
 use App\Models\StudyRespondent;
 use App\Services\RespondentPhotoService;
 use App\Services\RespondentService;
 use \DateTime;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use \Input;
-use \DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
 use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
-use Log;
 use League\Csv\Reader;
 
 class RespondentController extends Controller
@@ -177,6 +179,7 @@ class RespondentController extends Controller
 
         $count = Respondent::count();
         $respondents = Respondent::with('photos', 'respondentConditionTags')
+            ->whereNull('associated_respondent_id')
             ->limit($limit)
             ->offset($offset)
             ->get();
@@ -191,16 +194,140 @@ class RespondentController extends Controller
         );
     }
 
-    public function searchRespondentsByStudyId(Request $request, $study_id)
-    {
-        $validator = Validator::make(
-            ['study_id' => $study_id],
-            ['study_id' => 'required|string|min:36|exists:study,id']
-        );
+    /**
+     * Get all of the geoIds for the children of the provided geo ids
+     * @param array $geos - An array of top level geo ids
+     * @return array
+     */
+    private static function getChildGeos ($geos) {
+        $parentGeos = array_replace([], $geos);
+        $moreChildren = true;
+        $c = 0;
+        while ($moreChildren && $c < 10) {
+            $c++;
+            $moreChildren = false;
+            $children = Geo::select('geo.id', 'geo_type.can_contain_respondent')->join('geo_type', 'geo.geo_type_id', '=', 'geo_type.id')->whereIn('geo.parent_id', $parentGeos)->get();
+            if (count($children) > 0) {
+                $moreChildren = true;
+                $geos = array_replace($geos, $children->filter(function ($c) {return $c->can_contain_respondent;})->reduce(function ($arr, $c) {
+                    array_push($arr, $c->id);
+                    return $arr;
+                }, []));
+                $parentGeos = $children->reduce(function ($arr, $c) {
+                    array_push($arr, $c->id);
+                    return $arr;
+                }, []);
+            }
+        }
+        return $geos;
+    }
+
+    /**
+     * Search all respondents in a study. Several query parameters are also accepted.
+     * @param Request $request
+     * @param $studyId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchRespondentsByStudyId (Request $request, $studyId) {
+        $query = $request->query('q');
+        $conditionTags = $request->query('c');
+        $geos = $request->query('g');
+        $includeChildren = $request->query('i');
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'associatedRespondent' => $request->get('associated_respondent_id'),
+            'limit' => $request->get('limit'),
+            'offset' => $request->get('offset')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'associatedRespondent' => 'nullable|string|min:36|exists:respondent,id',
+            'limit' => 'nullable|integer|max:200|min:0',
+            'offset' => 'nullable|integer|min:0'
+        ]);
 
         // Default to limit = 50 and offset = 0
         $limit = $request->input('limit', 50);
         $offset = $request->input('offset', 0);
+        $associatedRespondentId = $request->get('associated_respondent_id');
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        DB::enableQueryLog();
+        $respondentQuery = Respondent::whereRaw('`respondent`.`id` in (select respondent_id from study_respondent where study_id = ?)', [$studyId])
+            ->where(function ($q) use ($associatedRespondentId) {
+                $q->whereNull('associated_respondent_id');
+                $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
+            })
+            ->with('photos', 'respondentConditionTags', 'names');
+
+        // Add name search
+        if ($query) {
+            $nameQuery = RespondentName::select('respondent_id')->distinct();
+            $terms = explode(',', $query);
+            foreach ($terms as $term) {
+                $nameQuery = $nameQuery->where('name', 'like', "%$term%");
+            }
+            $respondentQuery = $respondentQuery->whereIn('id', $nameQuery);
+        }
+
+        // Add condition tag filter
+        if ($conditionTags) {
+            $tagNames = explode(',', $conditionTags);
+            $respondentQuery = $respondentQuery
+                ->whereHas('respondentConditionTags', function ($query) use ($tagNames) {
+                    $query->whereIn('condition_tag.name', $tagNames);
+                }, '=', count($tagNames));
+        }
+
+        // TODO: Make this include any children on the parent geo ids
+        // Add geo id filter
+        if ($geos) {
+            $geoIds = explode(',', $geos);
+            if ($includeChildren) {
+                $geoIds = self::getChildGeos($geoIds);
+            }
+            $respondentQuery = $respondentQuery
+                ->whereHas('geos', function ($q) use ($geoIds) {
+                    $q->whereIn('respondent_geo.geo_id', $geoIds);
+                });
+        }
+
+        $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
+        $currentQuery = DB::getQueryLog();
+        Log::info(json_encode($currentQuery));
+        DB::disableQueryLog();
+        return response()->json(
+            ['respondents' => $respondents,
+                'count' => count($respondents),
+                'limit' => $limit,
+                'offset' => $offset],
+            Response::HTTP_OK
+        );
+    }
+
+    public function searchRespondentsByStudyIdOld(Request $request, $studyId)
+    {
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'associatedRespondent' => $request->get('associated_respondent_id'),
+            'limit' => $request->get('limit'),
+            'offset' => $request->get('offset')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'associatedRespondent' => 'nullable|string|min:36|exists:respondent,id',
+            'limit' => 'nullable|integer|max:200|min:0',
+            'offset' => 'nullable|integer|min:0'
+        ]);
+
+        // Default to limit = 50 and offset = 0
+        $limit = $request->input('limit', 50);
+        $offset = $request->input('offset', 0);
+        $associatedRespondentId = $request->get('associated_respondent_id');
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -212,15 +339,18 @@ class RespondentController extends Controller
         $q = $request->query('q');
         $c = $request->query('c');
 
+        DB::enableQueryLog();
         if ($q) {
             $searchTerms = explode(" ", $q);
             $r1 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 1 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId])
+                ->whereRaw('`respondent`.`associated_respondent_id` is null or `respondent`.`associated_respondent_id` = ?', [$associatedRespondentId]);
 
             $r2 = Respondent::with('photos', 'respondentConditionTags')
                 ->selectRaw("*, 2 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId])
+                ->whereRaw('(associated_respondent_id is null or associated_respondent_id = ?)', [$associatedRespondentId]);
 
             if ($c) {
                 $cArray = explode(",", $c);
@@ -256,24 +386,11 @@ class RespondentController extends Controller
 
             $respondents = $r1->union($r2)->orderBy('score', 'asc');
 
-            //$currentQuery = $respondents->toSql();
-            //Log::info('$currentQuery: ' . $currentQuery);
-
-
-            $respondents = $respondents->limit($limit)->offset($offset)->get()->unique();
-            $count = count($respondents);
-
-            return response()->json(
-                ['respondents' => $respondents,
-                    'count' => $count,
-                    'limit' => $limit,
-                    'offset' => $offset],
-                Response::HTTP_OK
-            );
         } else {
-            $respondents = Respondent::with('photos', 'respondentConditionTags')
+            $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
                 ->selectRaw("*, 1 as score")
-                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$study_id]);
+                ->whereNull('associated_respondent_id')
+                ->whereRaw("id in (select respondent_id from study_respondent where study_id = ?)", [$studyId]);
 
             if ($c) {
                 $cArray = explode(",", $c);
@@ -287,28 +404,34 @@ class RespondentController extends Controller
                     //Log::info('$currentQuery: ' . $currentQuery);
                 }
             }
-
-            $respondents = $respondents->limit($limit)->offset($offset)->get();
-            $count = count($respondents);
-
-            return response()->json(
-                ['respondents' => $respondents,
-                    'count' => $count,
-                    'limit' => $limit,
-                    'offset' => $offset],
-                Response::HTTP_OK
-            );
-
-
+            $respondents = $respondents->distinct();
         }
+//        $currentQuery = $respondents->toSql();
+        $respondents = $respondents->limit($limit)->offset($offset)->get();
+        $count = count($respondents);
+        $currentQuery = DB::getQueryLog();
+        Log::info(json_encode($currentQuery));
+        DB::disableQueryLog();
+        return response()->json(
+            ['respondents' => $respondents,
+                'count' => $count,
+                'limit' => $limit,
+                'offset' => $offset],
+            Response::HTTP_OK
+        );
     }
 
-    public function getAllRespondentsByStudyId(Request $request, $study_id)
+    public function getAllRespondentsByStudyId(Request $request, $studyId)
     {
-        $validator = Validator::make(
-            ['study_id' => $study_id],
-            ['study_id' => 'required|string|min:36|exists:study,id']
-        );
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'limit' => $request->get('limit'),
+            'offset' => $request->get('offset')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'limit' => 'nullable|integer|max:200|min:0',
+            'offset' => 'nullable|integer|min:0'
+        ]);
 
         // Default to limit = 100 and offset = 0
         $limit = $request->input('limit', 100);
@@ -321,32 +444,32 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        //$studyModel = Study::with('respondents.photos')->where('id', $study_id)->get();
-        $count = Respondent::whereHas('studies', function ($query) use ($study_id) {
-            $query->where('study.id', '=', $study_id);
+        //$studyModel = Study::with('respondents.photos')->where('id', $studyId)->get();
+        $count = Respondent::whereHas('studies', function ($query) use ($studyId) {
+            $query->where('study.id', '=', $studyId);
         })->count();
 
-        $respondents = Respondent::with('photos', 'respondentConditionTags')->whereHas('studies', function ($query) use ($study_id) {
-            $query->where('study.id', '=', $study_id);
-        })
+        $respondents = Respondent::with('photos', 'respondentConditionTags', 'names')
+            ->whereHas('studies', function ($query) use ($studyId) {
+                $query->where('study.id', '=', $studyId);
+            })
             ->limit($limit)
             ->offset($offset)
             ->get();
 
-        return response()->json(
-            ['respondents' => $respondents,
-                'count' => $count,
-                'limit' => $limit,
-                'offset' => $offset],
-            Response::HTTP_OK
-        );
+        return response()->json([
+            'respondents' => $respondents,
+            'count' => $count,
+            'limit' => $limit,
+            'offset' => $offset
+        ],Response::HTTP_OK);
     }
 
-    public function getRespondentCountByStudyId(Request $request, $study_id)
+    public function getRespondentCountByStudyId(Request $request, $studyId)
     {
         $validator = Validator::make(
-            ['study_id' => $study_id],
-            ['study_id' => 'required|string|min:36|exists:study,id']
+            ['studyId' => $studyId],
+            ['studyId' => 'required|string|min:36|exists:study,id']
         );
 
         if ($validator->fails() === true) {
@@ -356,8 +479,8 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $count = Respondent::whereHas('studies', function ($query) use ($study_id) {
-            $query->where('study.id', '=', $study_id);
+        $count = Respondent::whereHas('studies', function ($query) use ($studyId) {
+            $query->where('study.id', '=', $studyId);
         })->count();
 
         return response()->json(
@@ -369,8 +492,8 @@ class RespondentController extends Controller
     public function addPhoto(Request $request, $respondent_id, RespondentPhotoService $respondentPhotoService)
     {
         $validator = Validator::make([
-            'respondent_id' => $respondent_id], [
-            'respondent_id' => 'required|string|min:36'
+            'respondentId' => $respondent_id], [
+            'respondentId' => 'required|string|min:36|exists:respondent,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -432,8 +555,12 @@ class RespondentController extends Controller
 
     public function updateRespondent(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'string|min:1|max:65535|required'
+        $validator = Validator::make([
+            'respondentId' => $id,
+            'name' => $request->get('name')
+        ], [
+            'respondentId' => 'required|string|min:36|exists:respondent,id',
+            'name' => 'required|string|min:1|max:65535'
         ]);
 
         if ($validator->fails() === true) {
@@ -452,10 +579,45 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function createRespondent(Request $request, RespondentService $respondentService)
+    public function createStudyRespondent (Request $request, RespondentService $respondentService, $studyId) {
+        $validator = Validator::make([
+            'name' => $request->get('name'),
+            'geoId' => $request->get('geo_id'),
+            'associatedRespondentId' => $request->get('associated_respondent_id'),
+            'studyId' => $studyId
+        ], [
+            'name' => 'required|string|min:1|max:65535',
+            'associatedRespondentId' => 'nullable|string|max:36|exists:respondent,id',
+            'geoId' => 'nullable|string|max:36|exists:geo,id',
+            'studyId' => 'required|string|min:36|exists:study,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $newRespondentModel = $respondentService->createRespondent(
+            $request->input('name'),
+            $studyId,
+            null,
+            $request->get('geo_id'),
+            $request->get('associated_respondent_id')
+        );
+
+        return response()->json([
+            'respondent' => $newRespondentModel
+        ], Response::HTTP_OK);
+    }
+
+    public function createRespondent (Request $request, RespondentService $respondentService)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'string|min:1|max:65535',
+            'name' => 'required|string|min:1|max:65535',
+            'associated_respondent_id' => 'nullable|string|max:36|exists:respondent,id',
+            'geo_id' => 'nullable|string|max:36|exists:geo,id',
             'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
@@ -466,7 +628,12 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $newRespondentModel = $respondentService->createRespondent ($request->input('name'), $request->input('study_id'));
+        $newRespondentModel = $respondentService->createRespondent(
+            $request->input('name'),
+            $request->input('study_id'),
+            $request->get('geo_id'),
+            $request->get('associated_respondent_id')
+        );
 
         return response()->json([
             'respondent' => $newRespondentModel
@@ -476,8 +643,8 @@ class RespondentController extends Controller
     public function removeRespondent($id)
     {
         $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['respondentId' => $id],
+            ['respondentId' => 'required|string|min:36|exists:respondent,id']
         );
 
         if ($validator->fails() === true) {
@@ -504,12 +671,13 @@ class RespondentController extends Controller
 
     public function removeRespondentPhoto($respondentId, $photoId)
     {
-        $validator = Validator::make(
-            ['respondent_id' => $respondentId,
-                'photo_id' => $photoId],
-            ['respondent_id' => 'required|string|min:36|exists:respondent_photo,respondent_id',
-                'photo_id' => 'required|string|min:36|exists:respondent_photo,photo_id']
-        );
+        $validator = Validator::make([
+            'respondentId' => $respondentId,
+            'photoId' => $photoId
+        ], [
+            'respondentId' => 'required|string|min:36|exists:respondent_photo,respondent_id',
+            'photoId' => 'required|string|min:36|exists:respondent_photo,photo_id'
+        ]);
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -556,7 +724,10 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $respondent = Respondent::with('respondentConditionTags', 'photos')->find($respondentId);
+        $respondent = Respondent::with('respondentConditionTags', 'photos', 'names', 'geos')->find($respondentId);
+        foreach ($respondent->respondentConditionTags as $tag) {
+            Log::debug($tag->pivot['id']);
+        }
         return response()->json([
             'respondent' => $respondent
         ], Response::HTTP_OK);
@@ -693,4 +864,5 @@ class RespondentController extends Controller
             self::get_geo_tree($row->id, $level+1);
         }
     }
+
 }

@@ -90,11 +90,13 @@ class FixActionDatumQuestionDatum extends Migration
             $table->dropColumn('section_follow_up_repetition');
             $table->dropColumn('interview_id');
             $table->dropColumn('action_type');
+            $table->dropColumn('payload');
 
-            $table->renameColumn('payload', 'action_text');
-            $table->string('action_type_id', 41)->nullabe();
+            $table->text('action_text')->nullable();
+            $table->string('action_type_id', 41)->nullable();
+        });
+        Schema::table('action', function (Blueprint $table) {
             $table->foreign('action_type_id')->references('id')->on('action_type');
-
         });
         Schema::table('datum', function (Blueprint $table) {
             $table->dropForeign('datum_photo_id_foreign');

@@ -12,16 +12,17 @@ namespace App\Http\Controllers;
 use App\Models\Action;
 use App\Models\Datum;
 use App\Models\Interview;
+use App\Models\Question;
 use App\Models\QuestionDatum;
 use App\Models\RespondentConditionTag;
 use App\Models\SectionConditionTag;
 use App\Models\SurveyConditionTag;
-use DB;
-use Doctrine\DBAL\Driver\PDOException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use League\Flysystem\Exception;
-use Log;
 use Validator;
 
 class InterviewDataController
@@ -67,6 +68,69 @@ class InterviewDataController
         }
     }
 
+
+    private function makeTree ($questionData, $data, &$qDIndex, &$dIndex) {
+        $tree = [];
+        $treeMap = [];
+        $added = [];
+
+        $addToBranch = function (&$branch, $id) use (&$treeMap, &$added) {
+            if (!isset($branch[$id])) {
+                $branch[$id] = [];
+            }
+            $treeMap[$id] = &$branch[$id];
+            $added[$id] = 1;
+            Log::debug("Added $id");
+        };
+
+        // Add any parentless question datum
+        foreach ($questionData as $qd) {
+            if (!isset($qd['follow_up_datum_id'])) {
+                $addToBranch($tree, $qd['id']);
+            } else if (!isset($dIndex[$qd['follow_up_datum_id']])) {
+                // Add any question datum that are follow up datum to a question not present in the current request
+                $addToBranch($tree, $qd['id']);
+            }
+        }
+
+        // Add the first level of datum
+        foreach ($data as $d) {
+            if (isset($treeMap[$d['question_datum_id']])) {
+                $addToBranch($treeMap[$d['question_datum_id']], $d['id']);
+            } else if (!isset($qDIndex[$d['id']])){
+                $addToBranch($tree, '');
+                $addToBranch($treeMap[''], $d['id']);
+            }
+        }
+
+        $hasChanged = true;
+        $c = 0;
+        while ($hasChanged && $c < 100) {
+            $hasChanged = false;
+            $c++;
+            foreach ($questionData as $qd) {
+                if (isset($qd['follow_up_datum_id'])) {
+                    if (!isset($added[$qd['follow_up_datum_id']])) {
+                        $addToBranch($treeMap[$qd['follow_up_datum_id']], $qd['id']);
+                        $hasChanged = true;
+                    }
+                } else {
+                    // We should never get here, but just in case
+                    $addToBranch($tree, $qd['id']);
+                    $hasChanged = true;
+                }
+            }
+            foreach ($data as $d) {
+                if (isset($added[$d['question_datum_id']])) {
+                    $addToBranch($treeMap[$d['question_datum_id']], $d['id']);
+                    $hasChanged = true;
+                }
+            }
+        }
+
+        return $tree;
+    }
+
      /**
      * Take a delta encoding of the interview data and condition tags and modified the state of the database so
      * that it represents the current state of the survey
@@ -88,18 +152,12 @@ class InterviewDataController
         }
 
         $patch = $request->all();
-        Log::debug(json_encode($patch));
         $datum = $patch['data']['datum'];
         $questionDatum = $patch['data']['questionDatum'];
 
         DB::beginTransaction();
 
         try {
-            // Simpler stuff first
-            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
-            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
-
             // Remove any removed datum
             $removedDatumIds = array_map(function ($d) {
                 return $d['id'];
@@ -108,10 +166,7 @@ class InterviewDataController
                 return $d['id'];
             }, $questionDatum['removed']);
             Datum::destroy($removedDatumIds);
-            Questiondatum::destroy($removedQuestionDatumIds);
-
-//            QuestionDatum::insert($questionDatum['added']);
-//            Datum::insert($datum['added']);
+            QuestionDatum::destroy($removedQuestionDatumIds);
 
             // Update modified values
             foreach ($datum['modified'] as $d) {
@@ -123,58 +178,84 @@ class InterviewDataController
                     ->update($d);
             }
 
-            $insertSieve = [];
-            $tries = 0;
-            $failureCount = 0;
-            do {
-                foreach ($questionDatum['added'] as $qD) {
-                    if (!isset($insertSieve[$qD['id']])) {
-                        $insertSieve[$qD['id']] = false;
-                    }
-                    try {
-                        $d = new QuestionDatum($qD);
-                        $d->save();
-                        $insertSieve[$qD['id']] = true;
-                    }
-                    catch (PDOException $e) {
-                        $failureCount++;
-                    }
-                    catch (Exception $e) {
-                        Log::debug($e);
-                        $failureCount++;
-                    }
+            $questionDatumIdSieve = array_reduce($questionDatum['added'], function ($map, $qd) {
+                $map[$qd['id']] = true;
+                return $map;
+            }, []);
+            $questionDatumToDatumMap = array_reduce($datum['added'], function ($map, $d) {
+                if (!isset($map[$d['question_datum_id']])) {
+                    $map[$d['question_datum_id']] = [];
                 }
-                foreach ($datum['added'] as $d) {
-                    if (!isset($insertSieve[$d['id']])) {
-                        $insertSieve[$d['id']] = false;
-                    }
-                    try {
-                        $da = new Datum($d);
-                        $da->save();
-                        $insertSieve[$d['id']] = true;
-                    }
-                    catch (PDOException $e) {
-                        $failureCount++;
-                    }
-                    catch (Exception $e) {
-                        Log::debug($e);
-                        $failureCount++;
-                    }
-                }
-            } while ($failureCount > 0 && $tries < 3);
+                array_push($map[$d['question_datum_id']], $d);
+                return $map;
+            }, []);
 
-            $insertFailures = 0;
-            foreach ($insertSieve as $key => $val) {
-                if (!$val) {
-                    $insertFailures++;
+            $questionIdToQuestionDatumMap = array_reduce($questionDatum['added'], function ($map, $qd){
+                $map[$qd['question_id']] = $qd;
+                return $map;
+            },[]);
+            $questionIds = array_keys($questionIdToQuestionDatumMap);
+
+            $sectionQuery = Question::whereIn('id', $questionIds)
+                ->select('question.id',
+                    DB::raw('(select `form_section`.`sort_order` from `form_section` where `form_section`.`section_id` in 
+                    (select `section_question_group`.`section_id` from `section_question_group` where `section_question_group`.`question_group_id` = question.question_group_id)) as sort_order'));
+
+            $questionIdInsertOrderMap = $sectionQuery->get()->reduce(function ($map, $r) {
+                $map[$r->id] = $r->sort_order;
+                return $map;
+            }, []);
+
+
+            uasort($questionDatum['added'], function ($a, $b) use ($questionIdInsertOrderMap) {
+               return $questionIdInsertOrderMap[$a['question_id']] - $questionIdInsertOrderMap[$b['question_id']];
+            });
+
+            $dontChangeVals = ['id', 'created_at'];
+            $firstOrNew = function ($class, $o) use ($dontChangeVals) {
+                $m = $class::where([
+                    'id' => $o['id']
+                ])->withTrashed()->first();
+                if (is_null($m)) {
+                    $m = new $class();
+                    $m->id = $o['id'];
+                    $m->created_at = $o['created_at'];
+                }
+                foreach ($o as $key => $val) {
+                    if (!isset($dontChangeVals[$key])) {
+                        $m->$key = $val;
+                    }
+                }
+                $m->save();
+            };
+
+            foreach ($datum['added'] as $d) {
+                if (!isset($questionDatumIdSieve[$d['question_datum_id']])) {
+                    $did = $d['id'];
+                    $firstOrNew(Datum::class, $d);
                 }
             }
-            if ($insertFailures > 0) {
-                throw new Exception('Unable to insert questionDatum and datum');
+
+            foreach ($questionDatum['added'] as $qd) {
+                $qid = $qd['id'];
+                $firstOrNew(QuestionDatum::class, $qd);
+                if (isset($questionDatumToDatumMap[$qd['id']])) {
+                    foreach ($questionDatumToDatumMap[$qd['id']] as $d) {
+                        $did = $d['id'];
+                        Log::debug("Inserting d $did");
+                        $firstOrNew(Datum::class, $d);
+                    }
+                }
             }
 
-        } catch (Exception $exception) {
+            // Add all of the condition tags last
+            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
+            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
+            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
+
+        } catch (QueryException $exception) {
             Log::debug('rolling back transaction');
+            Log::debug($exception);
             DB::rollBack();
             return response()->json([
                 'msg' => $exception

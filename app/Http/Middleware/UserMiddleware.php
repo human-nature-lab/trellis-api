@@ -24,9 +24,7 @@ class UserMiddleware
             if($token === null){
                 return null;
             }
-            $tokenModel = Token::where('token_hash', $token)
-                ->where('created_at', '>=', DB::raw('now() - interval '.$_ENV['TOKEN_EXPIRE'].' minute'))
-                ->first();
+            $tokenModel = Token::where('token_hash', $token)->first();
             if($tokenModel === null){
                 return null;
             }

@@ -25,9 +25,9 @@ class SkipController extends Controller
     public function deleteSkipGeneralized(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'skipId' => $id
         ]), [
-            'id' => 'required|string|min:36|exists:skip'
+            'skipId' => 'required|string|min:36|exists:skip'
         ]);
 
 
@@ -72,9 +72,9 @@ class SkipController extends Controller
     public function deleteQuestionGroupSkip(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'skipId' => $id
         ]), [
-            'id' => 'required|string|min:36|exists:skip'
+            'skipId' => 'required|string|min:36|exists:skip'
         ]);
 
 
@@ -104,13 +104,13 @@ class SkipController extends Controller
     public function updateQuestionGroupSkip(Request $request, $skipId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $skipId
+            'skipId' => $skipId
         ]), [
-            'id' => 'required|string|min:36|exists:skip',
+            'skipId' => 'required|string|min:36|exists:skip',
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'precedence' => 'required|integer',
-            'conditions.*.condition_tag_name' => 'string|min:1'
+            'conditions.*.condition_tag_name' => 'nullable|string|min:1'
         ]);
 
 
@@ -180,7 +180,7 @@ class SkipController extends Controller
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'parent_id' => 'required|string|min:36',
-            'conditions.*.condition_tag_name' => 'string|min:1',
+            'conditions.*.condition_tag_name' => 'nullable|string|min:1',
             'precedence' => 'required|integer',
             'skip_type' => 'required|integer'
         ]);
@@ -266,7 +266,7 @@ class SkipController extends Controller
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'question_group_id' => 'required|string|min:36|exists:question_group,id',
-            'conditions.*.condition_tag_name' => 'string|min:1'
+            'conditions.*.condition_tag_name' => 'nullable|string|min:1'
         ]);
 
 

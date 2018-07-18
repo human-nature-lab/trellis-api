@@ -108,9 +108,16 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 //            'PhotoController@getPhoto'
 //        );
 
+        //*********************************//
+        //* Census Form Controller Routes *//
+        //*********************************//
+        $router->get('form/census/types',   'CensusFormController@getCensusFormTypes');
+
         //**************************//
         //* Form Controller Routes *//
         //**************************//
+
+        $router->put('study/{study_id}/form/{form_id}',    'FormController@updateStudyForm');
 
         $router->get(
             'form/{id}',
@@ -227,6 +234,8 @@ $router->group(['middleware' => 'key'], function () use ($router) {
             'study/{id}',
             'StudyController@updateStudy'
         );
+
+        $router->get('study/{id}', 'StudyController@getStudy');
 
         $router->get(
             'study',

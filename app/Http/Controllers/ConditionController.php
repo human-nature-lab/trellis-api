@@ -54,7 +54,7 @@ class ConditionController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
         ]), [
             'logic' => 'required|string|min:1',
-            'id' => 'string|min:36|exists:assign_condition_tag,id'
+            'id' => 'required|string|min:36|exists:assign_condition_tag,id'
         ]);
 
 

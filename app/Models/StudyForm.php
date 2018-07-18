@@ -19,12 +19,25 @@ class StudyForm extends Model
         'id',
         'study_id',
         'form_master_id',
+        'census_type_id',
         'sort_order',
         'created_at',
         'updated_at',
         'deleted_at',
-        'form_type'
+        'form_type_id'
     ];
+
+    public function type () {
+        return $this->belongsTo('App\Models\FormType');
+    }
+
+    public function form () {
+        return $this->belongsTo('App\Models\Form');
+    }
+
+    public function censusType () {
+        return $this->belongsTo('App\Models\CensusType');
+    }
 
     /*
     public function delete()
