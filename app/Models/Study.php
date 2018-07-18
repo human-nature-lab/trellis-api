@@ -61,11 +61,12 @@ class Study extends Model
     public function forms()
     {
         return $this
-        ->belongsToMany('App\Models\Form', 'study_form', 'study_id', 'form_master_id')
-        ->whereNull('study_form.deleted_at')
-        ->withPivot('id', 'sort_order', 'form_type_id', 'census_type_id')
-        ->withTimestamps()
-        ->with('nameTranslation', 'skips');
+            ->belongsToMany('App\Models\Form', 'study_form', 'study_id', 'form_master_id')
+            ->using('App\Models\StudyForm')
+            ->withPivot('id', 'sort_order', 'form_type_id', 'census_type_id')
+            ->whereNull('study_form.deleted_at')
+            ->withTimestamps()
+            ->with('nameTranslation', 'skips');
     }
 
     /*

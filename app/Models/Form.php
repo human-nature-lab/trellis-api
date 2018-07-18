@@ -43,8 +43,9 @@ class Form extends Model
     {
         return $this
             ->belongsToMany('App\Models\Section', 'form_section')
-            ->whereNull('form_section.deleted_at')
+            ->using('App\Models\FormSection')
             ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id')
+            ->whereNull('form_section.deleted_at')
             ->withTimestamps()
             ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
     }
@@ -53,8 +54,9 @@ class Form extends Model
     {
         return $this
             ->belongsToMany('App\Models\Skip', 'form_skip')
-            ->whereNull('form_skip.deleted_at')
+            ->using('App\Models\FormSkip')
             ->withPivot('form_id')
+            ->whereNull('form_skip.deleted_at')
             ->withTimestamps()
             ->with('conditions');
     }
