@@ -29,7 +29,8 @@ class Respondent extends Model
     public function geos () {
         return $this->belongsToMany('App\Models\Geo', 'respondent_geo')
             ->using('App\Models\RespondentGeo')
-            ->withPivot('is_current', 'notes')
+            ->withPivot('is_current', 'notes', 'id')
+            ->whereNull('respondent_geo.deleted_at')
             ->with('geoType', 'nameTranslation', 'photos');
     }
 

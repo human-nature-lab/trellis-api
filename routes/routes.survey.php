@@ -63,6 +63,9 @@ $router->group([
         $router->post('name',                                   'RespondentNameController@createRespondentName');
         $router->delete('name/{respondent_name_id}',            'RespondentNameController@deleteRespondentName');
         $router->put('name/{respondent_name_id}',               'RespondentNameController@editRespondentName');
+        $router->post('geo',                                    'RespondentGeoController@createRespondentGeo');
+        $router->post('geo/{respondent_geo_id}/move',           'RespondentGeoController@moveRespondentGeo');
+        $router->delete('geo/{respondent_geo_id}',              'RespondentGeoController@deleteRespondentGeo');
         $router->post('condition-tag/{c_id}',                   'ConditionTagController@createRespondentConditionTag');
         $router->delete('condition-tag/{condition_tag_id}',     'ConditionTagController@deleteRespondentConditionTag');
     });

@@ -65,6 +65,7 @@ class RespondentService
      */
     public static function createRespondentGeo ($respondentId, $geoId, $isCurrent = false, $notes = null, $previousRespondentGeoId= null) {
         $rGeo = new RespondentGeo;
+        $isCurrent = is_null($isCurrent) ? false : $isCurrent;
         $rGeo->fill([
             'id' => Uuid::uuid4(),
             'respondent_id' => $respondentId,
