@@ -9,7 +9,7 @@ $router->group([
     //**************************//
     $router->get(
         'heartbeat',
-        'SyncController@heartbeat'
+        'SyncControllerV2@heartbeat'
     );
 
     $router->get(
@@ -30,6 +30,21 @@ $router->group([
     $router->get(
         'snapshot/{snapshot_id}/download',
         'SyncControllerV2@downloadSnapshot'
+    );
+
+    $router->get(
+        'device/{device_id}/image',
+        'SyncControllerV2@listImages'
+    );
+
+    $router->get(
+        'device/{device_id}/image/{file_name}',
+        'SyncControllerV2@getImage'
+    );
+
+    $router->post(
+        'device/{device_id}/image_size',
+        'SyncControllerV2@getImageSize'
     );
 });
 
