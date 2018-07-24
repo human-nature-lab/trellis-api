@@ -47,7 +47,7 @@ class GeoController extends Controller
         }
 
 
-        $q = Geo::with('photos', 'nameTranslation');
+        $q = Geo::with('photos', 'nameTranslation', 'geoType');
         if (isset($query)) {
             $terms = explode(" ", $query);
             Log::debug(json_encode($terms));
