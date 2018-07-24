@@ -11,6 +11,9 @@ use Validator;
 class RespondentNameController extends Controller {
 
     public function createRespondentName (RespondentService $respondentService, Request $request, $respondentId) {
+
+        $respondentId = urldecode($respondentId);
+
         $validator = Validator::make([
             'localeId' => $request->get('locale_id'),
             'name' => $request->get('name'),
@@ -50,6 +53,8 @@ class RespondentNameController extends Controller {
      * @return \Illuminate\Http\JsonResponse
      */
     public function editRespondentName (RespondentService $respondentService, Request $request, $respondentId, $respondentNameId) {
+
+        $respondentNameId = urldecode($respondentNameId);
 
         $validator = Validator::make([
             'respondentNameId' => $respondentNameId,

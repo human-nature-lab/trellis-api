@@ -17,7 +17,7 @@ class QuestionGroupService
         return $questionGroups;
     }
 
-    public function createQuestionGroup($sectionId, $sortOrder = -1)
+    public static function createQuestionGroup($sectionId, $sortOrder = -1)
     {
         $questionGroupId = Uuid::uuid4();
         $sectionQuestionGroupId = Uuid::uuid4();

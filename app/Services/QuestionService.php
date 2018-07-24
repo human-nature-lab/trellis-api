@@ -46,7 +46,7 @@ class QuestionService
         return $question;
     }
 
-    public function createTranslatedQuestion($questionGroupId, $questionTranslationId, $varName, $questionTypeId, $sortOrder) {
+    public static function createTranslatedQuestion($questionGroupId, $questionTranslationId, $varName, $questionTypeId, $sortOrder) {
         $newQuestionModel = new Question;
         $questionId = Uuid::uuid4();
 

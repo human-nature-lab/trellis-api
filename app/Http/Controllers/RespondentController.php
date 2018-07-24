@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Geo;
 use App\Models\Respondent;
 use App\Models\Photo;
 use App\Models\RespondentFill;
@@ -193,7 +194,45 @@ class RespondentController extends Controller
         );
     }
 
+    /**
+     * Get all of the geoIds for the children of the provided geo ids
+     * @param array $geos - An array of top level geo ids
+     * @return array
+     */
+    private static function getChildGeos ($geos) {
+        $parentGeos = array_replace([], $geos);
+        $moreChildren = true;
+        $c = 0;
+        while ($moreChildren && $c < 10) {
+            $c++;
+            $moreChildren = false;
+            $children = Geo::select('geo.id', 'geo_type.can_contain_respondent')->join('geo_type', 'geo.geo_type_id', '=', 'geo_type.id')->whereIn('geo.parent_id', $parentGeos)->get();
+            if (count($children) > 0) {
+                $moreChildren = true;
+                $geos = array_replace($geos, $children->filter(function ($c) {return $c->can_contain_respondent;})->reduce(function ($arr, $c) {
+                    array_push($arr, $c->id);
+                    return $arr;
+                }, []));
+                $parentGeos = $children->reduce(function ($arr, $c) {
+                    array_push($arr, $c->id);
+                    return $arr;
+                }, []);
+            }
+        }
+        return $geos;
+    }
+
+    /**
+     * Search all respondents in a study. Several query parameters are also accepted.
+     * @param Request $request
+     * @param $studyId
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function searchRespondentsByStudyId (Request $request, $studyId) {
+        $query = $request->query('q');
+        $conditionTags = $request->query('c');
+        $geos = $request->query('g');
+        $includeChildren = $request->query('i');
         $validator = Validator::make([
             'studyId' => $studyId,
             'associatedRespondent' => $request->get('associated_respondent_id'),
@@ -217,10 +256,6 @@ class RespondentController extends Controller
                 'err' => $validator->errors()
             ], $validator->statusCode());
         }
-
-        $query = $request->query('q');
-        $conditionTags = $request->query('c');
-        $geos = $request->query('g');
 
         DB::enableQueryLog();
         $respondentQuery = Respondent::whereRaw('`respondent`.`id` in (select respondent_id from study_respondent where study_id = ?)', [$studyId])
@@ -249,10 +284,13 @@ class RespondentController extends Controller
                 }, '=', count($tagNames));
         }
 
-        // TODO: Make this include any childre on the parent geo ids
+        // TODO: Make this include any children on the parent geo ids
         // Add geo id filter
         if ($geos) {
             $geoIds = explode(',', $geos);
+            if ($includeChildren) {
+                $geoIds = self::getChildGeos($geoIds);
+            }
             $respondentQuery = $respondentQuery
                 ->whereHas('geos', function ($q) use ($geoIds) {
                     $q->whereIn('respondent_geo.geo_id', $geoIds);
@@ -686,7 +724,7 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $respondent = Respondent::with('respondentConditionTags', 'photos')->find($respondentId);
+        $respondent = Respondent::with('respondentConditionTags', 'photos', 'names', 'geos')->find($respondentId);
         return response()->json([
             'respondent' => $respondent
         ], Response::HTTP_OK);
