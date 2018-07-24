@@ -32,7 +32,8 @@ class ExportMySQL extends Command
     {
         $length = escapeshellarg(10*1024);    //TODO get this from .env or derive it as: length <= (smallest insert statement)*SQLITE_MAX_COMPOUND_SELECT.  for example 24*500 = 12000.  use 10k for now
 
-        $excludedTables = array_merge($this->option('exclude'), ['datum', 'datum_choice', 'datum_geo', 'datum_group_tag', 'datum_photo', 'edge_datum']);
+        // $excludedTables = array_merge($this->option('exclude'), ['datum', 'datum_choice', 'datum_geo', 'datum_group_tag', 'datum_photo', 'edge_datum']);
+        $excludedTables = array_merge($this->option('exclude'), []);
 
         $DB_HOST = env('DB_HOST');
         $DB_PORT = env('DB_PORT');
@@ -63,10 +64,12 @@ class ExportMySQL extends Command
         if (substr($dumpPathString, 0, 1) === '>') {
             $dumpPathString = '>'.$dumpPathString;
         }
-        $datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  --compact --skip-triggers $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null) or preload_id is not null"'." $dumpPathString";
-        $datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  --compact --skip-triggers $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null) or preload_id is not null)"'." $dumpPathString";
+        // TODO: Think about whether it is necessary, with the new sync, to exclude datum from completed surveys
+        //$datumDumpCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  --compact --skip-triggers $DB_DATABASE datum --where=".'"survey_id in (select id from survey where survey.completed_at is null) or preload_id is not null"'." $dumpPathString";
+        //$datumRelatedCmd = "mysqldump --host=$DB_HOST --port=$DB_PORT --user=$DB_USERNAME --net-buffer-length=$length --single-transaction --complete-insert  --compact --skip-triggers $DB_DATABASE datum_geo datum_photo datum_group_tag datum_choice edge_datum --where=".'"datum_id in (select id from datum where survey_id in (select id from survey where completed_at is null) or preload_id is not null)"'." $dumpPathString";
 
-        $cmds = [$mainDumpCmd, $datumDumpCmd, $datumRelatedCmd];
+        //$cmds = [$mainDumpCmd, $datumDumpCmd, $datumRelatedCmd];
+        $cmds = [$mainDumpCmd];
         foreach ($cmds as $cmd) {
             $process = new Process($cmd, base_path(), [
                     'DB_HOST' => env('DB_HOST'),
