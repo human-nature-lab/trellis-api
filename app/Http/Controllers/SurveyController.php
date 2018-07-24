@@ -23,6 +23,44 @@ class SurveyController extends Controller {
     }
 
     /**
+     * Get a single study object
+     * @param {string} $studyId
+     * @param {string} $respondentId
+     * @param {string} $formId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getStudySurveyByFormId ($studyId, $respondentId, $formId) {
+        $studyId = urldecode($studyId);
+        $respondentId = urldecode($respondentId);
+        $formId = urldecode($formId);
+
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'respondentId' => $respondentId,
+            'formId' => $formId
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'respondentId' => 'required|string|min:36|exists:respondent,id',
+            'formId' => 'required|string|min:36|exists:form,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::query()
+            ->where('study_id', $studyId)
+            ->where('respondent_id', $respondentId)
+            ->where('form_id', $formId)->first();
+
+        return response()->json([
+            'survey' => $survey
+        ], Response::HTTP_OK);
+    }
+
+    /**
      * Get all surveys completed by the respondent in this study
      * @param {String} $studyId
      * @param {String} $respondentId
