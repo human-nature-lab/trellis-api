@@ -7,7 +7,7 @@ use App\Library\FileHelper;
 use App\Models\Epoch;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
-use Illuminated\Console\WithoutOverlapping;
+// use Illuminated\Console\WithoutOverlapping;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use App\Models\Snapshot;
@@ -18,7 +18,7 @@ use DB;
 class ExportSnapshotV2 extends Command
 {
     // USE: sudo -u www-data php artisan trellis:export:snapshotv2
-    use WithoutOverlapping;
+    // use WithoutOverlapping;
 
     // TODO: Why doesn't this mutex strategy work?
     //protected $mutexStrategy = 'mysql';
