@@ -316,7 +316,11 @@ class FormReportJob extends Job
                     $geoTranslation = DB::table('translation_text')
                         ->where('translation_text.translation_id', '=', $geo->tId)
                         ->first();
-                    $geo->name = $geoTranslation->translated_text;
+                    if (is_null($geoTranslation)) {
+                        $geo->name = '[NO TRANSLATION TEXT]';
+                    } else {
+                        $geo->name = $geoTranslation->translated_text;
+                    }
                 }
                 foreach (['name', 'id'] as $name) {
                     $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
