@@ -607,6 +607,12 @@ class RespondentController extends Controller
             $request->get('associated_respondent_id')
         );
 
+
+
+        $newRespondentModel->geos = $newRespondentModel->geos;
+        $newRespondentModel->photos = $newRespondentModel->photos;
+        $newRespondentModel->names = $newRespondentModel->names;
+
         return response()->json([
             'respondent' => $newRespondentModel
         ], Response::HTTP_OK);
