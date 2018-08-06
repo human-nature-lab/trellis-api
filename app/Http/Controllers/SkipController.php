@@ -27,7 +27,7 @@ class SkipController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'skipId' => $id
         ]), [
-            'skipId' => 'required|string|min:36|exists:skip'
+            'skipId' => 'required|string|min:36|exists:skip,id'
         ]);
 
 
@@ -74,7 +74,7 @@ class SkipController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'skipId' => $id
         ]), [
-            'skipId' => 'required|string|min:36|exists:skip'
+            'skipId' => 'required|string|min:36|exists:skip,id'
         ]);
 
 
@@ -106,7 +106,7 @@ class SkipController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'skipId' => $skipId
         ]), [
-            'skipId' => 'required|string|min:36|exists:skip',
+            'skipId' => 'required|string|min:36|exists:skip,id',
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'precedence' => 'required|integer',
