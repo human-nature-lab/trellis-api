@@ -299,7 +299,7 @@ class RespondentController extends Controller
 
         $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
         $currentQuery = DB::getQueryLog();
-        Log::info(json_encode($currentQuery));
+        // Log::info(json_encode($currentQuery));
         DB::disableQueryLog();
         return response()->json(
             ['respondents' => $respondents,
