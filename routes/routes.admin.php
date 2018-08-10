@@ -103,10 +103,10 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         //**************************//
         //* Photo Controller Routes *//
         //**************************//
-//        $router->get(
-//            'photo/{id}',
-//            'PhotoController@getPhoto'
-//        );
+        $router->get(
+            'photo/{id}',
+            'PhotoController@getPhoto'
+        );
 
         //*********************************//
         //* Census Form Controller Routes *//
