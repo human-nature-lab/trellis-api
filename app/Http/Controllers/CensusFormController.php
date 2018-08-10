@@ -44,7 +44,7 @@ class CensusFormController extends Controller {
         if (!$studyForm) {
             return response()->json([
                 'form' => null
-            ], Response::HTTP_BAD_REQUEST);
+            ], Response::HTTP_OK);
         }
 
         $form = Form::find($studyForm->form_master_id);
