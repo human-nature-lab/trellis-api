@@ -31,7 +31,7 @@ class AddCensusTypeTable extends Migration
     public function down()
     {
         Schema::table('study_form', function (Blueprint $table) {
-            $table->dropForeign('fk__study_form_census_type__idx')();
+            $table->dropForeign('fk__study_form_census_type__idx');
             $table->dropColumn('census_type_id');
         });
         Schema::dropIfExists('census_type');
