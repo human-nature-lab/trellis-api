@@ -196,7 +196,7 @@ class UserController extends Controller
             ], Response::HTTP_BAD_REQUEST);
         } else if ($user->role === 'ADMIN') {
             return response()->json([
-                'studies' => Study::with('locales')->whereNull('deleted_at')->get()
+                'studies' => Study::whereNull('deleted_at')->get()
             ], Response::HTTP_OK);
         }
         return response()->json([
