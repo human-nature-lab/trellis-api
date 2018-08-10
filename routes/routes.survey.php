@@ -41,6 +41,8 @@ $router->group([
     $router->post('survey/{s_id}/interview',                           'InterviewController@createInterview');
 
     $router->get('studies',                                            'StudyController@getAllStudiesComplete');
+    $router->get('study/{studyId}/locales',                            'StudyController@getLocales');
+    $router->get( 'locale/{id}',                                       'LocaleController@getLocale');
 
     // Study routes
     $router->group(['prefix' => 'study/{s_id}'], function () use ($router) {
