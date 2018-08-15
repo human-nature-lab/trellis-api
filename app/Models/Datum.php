@@ -38,24 +38,30 @@ class Datum extends Model
         'deleted_at'
     ];
 
-    public function choices () {
-        return $this->hasMany('App\Models\Choice', 'choice')
+    public function choice () {
+        return $this->hasOne('App\Models\Choice', 'choice')
             ->whereNull('choice.deleted_at')
             ->with('choiceTranslation');
     }
 
-    public function geos () {
-        return $this->hasMany('App\Models\Geo', 'geo')
-            ->whereNull('geo.deleted_at');
+    public function geo () {
+        return $this->hasOne('App\Models\Geo', 'geo')
+            ->whereNull('geo.deleted_at')
+            ->with('nameTranslation');
     }
 
-    public function edges () {
-        return $this->hasMany('App\Models\Edge', 'edge')
+    public function edge () {
+        return $this->hasOne('App\Models\Edge', 'edge')
             ->whereNull('edge.deleted_at');
     }
 
-    public function rosters () {
-        return $this->hasMany('App\Models\Roster', 'roster')
+    public function roster () {
+        return $this->hasOne('App\Models\Roster', 'roster')
             ->whereNull('roster.deleted_at');
+    }
+
+    public function photo () {
+        return $this->hasOne('App\Models\Photo', 'photo')
+            ->whereNull('photo.deleted_at');
     }
 }

@@ -153,7 +153,7 @@ class InterviewDataController
 
         $patch = $request->all();
         $datum = $patch['data']['datum'];
-        $questionDatum = $patch['data']['questionDatum'];
+        $questionDatum = $patch['data']['question_datum'];
 
         DB::beginTransaction();
 
@@ -211,7 +211,7 @@ class InterviewDataController
                return $questionIdInsertOrderMap[$a['question_id']] - $questionIdInsertOrderMap[$b['question_id']];
             });
 
-            $dontChangeVals = ['id', 'created_at'];
+            $dontChangeVals = ['id' => true, 'created_at' => true];
             $firstOrNew = function ($class, $o) use ($dontChangeVals) {
                 $m = $class::where([
                     'id' => $o['id']
@@ -249,9 +249,9 @@ class InterviewDataController
             }
 
             // Add all of the condition tags last
-            self::dataPatch(RespondentConditionTag::class, $patch['conditionTags']['respondent']);
-            self::dataPatch(SectionConditionTag::class, $patch['conditionTags']['section']);
-            self::dataPatch(SurveyConditionTag::class, $patch['conditionTags']['survey']);
+            self::dataPatch(RespondentConditionTag::class, $patch['condition_tags']['respondent']);
+            self::dataPatch(SectionConditionTag::class, $patch['condition_tags']['section']);
+            self::dataPatch(SurveyConditionTag::class, $patch['condition_tags']['survey']);
 
         } catch (QueryException $exception) {
             Log::debug('rolling back transaction');

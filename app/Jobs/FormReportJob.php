@@ -2,31 +2,26 @@
 
 namespace App\Jobs;
 
+use App\Models\Question;
+use App\Models\QuestionDatum;
 use Illuminate\Support\Facades\DB;
 use League\Flysystem\Exception;
 use Log;
 use App\Models\Report;
-use App\Models\ReportFile;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Bus\SelfHandling;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\ReportService;
-use App\Services\FileService;
-use Ramsey\Uuid\Uuid;
+use Throwable;
 
 class FormReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $formId;
     protected $report;
     protected $config;
-    protected $images=[];
-    protected $rows=[];
-    protected $headers=[];
-    protected $metaHeaders=[];
-    protected $metaRows=[];
+    protected $images = [];
+    protected $rows = [];
+    protected $headers = [];
+    protected $metaHeaders = [];
+    protected $metaRows = [];
     protected $otherRows = [];
     protected $otherHeaders = [];
     protected $notesRows = [];
@@ -59,9 +54,10 @@ class FormReportJob extends Job
         try{
             $this->create();
             $this->report->status = 'saved';
-        } catch(Exception $e){
+        } catch(Throwable $e){
             $this->report->status = 'failed';
             Log::debug("Form export $this->formId failed");
+            Log::error(json_encode($e));
         } finally{
             $this->report->save();
             $duration = microtime(true) - $startTime;
@@ -74,13 +70,6 @@ class FormReportJob extends Job
      * Actually create the FormReport
      */
     private function create(){
-
-        $questions = ReportService::getFormQuestions($this->formId, $this->config->locale);
-
-        $questionsMap = array_reduce($questions, function($agg, &$q){
-            $agg[$q->id] = $q;
-            return $agg;
-        }, []);
 
         $this->defaultColumns = [
             'id' => 'survey_id',
@@ -103,9 +92,20 @@ class FormReportJob extends Job
             'text' => 'response'
         ];
 
-        // 1. Create tree with follow up questions nested or if roster type then have the rows nested an follow up questions nested for each row
-        // 2. Add any questions without follow ups
-        // 3. Flatten the tree into a single
+        $questions = Question::whereIn('question_group_id', function ($q1) {
+            $q1->select('question_group_id')->from('section_question_group')->whereIn('section_id', function ($q2) {
+                $q2->select('section_id')->from('form_section')->where('form_id', '=', $this->formId)->whereNull('deleted_at');
+            })->whereNull('deleted_at');
+        })->whereNull('deleted_at')->with('questionTranslation', 'questionType', 'choices')->get();
+
+        $questionsMap = [];
+        foreach ($questions as $question) {
+            $questionsMap[$question->id] = $question;
+        }
+
+//        uasort($questions, function ($a, $b) {
+//            return 0;
+//        });
 
         list($tree, $treeMap) = ReportService::buildFormTree($questions);
 
@@ -113,7 +113,12 @@ class FormReportJob extends Job
 
         foreach($surveys as $survey){
 
-            $this->formatSurveyData($survey, $tree, $treeMap, $questionsMap);
+//            $this->formatSurveyData($survey, $tree, $treeMap, $questionsMap);
+            $row = $this->formatSurveyData($survey, $questions, $questionsMap);
+            foreach($this->defaultColumns as $key=>$name){
+                $row[$key] = $survey->$key;
+            }
+            array_push($rows, $row);
 
         }
 
@@ -130,7 +135,82 @@ class FormReportJob extends Job
     }
 
 
-    private function formatSurveyData($survey, $tree, $treeMap, $questionsMap){
+    private function formatSurveyData ($survey, $questions, $questionsMap) {
+        $questionDatum = QuestionDatum::where('survey_id', $survey->id)->with('fullData')->get();
+        $row = [];
+
+        // Create indexes
+        $questionToQuestionDatumMap = [];
+        $datumMap = [];
+        foreach ($questionDatum as $qd) {
+            if (!isset($questionToQuestionDatumMap[$qd->question_id])) {
+                $questionToQuestionDatumMap[$qd->question_id] = [];
+            }
+            array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
+            foreach ($questionDatum->fullData as $datum) {
+                $datumMap[$datum->id] = $datum;
+            }
+        }
+
+        foreach ($questions as $question) {
+            $questionData = $questionToQuestionDatumMap[$question->id];
+            uasort($questionData, function ($a, $b) use ($datumMap) {
+                if ($a->section_repetition || $b->section_repetition) {
+                    return $a->section_repetition - $b->section_repetition;
+                } else if ($a->follow_up_datum_id) {
+                    return $datumMap[$a->follow_up_datum_id] - $datumMap[$b->follow_up_datum_id];
+                } else {
+                    return 0;
+                }
+            });
+            $keyBase = $question->id;
+            foreach ($questionData as $index => $qd) {
+                $key = count($questionData) > 1 ? $keyBase.'_r_'.$index : $keyBase;
+                switch ($question->questionType->name) {
+                    case 'multiple_select':
+                        // Make a column for every choice
+                        $choiceMap = [];
+                        foreach ($question->choices as $choice) {
+                            $key .= '_c_' . $choice->id;
+                            $this->headers[$key] = $question->var_name.'_c'.$choice->val;
+                            $choiceMap[$choice->id] = $choice;
+                        }
+                        // Apply the selected choices
+                        foreach ($qd->fullData as $datum) {
+                            $key .= '_c_' . $datum->choice_id;
+                            $row[$key] = self::getDatumVal($datum);
+                        }
+                        break;
+                    default:
+                        $vals = [];
+                        foreach ($qd->fullData as $datum) {
+                            array_push($vals, self::getDatumVal($datum));
+                        }
+                        $row[$key] = implode(';', $vals);
+                }
+            }
+        }
+        return $row;
+    }
+
+    private function getDatumVal ($datum) {
+        if ($datum->choice) {
+            return $this->config->useChoiceNames ? $datum->choiceTranslation->getLocaleText($this->config->locale) : $datum->choice->val;
+        } else if ($datum->geo) {
+            return $datum->geo->id;
+        } else if ($datum->edge) {
+            return $datum->edge->id;
+        } else if ($datum->roster) {
+            return $datum->roster->val;
+        } else if ($datum->photo) {
+            return $datum->photo->file_name;
+        } else {
+            return $datum->val;
+        }
+    }
+
+
+    private function formatSurveyDataOld ($survey, $tree, $treeMap, $questionsMap) {
 
         $row = [];
         $alreadyHandledQuestions = [];
