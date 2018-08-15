@@ -26,4 +26,21 @@ class Translation extends Model
             ->hasMany('App\Models\TranslationText')
             ->with('locale');
     }
+
+    public function getLocaleText ($localeId) {
+        foreach ($this->translationText as $tt) {
+            if ($tt->locale_id === $localeId) {
+                return $tt->translated_text;
+            }
+        }
+        return null;
+    }
+
+    public function getAnyLocaleText ($preferredLocaleId) {
+        $text = $this->getLocaleText($preferredLocaleId);
+        if (is_null($text)) {
+            $text = count($this->translationText) > 0 ? $this->translationText[0] : '[No translation text exists for this translation]';
+        }
+        return text;
+    }
 }
