@@ -162,4 +162,31 @@ class SurveyController extends Controller {
         ], Response::HTTP_OK);
     }
 
+
+    public function completeSurvey ($studyId, $surveyId) {
+        $studyId = urldecode($studyId);
+        $surveyId = urldecode($surveyId);
+
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'surveyId' => $surveyId
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'surveyId' => 'required|string|min:36|exists:survey,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::find($surveyId);
+        $survey->completed_at = Carbon::now();
+        $survey->save();
+
+        return response()->json([
+            'survey' => $survey
+        ], Response::HTTP_OK);
+    }
 }
