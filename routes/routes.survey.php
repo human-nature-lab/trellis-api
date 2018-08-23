@@ -40,6 +40,7 @@ $router->group([
     });
 
     $router->post('survey/{s_id}/interview',                    'InterviewController@createInterview');
+    $router->post('survey/{survey_id}/complete',                'SurveyController@completeSurvey');
 
     $router->get('locale/{id}',                                 'LocaleController@getLocale');
 
