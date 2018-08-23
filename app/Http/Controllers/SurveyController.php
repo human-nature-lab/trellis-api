@@ -3,6 +3,7 @@
 use App\Models\Survey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
@@ -163,15 +164,12 @@ class SurveyController extends Controller {
     }
 
 
-    public function completeSurvey ($studyId, $surveyId) {
-        $studyId = urldecode($studyId);
+    public function completeSurvey ($surveyId) {
         $surveyId = urldecode($surveyId);
 
         $validator = Validator::make([
-            'studyId' => $studyId,
             'surveyId' => $surveyId
         ], [
-            'studyId' => 'required|string|min:36|exists:study,id',
             'surveyId' => 'required|string|min:36|exists:survey,id'
         ]);
 
