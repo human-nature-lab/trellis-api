@@ -13,7 +13,8 @@
       "league/csv": "^8.2",
       "ramsey/uuid": "^3.0",
       "league/flysystem": "^1.0",
-      "doctrine/dbal": "^2.7"
+      "doctrine/dbal": "^2.7",
+        "emgag/flysystem-hash": "^1.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

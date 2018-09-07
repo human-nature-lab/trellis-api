@@ -51,6 +51,11 @@ $router->group([
         'device/{device_id}/upload',
         'SyncControllerV2@upload'
     );
+
+    $router->post(
+        'device/{device_id}/verify-upload',
+        'SyncControllerV2@verifyUpload'
+    );
 });
 
 
