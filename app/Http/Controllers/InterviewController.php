@@ -365,7 +365,7 @@ class InterviewController extends Controller
             ], $validator->statusCode());
         }
 
-        $interview = Interview::where('id', $interviewId)->with('survey')->first();
+        $interview = Interview::where('id', $interviewId)->with('survey', 'user')->first();
 
         return response()->json([
             'interview' => $interview

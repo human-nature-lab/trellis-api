@@ -84,7 +84,7 @@ class ExportSQLite extends Command
         $process = new Process(<<<EOT
 php artisan trellis:export:mysql $excludeTablesString |
 php -r 'while(\$s = fgets(STDIN)) echo preg_replace("/(?<=[^\\\\\\\\])(\\\\\\\\{2})*\\\\\\\\n/", "'\'' || x'\''0A'\'' || '\''", \$s);' |
-$mysql2sqlite - $dumpPathString
+mawk $mysql2sqlite - $dumpPathString
 EOT
 , base_path());
 
