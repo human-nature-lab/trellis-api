@@ -4,13 +4,16 @@ namespace app\Http\Controllers;
 
 use App\Models\Snapshot;
 use App\Models\Device;
+use App\Models\Upload;
 use Laravel\Lumen\Routing\Controller;
 use Validator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
+use Emgag\Flysystem\Hash\HashPlugin;
 use Symfony\Component\Finder\Finder;
+use Ramsey\Uuid\Uuid;
 
 class SyncControllerV2 extends Controller
 {
@@ -117,6 +120,52 @@ class SyncControllerV2 extends Controller
         }
 
         return response()->download(storage_path() . '/snapshot/' . $snapshot->file_name);
+    }
+
+    public function verifyUpload(Request $request, $deviceId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $adapter = new Local(storage_path() . '/uploads');
+        $filesystem = new Filesystem($adapter);
+        $filesystem->addPlugin(new HashPlugin);
+        $exists = $filesystem->has($request->get('fileName'));
+
+        if (!$exists) {
+            return response()->json([
+                'msg' => 'Upload file not found.',
+                'err' => $validator->errors()
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $md5 = $filesystem->hash($request->get('fileName'), 'md5');
+
+        if ($md5 <> $request->get('md5hash')) {
+            return response()->json([
+                'msg' => 'Calculated hash does not match provided hash.',
+                'err' => $validator->errors()
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $upload = new Upload;
+        $upload->id = Uuid::uuid4();
+        $upload->device_id = $deviceId;
+        $upload->file_name = $request->get('fileName');
+        $upload->hash = $request->get('md5hash');
+        $upload->status = 'PENDING';
+        $upload->save();
+
+        return response()->json([], Response::HTTP_OK);
     }
 
     public function upload(Request $request, $deviceId) {
