@@ -119,6 +119,40 @@ class SyncControllerV2 extends Controller
         return response()->download(storage_path() . '/snapshot/' . $snapshot->file_name);
     }
 
+    public function upload(Request $request, $deviceId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        if (! $request->hasFile('file')) {
+            return response()->json([
+                'msg' => 'File not present in request.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $file = $request->file('file');
+        $fileName = $request->get('fileName');
+        $uploadPath = storage_path() . '/uploads';
+
+        if (! $request->file('file')->isValid()) {
+            return response()->json([
+                'msg' => 'Upload failed.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $file->move($uploadPath, $fileName);
+
+        return response()->json([], Response::HTTP_OK);
+    }
 
     public function getSnapshotInfo(Request $request, $deviceId) {
         $validator = Validator::make(array_merge($request->all(), [
