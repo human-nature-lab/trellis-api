@@ -54,7 +54,9 @@ class SurveyController extends Controller {
         $survey = Survey::query()
             ->where('study_id', $studyId)
             ->where('respondent_id', $respondentId)
-            ->where('form_id', $formId)->first();
+            ->where('form_id', $formId)
+            ->with('interviews')
+            ->first();
 
         return response()->json([
             'survey' => $survey
