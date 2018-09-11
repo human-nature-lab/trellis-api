@@ -224,6 +224,29 @@ class SyncControllerV2 extends Controller
         return response()->json($latestSnapshot, Response::HTTP_OK);
     }
 
+    public function getPendingUploads(Request $request, $deviceId) {
+        /* Returns both pending and error uploads to prevent end-users from downloading before their upload has been processed */
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $pendingUploads = Upload::where('deleted_at',null)
+            ->where('status', 'PENDING')
+            ->orWhere('status', 'ERROR')
+            ->get();
+
+        return response()->json($pendingUploads, Response::HTTP_OK);
+    }
+
     public function getImageSize(Request $request, $deviceId)
     {
         $validator = Validator::make(array_merge([], [
