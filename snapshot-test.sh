@@ -1,0 +1,3 @@
+php artisan trellis:export:mysql --exclude='failed_jobs' --exclude='jobs' --exclude='key' --exclude='migrations' --exclude='report_file' --exclude='report' --exclude='snapshot' --exclude='sync' --exclude='token' |
+php -r 'while($s = fgets(STDIN)) echo preg_replace("/(?<=[^\\\\])(\\\\{2})*\\\\n/", "'\'' || x'\''0A'\'' || '\''", $s);' |
+mawk /var/www/trellis-api/app/Console/Scripts/mysql2sqlite/mysql2sqlite -

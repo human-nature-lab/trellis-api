@@ -4,7 +4,11 @@ namespace app\Http\Controllers;
 
 use App\Models\Snapshot;
 use App\Models\Device;
+
+use Illuminate\Support\Facades\Artisan;
+
 use App\Models\Upload;
+
 use Laravel\Lumen\Routing\Controller;
 use Validator;
 use Illuminate\Http\Request;
@@ -13,7 +17,12 @@ use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 use Emgag\Flysystem\Hash\HashPlugin;
 use Symfony\Component\Finder\Finder;
+
+use League\Flysystem\Cached\CachedAdapter;
+use League\Flysystem\Cached\Storage\Memory as MemoryStore;
+
 use Ramsey\Uuid\Uuid;
+
 
 class SyncControllerV2 extends Controller
 {
@@ -267,8 +276,12 @@ class SyncControllerV2 extends Controller
         $numberRequested = 0;
         $numberFound = 0;
 
-        $adapter = new Local(storage_path() . '/respondent-photos');
-        $filesystem = new Filesystem($adapter);
+        // Add caching to optimize this part for multiple requests
+        // https://flysystem.thephpleague.com/docs/advanced/caching/
+//        $cacheStore = new MemoryStore();
+        $localAdapter = new Local(storage_path() . '/respondent-photos');
+//        $adapter = new CachedAdapter($localAdapter, $cacheStore);
+        $filesystem = new Filesystem($localAdapter);
 
         foreach($fileNames as $fileName) {
             $numberRequested++;

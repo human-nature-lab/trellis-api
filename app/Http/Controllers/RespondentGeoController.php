@@ -50,6 +50,7 @@ class RespondentGeoController extends Controller {
         $geo->pivot = [
             'id' => $respondentGeo->id,
             'is_current' => $respondentGeo->is_current,
+            'previous_respondent_geo_id' => $respondentGeo->previous_respondent_geo_id,
             'deleted_at' => $respondentGeo->deleted_at,
             'notes' => $respondentGeo->notes
         ];
@@ -87,6 +88,7 @@ class RespondentGeoController extends Controller {
         $geo = Geo::with('nameTranslation', 'photos', 'parent', 'geoType')->find($respondentGeo->geo_id);
         $geo->pivot = [
             'id' => $respondentGeo->id,
+            'previous_respondent_geo_id' => $respondentGeo->previous_respondent_geo_id,
             'is_current' => $respondentGeo->is_current,
             'deleted_at' => $respondentGeo->deleted_at,
             'notes' => $respondentGeo->notes

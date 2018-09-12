@@ -6,18 +6,9 @@ use App\Services\ReportService;
 use Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\Report;
-use App\Models\ReportFile;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Bus\SelfHandling;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use App\Services\FileService;
-use App\Classes\Memoization;
-use Ramsey\Uuid\Uuid;
 
 class RespondentReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
     protected $report;

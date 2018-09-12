@@ -11,7 +11,7 @@ $router->group([
     'prefix' => 'survey-view',
     'middleware' => ['key'],
 ], function () use ($router) {
-    $router->post('login',                                             'TokenController@createToken');
+    $router->post('login',                                      'TokenController@createToken');
 });
 
 $router->group([
@@ -19,12 +19,13 @@ $router->group([
     'middleware' => ['key', 'token']
 ], function () use ($router) {
 
-    $router->get('user/me',                                             'UserController@getMe');
-    $router->post('condition-tag',                                      'ConditionTagController@createConditionTag');
-    $router->get('condition-tags',                                      'ConditionTagController@getAllConditionTags');
-    $router->get('condition-tags/respondent',                           'ConditionController@getAllRespondentConditionTags');
+    $router->get('user/me',                                     'UserController@getMe');
 
-    $router->get('form/{form_id}',                                      'FormController@getForm');
+    $router->post('condition-tag',                              'ConditionTagController@createConditionTag');
+    $router->get('condition-tags',                              'ConditionTagController@getAllConditionTags');
+    $router->get('condition-tags/respondent',                   'ConditionController@getAllRespondentConditionTags');
+
+    $router->get('form/{form_id}',                              'FormController@getForm');
 
     $router->group([
         'prefix' => 'interview/{i_id}'
@@ -38,13 +39,14 @@ $router->group([
         $router->post('data',                                   'InterviewDataController@updateInterviewData');
     });
 
-    $router->post('survey/{s_id}/interview',                           'InterviewController@createInterview');
+    $router->post('survey/{s_id}/interview',                    'InterviewController@createInterview');
+    $router->post('survey/{survey_id}/complete',                'SurveyController@completeSurvey');
 
-    $router->get('studies',                                            'StudyController@getAllStudiesComplete');
-    $router->get('study/{studyId}/locales',                            'StudyController@getLocales');
-    $router->get( 'locale/{id}',                                       'LocaleController@getLocale');
+    $router->get('locale/{id}',                                 'LocaleController@getLocale');
 
     // Study routes
+    $router->get('studies',                                     'StudyController@getAllStudiesComplete');
+
     $router->group(['prefix' => 'study/{s_id}'], function () use ($router) {
         $router->get('respondent/{r_id}/form/{f_id}/survey',    'SurveyController@getStudySurveyByFormId');
         $router->post('respondent/{r_id}/form/{f_id}/survey',   'SurveyController@createSurvey');
@@ -55,6 +57,7 @@ $router->group([
         $router->post('respondent',                             'RespondentController@createStudyRespondent');
         $router->get('forms/published',                         'FormController@getPublishedForms');
         $router->get('form/census',                             'CensusFormController@getStudyCensusForm');
+        $router->get('locales',                                 'StudyController@getLocales');
     });
 
 
@@ -73,18 +76,18 @@ $router->group([
     });
 
 
-    $router->post('edges',                                             'EdgeController@createEdges');
-    $router->get('edges/{e_ids}',                                      'EdgeController@getEdgesById');
+    $router->post('edges',                                      'EdgeController@createEdges');
+    $router->get('edges/{e_ids}',                               'EdgeController@getEdgesById');
 
-    $router->post('rosters',                                           'RosterController@createRosterRows');
-    $router->get('rosters/{r_ids}',                                    'RosterController@getRostersById');
-    $router->put('rosters',                                            'RosterController@editRosterRows');
+    $router->post('rosters',                                    'RosterController@createRosterRows');
+    $router->get('rosters/{r_ids}',                             'RosterController@getRostersById');
+    $router->put('rosters',                                     'RosterController@editRosterRows');
 
-    $router->get('geos/{g_ids}',                                       'GeoController@getGeosById');
-    $router->get('geo/search',                                         'GeoController@searchGeos');
-    $router->get('geo/{geo_id}/ancestors',                             'GeoController@getAncestorsForGeoId');
+    $router->get('geos/{g_ids}',                                'GeoController@getGeosById');
+    $router->get('geo/search',                                  'GeoController@searchGeos');
+    $router->get('geo/{geo_id}/ancestors',                      'GeoController@getAncestorsForGeoId');
 
-    $router->get('photo/{p_id}',                                       'PhotoController@getPhoto');
+    $router->get('photo/{p_id}',                                'PhotoController@getPhoto');
 
-    $router->get('me/studies',                                         'UserController@getMyStudies');
+    $router->get('me/studies',                                  'UserController@getMyStudies');
 });
