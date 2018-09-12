@@ -13,7 +13,6 @@ use App\Models\Study;
 
 class InterviewReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
     protected $report;

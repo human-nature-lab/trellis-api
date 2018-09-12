@@ -3,6 +3,7 @@
 use App\Models\Survey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
@@ -53,7 +54,9 @@ class SurveyController extends Controller {
         $survey = Survey::query()
             ->where('study_id', $studyId)
             ->where('respondent_id', $respondentId)
-            ->where('form_id', $formId)->first();
+            ->where('form_id', $formId)
+            ->with('interviews')
+            ->first();
 
         return response()->json([
             'survey' => $survey
@@ -162,4 +165,28 @@ class SurveyController extends Controller {
         ], Response::HTTP_OK);
     }
 
+
+    public function completeSurvey ($surveyId) {
+        $surveyId = urldecode($surveyId);
+
+        $validator = Validator::make([
+            'surveyId' => $surveyId
+        ], [
+            'surveyId' => 'required|string|min:36|exists:survey,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::find($surveyId);
+        $survey->completed_at = Carbon::now();
+        $survey->save();
+
+        return response()->json([
+            'survey' => $survey
+        ], Response::HTTP_OK);
+    }
 }

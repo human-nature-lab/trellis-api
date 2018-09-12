@@ -7,13 +7,10 @@ use App\Services\ReportService;
 use Log;
 use App\Models\Report;
 use App\Models\Geo;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
 
 class GeoReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
     protected $report;

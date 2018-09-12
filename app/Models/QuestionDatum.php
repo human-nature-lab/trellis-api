@@ -46,4 +46,10 @@ class QuestionDatum extends Model
             ->whereNull('datum.deleted_at');
     }
 
+    public function fullData () {
+        return $this->hasMany('App\Models\Datum', 'question_datum_id')
+            ->whereNull('datum.deleted_at')
+            ->with('roster', 'choice', 'edge', 'photo', 'geo');
+    }
+
 }
