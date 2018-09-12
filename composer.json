@@ -14,7 +14,8 @@
       "ramsey/uuid": "^3.0",
       "league/flysystem": "^1.0",
       "doctrine/dbal": "^2.7",
-        "league/flysystem-cached-adapter": "^1.0"
+        "league/flysystem-cached-adapter": "^1.0",
+        "emgag/flysystem-hash": "^1.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
