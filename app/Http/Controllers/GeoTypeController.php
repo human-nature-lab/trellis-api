@@ -114,7 +114,12 @@ class GeoTypeController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $geoTypeModel->fill($request->input());
+        $vals = $request->all();
+        $canEnumeratorAdd = $vals['can_enumerator_add'];
+        unset($vals['can_enumerator_add']);
+        $vals['can_user_add'] = $canEnumeratorAdd;
+
+        $geoTypeModel->fill($vals);
         $geoTypeModel->save();
 
         return response()->json([
@@ -180,7 +185,7 @@ class GeoTypeController extends Controller
         $newGeoTypeModel->parent_id = $parentId;
         $newGeoTypeModel->study_id = $studyId;
         $newGeoTypeModel->name = $name;
-        $newGeoTypeModel->can_enumerator_add = $canEnumeratorAdd;
+        $newGeoTypeModel->can_user_add = $canEnumeratorAdd;
         $newGeoTypeModel->can_contain_respondent = $canContainRespondent;
 
         $newGeoTypeModel->save();

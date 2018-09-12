@@ -4,16 +4,25 @@ namespace app\Http\Controllers;
 
 use App\Models\Snapshot;
 use App\Models\Device;
+
 use Illuminate\Support\Facades\Artisan;
+
+use App\Models\Upload;
+
 use Laravel\Lumen\Routing\Controller;
 use Validator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
+use Emgag\Flysystem\Hash\HashPlugin;
 use Symfony\Component\Finder\Finder;
+
 use League\Flysystem\Cached\CachedAdapter;
 use League\Flysystem\Cached\Storage\Memory as MemoryStore;
+
+use Ramsey\Uuid\Uuid;
+
 
 class SyncControllerV2 extends Controller
 {
@@ -122,6 +131,86 @@ class SyncControllerV2 extends Controller
         return response()->download(storage_path() . '/snapshot/' . $snapshot->file_name);
     }
 
+    public function verifyUpload(Request $request, $deviceId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $adapter = new Local(storage_path() . '/uploads');
+        $filesystem = new Filesystem($adapter);
+        $filesystem->addPlugin(new HashPlugin);
+        $exists = $filesystem->has($request->get('fileName'));
+
+        if (!$exists) {
+            return response()->json([
+                'msg' => 'Upload file not found.',
+                'err' => $validator->errors()
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $md5 = $filesystem->hash($request->get('fileName'), 'md5');
+
+        if ($md5 <> $request->get('md5hash')) {
+            return response()->json([
+                'msg' => 'Calculated hash does not match provided hash.',
+                'err' => $validator->errors()
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $upload = new Upload;
+        $upload->id = Uuid::uuid4();
+        $upload->device_id = $deviceId;
+        $upload->file_name = $request->get('fileName');
+        $upload->hash = $request->get('md5hash');
+        $upload->status = 'PENDING';
+        $upload->save();
+
+        return response()->json([], Response::HTTP_OK);
+    }
+
+    public function upload(Request $request, $deviceId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        if (! $request->hasFile('file')) {
+            return response()->json([
+                'msg' => 'File not present in request.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $file = $request->file('file');
+        $fileName = $request->get('fileName');
+        $uploadPath = storage_path() . '/uploads';
+
+        if (! $request->file('file')->isValid()) {
+            return response()->json([
+                'msg' => 'Upload failed.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $file->move($uploadPath, $fileName);
+
+        return response()->json([], Response::HTTP_OK);
+    }
 
     public function getSnapshotInfo(Request $request, $deviceId) {
         $validator = Validator::make(array_merge($request->all(), [
@@ -142,6 +231,29 @@ class SyncControllerV2 extends Controller
             ->first();
 
         return response()->json($latestSnapshot, Response::HTTP_OK);
+    }
+
+    public function getPendingUploads(Request $request, $deviceId) {
+        /* Returns both pending and error uploads to prevent end-users from downloading before their upload has been processed */
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $pendingUploads = Upload::where('deleted_at',null)
+            ->where('status', 'PENDING')
+            ->orWhere('status', 'ERROR')
+            ->get();
+
+        return response()->json($pendingUploads, Response::HTTP_OK);
     }
 
     public function getImageSize(Request $request, $deviceId)
