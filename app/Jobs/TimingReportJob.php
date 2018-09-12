@@ -12,7 +12,6 @@ use App\Models\Study;
 
 class TimingReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
     protected $report;

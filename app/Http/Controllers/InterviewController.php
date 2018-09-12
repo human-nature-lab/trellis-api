@@ -86,26 +86,13 @@ class InterviewController extends Controller
             ], $validator->statusCode());
         }
 
-        $survey = Survey::whereIn('id', function ($query) use ($interviewId) {
-            $query->select('survey_id')
-                ->from('interview')
-                ->where('id', $interviewId);
-        })->whereNull('deleted_at');
+        $interview = Interview::find($interviewId);
 
-        Log::debug($survey->toSql());
-
-        $survey = $survey->first();
-        if (!$survey) {
-            return response()->json([
-                'msg' => 'No survey exists for this interview'
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
-        $survey->completed_at = Carbon::now();
-        $survey->save();
+        $interview->end_time = Carbon::now();
+        $interview->save();
 
         return response()->json([
-            'msg' => 'donezo'
+            'interview' => $interview
         ], Response::HTTP_NO_CONTENT);
     }
 
@@ -378,7 +365,7 @@ class InterviewController extends Controller
             ], $validator->statusCode());
         }
 
-        $interview = Interview::where('id', $interviewId)->with('survey')->first();
+        $interview = Interview::where('id', $interviewId)->with('survey', 'user')->first();
 
         return response()->json([
             'interview' => $interview
@@ -390,15 +377,20 @@ class InterviewController extends Controller
      * @param {String} $surveyId
      */
     public function createInterview (Request $request, $surveyId) {
-        $validator = Validator::make([
+        $validator = Validator::make(array_merge($request->all(), [
             'survey' => $surveyId
-        ], [
-            'survey' => 'required|string|min:36|exists:survey,id'
+        ]), [
+            'survey' => 'required|string|min:36|exists:survey,id',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'altitude' => 'nullable|numeric',
+            'accuracy' => 'nullable|numeric'
         ]);
 
         $latitude = $request->get('latitude');
         $longitude = $request->get('longitude');
         $altitude = $request->get('altitude');
+        $accuracy = $request->get('accuracy');
 
         if ($validator->fails()) {
             return response()->json([

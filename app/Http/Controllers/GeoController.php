@@ -370,7 +370,7 @@ class GeoController extends Controller
             ], $validator->statusCode());
         }
 
-        $geos = Geo::with('photos', 'nameTranslation')->whereIn('id', $geoIds)->get();
+        $geos = Geo::with('photos', 'nameTranslation', 'geoType')->whereIn('id', $geoIds)->get();
 
         return response()->json([
             'geos' => $geos
@@ -400,7 +400,7 @@ class GeoController extends Controller
         $ancestors = [];
         $c = 0;
         while ($geoId && !isset($ancestors[$geoId]) && $c < 25) {
-            $geo = Geo::with('nameTranslation', 'geoType')->find($geoId);
+            $geo = Geo::with('nameTranslation', 'geoType', 'photos')->find($geoId);
             $ancestors[$geo->id] = $geo;
             $geoId = $geo->parent_id;
         }

@@ -56,7 +56,9 @@ class EdgeController extends Controller {
             ], $validator->statusCode());
         }
 
-        $edges = Edge::with('targetRespondent')->whereIn('id', $edgeIds)->get();
+        $edges = Edge::with('targetRespondent', 'sourceRespondent')
+            ->whereIn('id', $edgeIds)
+            ->get();
 
         return response()->json([
             'edges' => $edges

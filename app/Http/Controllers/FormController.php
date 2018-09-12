@@ -1054,7 +1054,7 @@ class FormController extends Controller
                        $sub->where('form_type_id', $formTypeId);
                    }
                 })
-                ->with('studyForm', 'nameTranslation');
+                ->with('studyForm', 'nameTranslation', 'skips');
 
         Log::debug($q->toSql());
 
