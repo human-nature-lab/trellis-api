@@ -17,6 +17,7 @@ class RespondentGeo extends Pivot
         'id',
         'geo_id',
         'respondent_id',
+        'previous_respondent_geo_id',
         'notes',
         'is_current',
         'created_at',
