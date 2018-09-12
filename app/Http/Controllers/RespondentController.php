@@ -10,14 +10,17 @@ use App\Models\RespondentName;
 use App\Models\Study;
 use App\Models\RespondentPhoto;
 use App\Models\StudyRespondent;
+use App\Services\PreloadActionService;
 use App\Services\RespondentPhotoService;
 use App\Services\RespondentService;
 use \DateTime;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use \Input;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use PDOException;
 use Validator;
 use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
@@ -119,6 +122,49 @@ class RespondentController extends Controller
                 'err' => 'Provide a CSV file of respondent IDs and names'
             ], Response::HTTP_BAD_REQUEST);
         }
+    }
+
+    public function preloadRespondentData(Request $request, PreloadActionService $preloadActionService)
+    {
+        $hasFile = $request->hasFile('respondentPreloadDataCsv');
+
+        if (! $hasFile) {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a CSV file of respondent IDs and preload data.'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        try {
+            DB::beginTransaction();
+            $file = $request->file('respondentPreloadDataCsv');
+            $fileStream = fopen($file->getRealPath(), 'r+');
+            $csv = Reader::createFromStream($fileStream);
+            foreach ($csv->fetchAssoc() as $record) {
+                switch($record['action_type']) {
+                    case 'add-roster-row':
+                        $preloadActionService::preloadAddRosterRow($record['respondent_id'], $record['question_id'], $record['payload']);
+                        break;
+                    default:
+                        throw new Exception('Action types other than add-roster-row not implemented.');
+                }
+            }
+            DB::commit();
+        } catch (PDOException $e) {
+            Log::error($e);
+            DB::rollBack();
+            return response()->json(
+                [
+                    'msg' => 'Unable to process the .csv provided.'
+                ],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        return response()->json(
+            [],
+            Response::HTTP_OK
+        );
     }
 
     public function importRespondentPhotos(Request $request, $studyId, RespondentPhotoService $respondentPhotoService)
