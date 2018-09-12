@@ -383,6 +383,11 @@ $router->group(['middleware' => 'key'], function () use ($router) {
             'RespondentController@importRespondentPhotos'
         );
 
+        $router->post(
+            'respondent-preload-data/import',
+            'RespondentController@preloadRespondentData'
+        );
+
 //        $router->get(
 //            'study/{study_id}/respondents',
 //            'RespondentController@getAllRespondentsByStudyId'

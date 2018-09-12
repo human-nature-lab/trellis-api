@@ -46,6 +46,21 @@ $router->group([
         'device/{device_id}/image_size',
         'SyncControllerV2@getImageSize'
     );
+
+    $router->get(
+        'device/{device_id}/uploads',
+        'SyncControllerV2@getPendingUploads'
+    );
+
+    $router->post(
+        'device/{device_id}/upload',
+        'SyncControllerV2@upload'
+    );
+
+    $router->post(
+        'device/{device_id}/verify-upload',
+        'SyncControllerV2@verifyUpload'
+    );
 });
 
 
