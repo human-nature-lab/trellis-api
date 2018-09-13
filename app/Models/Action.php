@@ -13,6 +13,10 @@ class Action extends Model
 
     protected $table = 'action';
 
+    protected $dates = ['created_at', 'deleted_at'];
+
+    protected $updated_at = '';
+
     protected $fillable = [
         'id',
         'interview_id',
