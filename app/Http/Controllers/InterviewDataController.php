@@ -23,6 +23,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use League\Flysystem\Exception;
+use Ramsey\Uuid\Uuid;
 use Validator;
 
 class InterviewDataController
@@ -319,6 +320,39 @@ class InterviewDataController
 
         $interview = Interview::find($interviewId);
 
+        // Get any preload_action rows for the form and respondent that have not already
+        // been copied to the action table
+        $preloadActions = DB::table('preload_action')
+            ->whereRaw("
+                respondent_id = (
+                  select respondent_id from survey where id = (select survey_id from interview where id = ?)
+                ) 
+                and question_id in (
+                  select id from question where question_group_id in (
+                    select question_group_id from section_question_group where section_id in (
+                      select section_id from form_section where form_id = (
+                        select form_id from survey where id = (select survey_id from interview where id = ?)
+                      )
+                    )
+                  )
+                )
+                and not exists (
+                  select * from action where interview_id = ? and preload_action_id = preload_action.id
+                )", [$interviewId, $interviewId, $interviewId])
+            ->get();
+
+        foreach ($preloadActions as $preloadAction) {
+            $actionId = Uuid::uuid4();
+            $actionModel = new Action;
+            $actionModel->id = $actionId;
+            $actionModel->question_id = $preloadAction->question_id;
+            $actionModel->payload = $preloadAction->payload;
+            $actionModel->action_type = $preloadAction->action_type;
+            $actionModel->interview_id = $interviewId;
+            $actionModel->preload_action_id = $preloadAction->id;
+            $actionModel->save();
+        }
+
         $actions = Action::whereIn('action.interview_id', function ($q) use ($interview) {
             $q->select('id')->from('interview')->where('survey_id', $interview->survey_id);
         })->get();
@@ -360,7 +394,7 @@ class InterviewDataController
             return $action;
         }, $request->get('actions'));
 
-        // Handle this tranaction manually and return an error if we fail to insert the data
+        // Handle this transaction manually and return an error if we fail to insert the data
         DB::beginTransaction();
 
         try {
