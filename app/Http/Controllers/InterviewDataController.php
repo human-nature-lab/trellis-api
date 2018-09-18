@@ -337,7 +337,9 @@ class InterviewDataController
                   )
                 )
                 and not exists (
-                  select * from action where interview_id = ? and preload_action_id = preload_action.id
+                  select * from action where interview_id in (
+                    select id from interview where survey_id = (select survey_id from interview where id = ?)
+                  ) and preload_action_id = preload_action.id
                 )", [$interviewId, $interviewId, $interviewId])
             ->get();
 
