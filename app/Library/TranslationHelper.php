@@ -31,6 +31,30 @@ class TranslationHelper
         return $translationId;
     }
 
+    public static function createNewTranslationFromTranslationTextArray($translationTextArray)
+    {
+        $translationId = Uuid::uuid4();
+
+        $newTranslationModel = new Translation;
+
+        DB::transaction(function () use ($translationId, $translationTextArray, $newTranslationModel) {
+            $newTranslationModel->id = $translationId;
+            $newTranslationModel->save();
+
+            foreach ($translationTextArray as $translationText) {
+                $translationTextId = Uuid::uuid4();
+                $newTranslationTextModel = new TranslationText;
+                $newTranslationTextModel->id = $translationTextId;
+                $newTranslationTextModel->translation_id = $translationId;
+                $newTranslationTextModel->locale_id = $translationText['localeId'];
+                $newTranslationTextModel->translated_text = $translationText['translatedText'];
+                $newTranslationTextModel->save();
+            }
+        });
+
+        return $translationId;
+    }
+
     public static function getTranslationText($translationId, $localeId)
     {
         $translationTextModel = TranslationText::where('translation_id', $translationId)
