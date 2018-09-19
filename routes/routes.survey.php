@@ -25,6 +25,9 @@ $router->group([
     $router->get('condition-tags',                              'ConditionTagController@getAllConditionTags');
     $router->get('condition-tags/respondent',                   'ConditionController@getAllRespondentConditionTags');
 
+
+    $router->post('translation-text/{translation_text_id}',     'TranslationTextController@updateTranslatedTextById');
+
     $router->get('form/{form_id}',                              'FormController@getForm');
 
     $router->group([
@@ -83,9 +86,14 @@ $router->group([
     $router->get('rosters/{r_ids}',                             'RosterController@getRostersById');
     $router->put('rosters',                                     'RosterController@editRosterRows');
 
+    $router->put('geo',                                         'GeoController@createGeoFromModel');
     $router->get('geos/{g_ids}',                                'GeoController@getGeosById');
     $router->get('geo/search',                                  'GeoController@searchGeos');
     $router->get('geo/{geo_id}/ancestors',                      'GeoController@getAncestorsForGeoId');
+    $router->delete('geo/{geo_id}',                             'GeoController@removeGeo');
+    $router->post('geo/{geo_id}/move',                          'GeoController@moveGeo');
+
+    $router->get('geo-types',                                   'GeoTypeController@getGeoTypes');
 
     $router->get('photo/{p_id}',                                'PhotoController@getPhoto');
 
