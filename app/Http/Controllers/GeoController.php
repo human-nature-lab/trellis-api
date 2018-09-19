@@ -19,7 +19,7 @@ class GeoController extends Controller
     public function searchGeos(Request $request) {
 
         $query = $request->get('query');
-        $limit = $request->get('limit', 25);
+        $limit = $request->get('limit', 1000);
         $offset = $request->get('offset', 0);
         $study = $request->get('study');
         $parent = $request->get('parent');
@@ -269,10 +269,10 @@ class GeoController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function removeGeo(Request $request, $id)
+    public function removeGeo($geo_id)
     {
         $validator = Validator::make(
-            ['id' => $id],
+            ['id' => $geo_id],
             ['id' => 'required|string|min:36']
         );
 
@@ -283,7 +283,7 @@ class GeoController extends Controller
             ], $validator->statusCode());
         }
 
-        $geoModel = Geo::find($id);
+        $geoModel = Geo::find($geo_id);
 
         if ($geoModel === null) {
             return response()->json([
@@ -296,6 +296,85 @@ class GeoController extends Controller
         return response()->json([
 
         ]);
+    }
+
+    public function moveGeo(Request $request, $geo_id)
+    {
+        $validator = Validator::make(
+            ['id' => $geo_id],
+            ['id' => 'required|string|min:36']
+        );
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $latitude = $request->get('latitude');
+        $longitude = $request->get('longitude');
+        $moveChildren = $request->get('moveChildren');
+
+        $q = Geo::where('id', '=', $geo_id);
+        if ($moveChildren) {
+          $q = $q->orWhere('parent_id', '=', $geo_id);
+        }
+        $q->update([
+          'latitude' => $latitude,
+          'longitude' => $longitude
+        ]);
+
+        return response()->json([
+        ]);
+    }
+
+    public function createGeoFromModel(Request $request) {
+        $altitude = $request->input('geo.altitude');
+        $longitude = $request->input('geo.longitude');
+        $latitude = $request->input('geo.latitude');
+        $geoTypeId = $request->input('geo.geoType.id');
+        $parentId = $request->input('geo.parentId');
+        $translationTextArray = $request->input('geo.nameTranslation.translationText');
+
+        $validator = Validator::make([
+            'longitude' => $longitude,
+            'latitude' => $latitude,
+            'geoTypeId' => $geoTypeId,
+            'parentId' => $parentId,
+            'translationTextArray' => $translationTextArray
+        ], [
+            'longitude' => 'required|numeric',
+            'latitude' => 'required|numeric',
+            'geoTypeId' => 'required|string|min:36|exists:geo_type,id',
+            'parentId' => 'nullable|string|min:36|exists:geo,id',
+            'translationTextArray' => 'array'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $newGeoModel = new Geo;
+        $geoId = Uuid::uuid4();
+
+        DB::transaction(function () use ($newGeoModel, $geoId, $altitude, $longitude, $latitude, $geoTypeId, $parentId, $translationTextArray) {
+            $newGeoModel->id = $geoId;
+            $newGeoModel->geo_type_id = $geoTypeId;
+            $newGeoModel->parent_id = $parentId;
+            $newGeoModel->latitude = $latitude;
+            $newGeoModel->longitude = $longitude;
+            $newGeoModel->altitude = $altitude;
+            $newGeoModel->name_translation_id = TranslationHelper::createNewTranslationFromTranslationTextArray($translationTextArray);
+            $newGeoModel->save();
+        });
+
+        return response()->json([
+            'geo' => $newGeoModel
+        ], Response::HTTP_OK);
     }
 
     public function createGeo(Request $request, $localeId)
