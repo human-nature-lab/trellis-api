@@ -416,6 +416,8 @@ class InterviewController extends Controller
             'altitude' => $altitude,
         ]);
 
+        $interview->survey = Survey::find($surveyId);
+
         return response()->json([
             'interview' => $interview
         ], Response::HTTP_OK);

@@ -322,12 +322,12 @@ class InterviewDataController
 
         // Get any preload_action rows for the form and respondent that have not already
         // been copied to the action table
-        $preloadActions = DB::table('preload_action')
+        $q = DB::table('preload_action')
             ->whereRaw("
-                respondent_id = (
+                preload_action.respondent_id = (
                   select respondent_id from survey where id = (select survey_id from interview where id = ?)
                 ) 
-                and question_id in (
+                and preload_action.question_id in (
                   select id from question where question_group_id in (
                     select question_group_id from section_question_group where section_id in (
                       select section_id from form_section where form_id = (
@@ -336,22 +336,24 @@ class InterviewDataController
                     )
                   )
                 )
-                and not exists (
-                  select * from action where interview_id in (
+                and preload_action.id not in (
+                  select preload_action_id from action where interview_id in (
                     select id from interview where survey_id = (select survey_id from interview where id = ?)
-                  ) and preload_action_id = preload_action.id
-                )", [$interviewId, $interviewId, $interviewId])
-            ->get();
+                  )
+                )", [$interviewId, $interviewId, $interviewId]);
+
+        $preloadActions = $q->get();
 
         foreach ($preloadActions as $preloadAction) {
-            $actionId = Uuid::uuid4();
             $actionModel = new Action;
-            $actionModel->id = $actionId;
+            $actionModel->id = Uuid::uuid4();
             $actionModel->question_id = $preloadAction->question_id;
             $actionModel->payload = $preloadAction->payload;
             $actionModel->action_type = $preloadAction->action_type;
             $actionModel->interview_id = $interviewId;
             $actionModel->preload_action_id = $preloadAction->id;
+            $actionModel->section_repetition = 0;
+            $actionModel->section_follow_up_repetition = 0;
             $actionModel->save();
         }
 
