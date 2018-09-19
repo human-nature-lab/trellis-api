@@ -24,7 +24,7 @@ class PreloadActionService
         $preloadActionModel->action_type = 'add-roster-row';
         $preloadActionModel->respondent_id = $respondentId;
         $preloadActionModel->question_id = $questionId;
-        $preloadActionModel->payload = '{"roster_id":"' . $payload . '"}';
+        $preloadActionModel->payload = '{"roster_id":"' . $rosterId . '"}';
         $preloadActionModel->save();
 
         return $preloadActionModel;
