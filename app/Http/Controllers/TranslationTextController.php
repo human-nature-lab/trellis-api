@@ -43,6 +43,31 @@ class TranslationTextController extends Controller
         );
     }
 
+    public function updateTranslatedTextById(Request $request, $translationTextId)
+    {
+        $validator = Validator::make(array_merge($request->all(), [
+            'translationTextId' => $translationTextId
+        ]), [
+            'translated_text' => 'required|string',
+            'translationTextId' => 'required|string|min:36|exists:translation_text,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $translationTextModel = TranslationText::find($translationTextId);
+        $translationTextModel->translated_text = $request->input('translated_text');
+        $translationTextModel->save();
+
+        return response()->json([
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
+        ], Response::HTTP_OK);
+    }
+
     public function updateTranslationText(Request $request, $translationId, $textId)
     {
         $validator = Validator::make(array_merge($request->all(), [

@@ -808,7 +808,6 @@ $router->group(['middleware' => 'key'], function () use ($router) {
             'GeoTypeController@getAllGeoTypesByStudyId'
         );
 
-
         $router->get(
             'geo/type/{parent_geo_id}/parent',
             'GeoTypeController@getAllEligibleGeoTypesOfParentGeo'
