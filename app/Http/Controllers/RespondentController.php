@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Geo;
@@ -87,30 +86,30 @@ class RespondentController extends Controller
         $hasRespondentFile = $request->hasFile('respondentCsvFile');
         if ($hasRespondentFile) {
             $respondentFile = $request->file('respondentCsvFile');
-            $respondentFileStream = fopen($respondentFile->getRealPath(), 'r+');
-            $respondentCsv = Reader::createFromStream($respondentFileStream);
-            $nRespondents = 0;
+            $respondentFileStream = fopen($respondentFile->getRealPath(), 'r');
 
             // Skip past header-row
             $skipHeader = $request->input('skipHeader');
             \Log::info('$skipHeader: ' . $skipHeader);
 
-            if ($skipHeader === "true") {
-                $respondentCsv->setOffset(1);
-            }
+            $row = 0;
+            $nRespondents = 0;
+            $isGoing = true;
+            do {
+                $line = fgetcsv($respondentFileStream);
+                if (!$line) {
+                    $isGoing = false;
+                } else if ($skipHeader === "true" && $row > 0) {
+                    $respondentAssignedId = trim($line[0]);
+                    $respondentName = trim($line[1]);
+                    \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
+                    \Log::info('$respondentName: ' . $respondentName);
+                    $nRespondents++;
 
-            $respondentCsv->each(function ($row) use ($nRespondents, $studyId, $respondentService) {
-                // TODO: incrementing $nRespondents here doesn't work
-                // $nRespondents += 1;
-                $respondentAssignedId = trim($row[0]);
-                $respondentName = trim($row[1]);
-                \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
-                \Log::info('$respondentName: ' . $respondentName);
-
-                $respondentService->createRespondent($respondentName, $studyId, $respondentAssignedId);
-
-                return true;
-            });
+                    $respondentService->createRespondent($respondentName, $studyId, $respondentAssignedId);
+                }
+                $row++;
+            } while ($isGoing);
 
             return response()->json(
                 [ 'importedRespondents' => $nRespondents ],
