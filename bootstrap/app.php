@@ -1,5 +1,7 @@
 <?php
 
+ini_set("auto_detect_line_endings", true);
+
 require_once __DIR__.'/../vendor/autoload.php';
 
 try {
