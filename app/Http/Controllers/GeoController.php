@@ -456,6 +456,20 @@ class GeoController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function getGeosByParentId ($parent_id) {
+        $geos = Geo::with('photos', 'nameTranslation', 'geoType');
+        if ($parent_id == "null") {
+            $geos = $geos->whereNull('parent_id');
+        } else {
+            $geos = $geos->where('parent_id', '=', $parent_id);
+        }
+        $geos = $geos->whereNull('deleted_at')
+            ->get();
+
+        return response()->json([
+            'geos' => $geos
+        ], Response::HTTP_OK);
+    }
 
     /**
      * Get an array of all ancestors for a specific geoId (not exceeding 25 levels)
