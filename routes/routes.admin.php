@@ -83,10 +83,6 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 //        'RespondentController@getRespondentStudyForms'
 //    );
 //
-    $router->get(
-        'study/{studyId}/form',
-        'FormController@getAllStudyForms'
-    );
 //
 //    $router->get(
 //        'respondent/{respondentId}',
@@ -118,6 +114,11 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         //**************************//
 
         $router->put('study/{study_id}/form/{form_id}',    'FormController@updateStudyForm');
+
+        $router->get(
+            'study/{studyId}/form',
+            'FormController@getAllStudyForms'
+        );
 
         $router->get(
             'form/{id}',
