@@ -44,14 +44,10 @@ class InterviewDataController
      */
     private function dataPatch ($class, $delta) {
         foreach ($delta['added'] as $newItem) {
-            $model = $class::firstOrNew([
+            $newItem['deleted_at'] = null;
+            $class::withTrashed()->updateOrCreate([
                 'id' => $newItem['id']
-            ]);
-            foreach ($newItem as $key => $value) {
-                $model->$key = $value;
-            }
-            $model->deleted_at = null;
-            $model->save();
+            ], $newItem);
         }
 
         $idsToRemove = array_map(function ($o) { return $o['id']; }, $delta['removed']);
