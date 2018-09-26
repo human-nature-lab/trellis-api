@@ -381,8 +381,8 @@ class InterviewController extends Controller
             'survey' => $surveyId
         ]), [
             'survey' => 'required|string|min:36|exists:survey,id',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
             'altitude' => 'nullable|numeric',
             'accuracy' => 'nullable|numeric'
         ]);
