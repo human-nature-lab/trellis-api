@@ -69,11 +69,13 @@ class Survey extends Model
     public function sectionConditionTags () {
         return $this->hasMany('App\Models\SectionConditionTag', 'survey_id')
             ->whereNull('section_condition_tag.deleted_at');
+//            ->with('conditionTag');
     }
 
     public function surveyConditionTags () {
         return $this->hasMany('App\Models\SurveyConditionTag', 'survey_id')
             ->whereNull('survey_condition_tag.deleted_at');
+//            ->with('conditionTag');
     }
 
     public function respondentConditionTags () {
