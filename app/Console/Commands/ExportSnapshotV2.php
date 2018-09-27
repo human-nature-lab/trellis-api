@@ -74,6 +74,7 @@ class ExportSnapshotV2 extends Command
             ->first();
         $this->info("latestSnapshot: " . $latestSnapshot['created_at']);
 
+        // TODO: Check Upload table instead of Sync
         $latestUpload = Sync::where('deleted_at', null)
             ->where('type', 'upload')
             ->orderBy('created_at', 'desc')

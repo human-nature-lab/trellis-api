@@ -38,6 +38,11 @@ $router->group([
     );
 
     $router->get(
+        'device/{device_id}/missing-images',
+        'SyncControllerV2@listMissingImages'
+    );
+
+    $router->get(
         'device/{device_id}/image/{file_name}',
         'SyncControllerV2@getImage'
     );
@@ -50,6 +55,11 @@ $router->group([
     $router->get(
         'device/{device_id}/uploads',
         'SyncControllerV2@getPendingUploads'
+    );
+
+    $router->post(
+        'device/{device_id}/upload/image',
+        'SyncControllerV2@uploadImage'
     );
 
     $router->post(
