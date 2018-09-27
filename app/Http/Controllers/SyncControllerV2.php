@@ -2,6 +2,7 @@
 
 namespace app\Http\Controllers;
 
+use App\Models\Photo;
 use App\Models\Snapshot;
 use App\Models\Device;
 
@@ -212,6 +213,41 @@ class SyncControllerV2 extends Controller
         return response()->json([], Response::HTTP_OK);
     }
 
+    public function uploadImage(Request $request, $deviceId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        if (! $request->hasFile('file')) {
+            return response()->json([
+                'msg' => 'File not present in request.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $file = $request->file('file');
+        $fileName = $request->get('fileName');
+        $uploadPath = storage_path() . '/respondent-photos';
+
+        if (! $request->file('file')->isValid()) {
+            return response()->json([
+                'msg' => 'Upload failed.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $file->move($uploadPath, $fileName);
+
+        return response()->json([], Response::HTTP_OK);
+    }
+
     public function getSnapshotInfo(Request $request, $deviceId) {
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $deviceId
@@ -326,6 +362,53 @@ class SyncControllerV2 extends Controller
         $mimetype = $filesystem->getMimetype($fileName);
 
         return response()->make($image, Response::HTTP_OK, ['content-type' => $mimetype]);
+    }
+
+    public function listMissingImages($deviceId)
+    {
+        $validator = Validator::make(array_merge([], [
+            'id' => $deviceId
+        ]), [
+            'id' => 'required|string|min:14|exists:device,device_id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        };
+
+        ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
+
+        http_response_code(Response::HTTP_OK);
+
+        $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
+
+        foreach(explode("\r\n", $response->headers) as $header) {
+            header($header);
+        }
+
+        header('Content-Type: ' . response()->json()->headers->get('content-type'));    // override content type to ensure that it's application/json
+
+        echo '[';
+
+        $first = true;
+        Photo::whereNull('deleted_at')
+            ->chunk(200, function ($photos) use (&$first) {
+                foreach ($photos as $photo) {
+                    $fileName = storage_path() . '/respondent-photos/' . $photo->file_name;
+                    if (!file_exists($fileName)) {
+                        if ($first) {
+                            $first = false;
+                        } else {
+                            echo ',';
+                        }
+                        echo '"' . $photo->file_name . '"';
+                    }
+                }
+            });
+        echo ']';
     }
 
     public function listImages($deviceId)

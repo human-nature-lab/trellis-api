@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
         Commands\ImportMySQL::class,
         Commands\ImportSnapshot::class,
         Commands\ImportSQLite::class,
+        Commands\ImportUpload::class,
         Commands\MergeMigrations::class,
         Commands\MigrationsBegin::class,
         Commands\MigrationsEnd::class,
