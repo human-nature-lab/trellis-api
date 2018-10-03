@@ -42,6 +42,7 @@ $router->group([
         $router->post('data',                                   'InterviewDataController@updateInterviewData');
     });
 
+    $router->get('survey/{s_id}',                               'SurveyController@getSurveyById');
     $router->post('survey/{s_id}/interview',                    'InterviewController@createInterview');
     $router->post('survey/{survey_id}/complete',                'SurveyController@completeSurvey');
 

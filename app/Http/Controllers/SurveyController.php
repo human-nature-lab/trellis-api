@@ -24,6 +24,28 @@ class SurveyController extends Controller {
     }
 
     /**
+     * @param $surveyId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getSurveyById ($surveyId) {
+        $surveyId = urldecode($surveyId);
+        $validator = Validator::make([
+            'surveyId' => $surveyId
+        ], [
+            'surveyId' => 'required|string|min:36|exists:survey,id'
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        return response()->json([
+            'survey' => Survey::find($surveyId)
+        ], Response::HTTP_OK);
+    }
+
+    /**
      * Get a single study object
      * @param {string} $studyId
      * @param {string} $respondentId
