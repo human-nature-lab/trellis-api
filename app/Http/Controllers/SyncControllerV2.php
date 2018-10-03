@@ -63,7 +63,7 @@ class SyncControllerV2 extends Controller
             'device_id' => $deviceId
         ]), [
             'id' => 'required|string|exists:snapshot,id',
-            'device_id' => 'required|string|exists:device'
+            'device_id' => 'required|string|exists:device,device_id'
         ]);
 
         if ($validator->fails() === true) {
@@ -104,7 +104,7 @@ class SyncControllerV2 extends Controller
             'device_id' => $deviceId
         ]), [
             'id' => 'required|string|exists:snapshot,id',
-            'device_id' => 'required|string|exists:device,id'
+            'device_id' => 'required|string|exists:device,device_id'
         ]);
 
         if ($validator->fails() === true) {
