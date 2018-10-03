@@ -103,9 +103,10 @@ class ExportSnapshotV2 extends Command
 
             $this->info("latestUpdateQuery: " . $latestUpdateQuery);
             $latestUpdate = DB::select($latestUpdateQuery);
+            $latestUpdateTime = $latestUpdate[0]->latest_update_time;
             $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['created_at']));
             $this->info("unix timestamp of latestUpdate: " . strtotime($latestUpdate[0]->latest_update_time));
-            $snapshotCreationNeeded = (strtotime($latestSnapshot['created_at']) < strtotime($latestUpdate[0]->latest_update_time));
+            $snapshotCreationNeeded =  ( ($latestUpdateTime == null) || (strtotime($latestSnapshot['created_at']) < strtotime($latestUpdateTime)) );
             $this->info("latestSnapshot older than latestUpdate?: " . (($snapshotCreationNeeded) ? "true" : "false"));
         }
 

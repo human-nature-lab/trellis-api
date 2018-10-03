@@ -57,11 +57,13 @@ class SyncControllerV2 extends Controller
         return response()->json([], Response::HTTP_OK);
     }
 
-    public function getSnapshotFileSize(Request $request, $snapshotId) {
+    public function getSnapshotFileSize(Request $request, $deviceId, $snapshotId) {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $snapshotId
+            'id' => $snapshotId,
+            'device_id' => $deviceId
         ]), [
-            'id' => 'required|string|exists:snapshot,id'
+            'id' => 'required|string|exists:snapshot,id',
+            'device_id' => 'required|string|exists:device'
         ]);
 
         if ($validator->fails() === true) {
@@ -96,11 +98,13 @@ class SyncControllerV2 extends Controller
     }
 
 
-    public function downloadSnapshot(Request $request, $snapshotId) {
+    public function downloadSnapshot(Request $request, $deviceId, $snapshotId) {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $snapshotId
+            'id' => $snapshotId,
+            'device_id' => $deviceId
         ]), [
-            'id' => 'required|string|exists:snapshot,id'
+            'id' => 'required|string|exists:snapshot,id',
+            'device_id' => 'required|string|exists:device,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -132,6 +136,60 @@ class SyncControllerV2 extends Controller
         return response()->download(storage_path() . '/snapshot/' . $snapshot->file_name);
     }
 
+    public function listUploads()
+    {
+        $uploads = Upload::all();
+
+        return response()->json(
+            ['uploads' => $uploads],
+            Response::HTTP_OK
+        );
+    }
+
+    public function listSnapshots()
+    {
+        $snapshots = Snapshot::all();
+
+        return response()->json(
+            ['snapshots' => $snapshots],
+            Response::HTTP_OK
+        );
+    }
+
+    public function generateSnapshot()
+    {
+        $exitCode = Artisan::call('trellis:export:snapshotv2');
+
+        if ($exitCode == 1) {
+            return response()->json(
+                [],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } else {
+            return response()->json(
+                [],
+                Response::HTTP_OK
+            );
+        }
+    }
+
+    public function processUploads()
+    {
+        $exitCode = Artisan::call('trellis:import:upload');
+
+        if ($exitCode == 1) {
+            return response()->json(
+                [],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } else {
+            return response()->json(
+                [],
+                Response::HTTP_OK
+            );
+        }
+    }
+
     public function verifyUpload(Request $request, $deviceId) {
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $deviceId
@@ -146,7 +204,7 @@ class SyncControllerV2 extends Controller
             ], $validator->statusCode());
         }
 
-        $adapter = new Local(storage_path() . '/uploads');
+        $adapter = new Local(storage_path() . '/uploads-pending');
         $filesystem = new Filesystem($adapter);
         $filesystem->addPlugin(new HashPlugin);
         $exists = $filesystem->has($request->get('fileName'));
@@ -200,7 +258,7 @@ class SyncControllerV2 extends Controller
 
         $file = $request->file('file');
         $fileName = $request->get('fileName');
-        $uploadPath = storage_path() . '/uploads';
+        $uploadPath = storage_path() . '/uploads-pending';
 
         if (! $request->file('file')->isValid()) {
             return response()->json([
