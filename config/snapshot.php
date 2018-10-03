@@ -51,15 +51,20 @@ return [
             'token' => [
                 '*' => null,
             ],
+            'upload' => [
+                '*' => null,
+            ],
+            'upload_log' => [
+                '*' => null,
+            ],
             'user' => [
                 '*' => null,
             ],
         ],
         'download' => [
-            //TODO
-            // 'device' => [
-            //     'device_id' => null,
-            // ],
+            'device' => [
+                '*' => null,
+            ],
             'failed_jobs' => [
                 '*' => null,
             ],
@@ -69,13 +74,16 @@ return [
             'key' => [
                 '*' => null,
             ],
+            'log' => [
+                '*' => null,
+            ],
             'migrations' => [
                 '*' => null,
             ],
-            'report_file' => [
+            'report' => [
                 '*' => null,
             ],
-            'report' => [
+            'report_file' => [
                 '*' => null,
             ],
             'snapshot' => [
@@ -87,10 +95,12 @@ return [
             'token' => [
                 '*' => null,
             ],
-            //TODO
-            // 'user' => [
-            //     'password' => '',
-            // ],
+            'upload' => [
+                '*' => null,
+            ],
+            'upload_log' => [
+                '*' => null,
+            ],
         ],
     ],
 ];

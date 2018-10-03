@@ -23,12 +23,12 @@ $router->group([
     );
 
     $router->get(
-        'snapshot/{snapshot_id}/file_size',
+        'device/{device_id}/snapshot/{snapshot_id}/file_size',
         'SyncControllerV2@getSnapshotFileSize'
     );
 
     $router->get(
-        'snapshot/{snapshot_id}/download',
+        'device/{device_id}/snapshot/{snapshot_id}/download',
         'SyncControllerV2@downloadSnapshot'
     );
 
@@ -56,6 +56,7 @@ $router->group([
         'device/{device_id}/uploads',
         'SyncControllerV2@getPendingUploads'
     );
+
 
     $router->post(
         'device/{device_id}/upload/image',
