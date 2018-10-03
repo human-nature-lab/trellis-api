@@ -21,6 +21,10 @@ class Upload extends Model
         'status',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
+        'error_message',
+        'error_code',
+        'error_trace',
+        'error_line'
     ];
 }

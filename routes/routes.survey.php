@@ -78,6 +78,11 @@ $router->group([
         $router->delete('condition-tag/{condition_tag_id}',     'ConditionTagController@deleteRespondentConditionTag');
     });
 
+    // Sync Admin
+    $router->get('list-uploads',                                'SyncControllerV2@listUploads');
+    $router->get('list-snapshots',                              'SyncControllerV2@listSnapshots');
+    $router->post('generate-snapshot',                          'SyncControllerV2@generateSnapshot');
+    $router->post('process-uploads',                            'SyncControllerV2@processUploads');
 
     $router->post('edges',                                      'EdgeController@createEdges');
     $router->get('edges/{e_ids}',                               'EdgeController@getEdgesById');
