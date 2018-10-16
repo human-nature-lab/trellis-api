@@ -775,7 +775,9 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $respondent = Respondent::with('respondentConditionTags', 'photos', 'names', 'geos')->find($respondentId);
+        $respondent = Respondent::with('respondentConditionTags', 'photos', 'names', 'rGeos')->find($respondentId);
+        $respondent->geos = $respondent->rGeos;
+        unset($respondent->rGeos);
         return response()->json([
             'respondent' => $respondent
         ], Response::HTTP_OK);

@@ -103,6 +103,7 @@ $router->group([
     $router->get('geo-types',                                   'GeoTypeController@getGeoTypes');
 
     $router->get('photo/{p_id}',                                'PhotoController@getPhoto');
+    $router->get('photos/{p_ids}',                              'PhotoController@getPhotos');
 
     $router->get('me/studies',                                  'UserController@getMyStudies');
 });
