@@ -28,7 +28,7 @@ class RespondentGeoController extends Controller {
             'previous_respondent_geo_id' => $request->get('previous_respondent_geo_id')
         ], [
             'respondentId' => 'required|string|min:36|exists:respondent,id',
-            'geoId' => 'required|string|min:36|exists:geo,id',
+            'geoId' => 'nullable|string|min:36|exists:geo,id',
             'is_current' => 'nullable|boolean',
             'previous_respondent_geo_id' => 'nullable|string|min:36|exists:respondent_geo,id'
         ]);
@@ -84,19 +84,16 @@ class RespondentGeoController extends Controller {
         }
 
         $respondentGeo = RespondentService::moveRespondentGeo($respondentGeoId, $request->get('new_geo_id'));
-
-        $geo = Geo::with('nameTranslation', 'photos', 'parent', 'geoType')->find($respondentGeo->geo_id);
-        $geo->pivot = [
-            'id' => $respondentGeo->id,
-            'previous_respondent_geo_id' => $respondentGeo->previous_respondent_geo_id,
-            'is_current' => $respondentGeo->is_current,
-            'deleted_at' => $respondentGeo->deleted_at,
-            'notes' => $respondentGeo->notes
-        ];
+        $geo = null;
+        if (isset($respondentGeo->geo_id)) {
+            $geo = Geo::with('nameTranslation', 'photos', 'parent', 'geoType')->find($respondentGeo->geo_id);
+            $respondentGeo->geo = $geo;
+        }
 
         return response()->json([
-            'geo' => $geo
+            'respondentGeo' => $respondentGeo
         ], Response::HTTP_OK);
+
     }
 
     /**
