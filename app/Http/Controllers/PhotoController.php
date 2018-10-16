@@ -13,6 +13,17 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PhotoController extends Controller
 {
+
+    public function getPhotos ($ids) {
+        $photoIds = array_map(function ($id) {
+            return urldecode($id);
+        }, explode(',', $ids));
+        $photos = Photo::whereIn('id', $photoIds);
+        return response()->json([
+            'photos' => $photos
+        ], Response::HTTP_OK);
+    }
+
     public function getPhoto($id)
     {
         $photoModel = Photo::find($id);
