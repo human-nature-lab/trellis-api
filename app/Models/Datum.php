@@ -39,29 +39,29 @@ class Datum extends Model
     ];
 
     public function choice () {
-        return $this->hasOne('App\Models\Choice', 'choice')
+        return $this->hasOne('App\Models\Choice', 'id', 'choice_id')
             ->whereNull('choice.deleted_at')
             ->with('choiceTranslation');
     }
 
     public function geo () {
-        return $this->hasOne('App\Models\Geo', 'geo')
+        return $this->hasOne('App\Models\Geo', 'id', 'geo_id')
             ->whereNull('geo.deleted_at')
             ->with('nameTranslation');
     }
 
     public function edge () {
-        return $this->hasOne('App\Models\Edge', 'edge')
+        return $this->hasOne('App\Models\Edge', 'id', 'edge_id')
             ->whereNull('edge.deleted_at');
     }
 
     public function roster () {
-        return $this->hasOne('App\Models\Roster', 'roster')
+        return $this->hasOne('App\Models\Roster', 'id', 'roster_id')
             ->whereNull('roster.deleted_at');
     }
 
     public function photo () {
-        return $this->hasOne('App\Models\Photo', 'photo')
+        return $this->hasOne('App\Models\Photo', 'id', 'photo_id')
             ->whereNull('photo.deleted_at');
     }
 }
