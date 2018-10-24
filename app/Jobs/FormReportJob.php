@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Models\Datum;
 use App\Models\Question;
 use App\Models\QuestionDatum;
+use App\Models\Translation;
 use Illuminate\Support\Facades\DB;
 use League\Flysystem\Exception;
 use Log;
@@ -92,41 +94,46 @@ class FormReportJob extends Job
             'text' => 'response'
         ];
 
-        $questions = Question::whereIn('question_group_id', function ($q1) {
-            $q1->select('question_group_id')->from('section_question_group')->whereIn('section_id', function ($q2) {
-                $q2->select('section_id')->from('form_section')->where('form_id', '=', $this->formId)->whereNull('deleted_at');
-            })->whereNull('deleted_at');
-        })->whereNull('deleted_at')->with('questionTranslation', 'questionType', 'choices')->get();
+        $questions = Question::join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
+            ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
+            ->whereNull('question.deleted_at')
+            ->whereNull('section_question_group.deleted_at')
+            ->whereNull('form_section.deleted_at')
+            ->orderBy('form_section.sort_order', 'section_question_group.question_group_order', 'question.sort_order')
+            ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable')
+            ->with('choices')
+            ->get();
 
         $questionsMap = [];
         foreach ($questions as $question) {
+            $question->has_follow_up = isset($question->follow_up_question_id);
             $questionsMap[$question->id] = $question;
         }
 
-//        uasort($questions, function ($a, $b) {
-//            return 0;
-//        });
-
-        list($tree, $treeMap) = ReportService::buildFormTree($questions);
-
         $surveys = ReportService::getFormSurveys($this->formId);
+        $rows = [];
 
         foreach($surveys as $survey){
-
-//            $this->formatSurveyData($survey, $tree, $treeMap, $questionsMap);
             $row = $this->formatSurveyData($survey, $questions, $questionsMap);
             foreach($this->defaultColumns as $key=>$name){
                 $row[$key] = $survey->$key;
             }
             array_push($rows, $row);
-
         }
 
         // Sort non default columns first then add default columns
-        asort($this->headers);
+//        asort($this->headers);
         $this->headers = $this->defaultColumns + $this->headers; // add at the beginning of the array
 
-        ReportService::saveDataFile($this->report, $this->headers, $this->rows);
+        foreach ($rows as &$row) {
+            foreach ($row as $key => $cell) {
+                if (is_array($cell)) {
+                    $row[$key] = implode(';', $cell);
+                }
+            }
+        }
+
+        ReportService::saveDataFile($this->report, $this->headers, $rows);
         ReportService::saveMetaFile($this->report, $this->metaRows);
         ReportService::saveDataFile($this->report, $this->otherHeaders, $this->otherRows, 'other');
         ReportService::saveDataFile($this->report, $this->notesHeaders, $this->notesRows, 'notes');
@@ -134,9 +141,47 @@ class FormReportJob extends Job
 
     }
 
+    private function translationToText (Translation $t, String $localeId = null) {
+        if ($t->translationText->count() === 0) {
+            return '[No text for this translation]';
+        }
+        $text = null;
+        if ($localeId) {
+            foreach ($t->translationText as $tt) {
+                if ($tt->locale_id === $localeId) {
+                    $text = $tt->translated_text;
+                }
+            }
+        }
+
+        if (is_null($text)) {
+            $text = $t->translationText[0]->translated_text;
+        }
+
+        return $text;
+    }
+
+    private function getDatumValue (Datum $datum, String $localeId = null) {
+        if (isset($datum->roster)) {
+            return $datum->roster->val;
+        } else if (isset($datum->choice)) {
+            return $this->translationToText($datum->choice->choiceTranslation, $localeId);
+        } else if (isset($datum->geo)) {
+            return $this->translationToText($datum->geo->nameTranslation, $localeId);
+        } else if (isset($datum->edge)) {
+            return $datum->edge->target_respondent_id;
+        } else if (isset($datum->photo)) {
+            // TODO: Store photos meta data here
+            return $datum->photo->file_name;
+        } else {
+            return $datum->val;
+        }
+    }
 
     private function formatSurveyData ($survey, $questions, $questionsMap) {
-        $questionDatum = QuestionDatum::where('survey_id', $survey->id)->with('fullData')->get();
+        $questionDatum = QuestionDatum::where('survey_id', $survey->id)->with('fullData');
+        Log::info($questionDatum->toSql());
+        $questionDatum = $questionDatum->get();
         $row = [];
 
         // Create indexes
@@ -147,68 +192,80 @@ class FormReportJob extends Job
                 $questionToQuestionDatumMap[$qd->question_id] = [];
             }
             array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
-            foreach ($questionDatum->fullData as $datum) {
-                $datumMap[$datum->id] = $datum;
+            foreach ($qd->fullData as $datum) {
+                $datumMap[$datum->id] = $datum; // For looking up follow up info
             }
         }
 
-        foreach ($questions as $question) {
-            $questionData = $questionToQuestionDatumMap[$question->id];
-            uasort($questionData, function ($a, $b) use ($datumMap) {
-                if ($a->section_repetition || $b->section_repetition) {
-                    return $a->section_repetition - $b->section_repetition;
-                } else if ($a->follow_up_datum_id) {
-                    return $datumMap[$a->follow_up_datum_id] - $datumMap[$b->follow_up_datum_id];
-                } else {
-                    return 0;
-                }
-            });
-            $keyBase = $question->id;
-            foreach ($questionData as $index => $qd) {
-                $key = count($questionData) > 1 ? $keyBase.'_r_'.$index : $keyBase;
-                switch ($question->questionType->name) {
-                    case 'multiple_select':
-                        // Make a column for every choice
-                        $choiceMap = [];
-                        foreach ($question->choices as $choice) {
-                            $key .= '_c_' . $choice->id;
-                            $this->headers[$key] = $question->var_name.'_c'.$choice->val;
-                            $choiceMap[$choice->id] = $choice;
+        // Index the question order
+        $questionOrderMap = [];
+        foreach ($questions as $index => $question) {
+            $questionOrderMap[$question->id] = $index;
+        }
+
+        // Sort question datum
+        foreach ($questionDatum as $qd) {
+            $qd->fullData->sortBy('sort_order');
+        }
+
+        // Make sure the $questionDatum are all ordered the same way
+        $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap) {
+            if ($a->question_id === $b->question_id) {
+                // TODO: Handle repeated sections and follow up sections
+                return 0;
+            } else {
+                return $questionOrderMap[$a->question_id] - $questionOrderMap[$b->question_id];
+            }
+        });
+
+        foreach ($questionDatum as $qd) {
+            $question = $questionsMap[$qd->question_id];
+            $baseKey = $question->id; // TODO: Add repetitions
+            $baseName = $question->var_name;
+            if ($question->has_follow_up) {
+                $datum = $datumMap[$qd->follow_up_datum_id];
+                $baseKey .= '_r' . $datum->sort_order;
+                $baseName .= '_r' . ReportService::zeroPad($datum->sort_order);
+            }
+            switch ($question->questionType->name) {
+                case 'multiple_select':
+                    // Make all of the choices their own column
+                    foreach ($question->choices as $choice) {
+                        $key = $baseKey . '_' . $choice->id;
+                        $this->headers[$key] = $baseName . '_' . $choice->val;
+                        // TODO: Set metadata here
+                        // TODO: Set other data here
+                        // TODO: Set notes data here
+                    }
+                    foreach ($qd->fullData as $datum) {
+                        $key = $baseKey . '_' . $datum->choice->id;
+                        // TODO: Handle showing crosswalk as true or false instead of values
+                        if (isset($qd->dk_rf)) {
+                            $row[$key] = $qd->dk_rf ? 'DK' : 'RF';
+                        } else {
+                            $row[$key] = $this->translationToText($datum->choice->choiceTranslation, $this->config->locale);
                         }
-                        // Apply the selected choices
+                    }
+                    break;
+                default:
+                    $key = $baseKey;
+                    $this->headers[$key] = $baseName;
+                    $vals = [];
+                    // TODO: Set metadata here
+                    // TODO: Set other data here
+                    // TODO: Set notes data here
+                    if (isset($qd->dk_rf)) {
+                        array_push($vals, $qd->dk_rf ? 'DK' : 'RF');
+                    } else {
                         foreach ($qd->fullData as $datum) {
-                            $key .= '_c_' . $datum->choice_id;
-                            $row[$key] = self::getDatumVal($datum);
+                            array_push($vals, $this->getDatumValue($datum, $this->config->locale));
                         }
-                        break;
-                    default:
-                        $vals = [];
-                        foreach ($qd->fullData as $datum) {
-                            array_push($vals, self::getDatumVal($datum));
-                        }
-                        $row[$key] = implode(';', $vals);
-                }
+                    }
+                    $row[$key] = $vals;
             }
         }
         return $row;
     }
-
-    private function getDatumVal ($datum) {
-        if ($datum->choice) {
-            return $this->config->useChoiceNames ? $datum->choiceTranslation->getLocaleText($this->config->locale) : $datum->choice->val;
-        } else if ($datum->geo) {
-            return $datum->geo->id;
-        } else if ($datum->edge) {
-            return $datum->edge->id;
-        } else if ($datum->roster) {
-            return $datum->roster->val;
-        } else if ($datum->photo) {
-            return $datum->photo->file_name;
-        } else {
-            return $datum->val;
-        }
-    }
-
 
     private function formatSurveyDataOld ($survey, $tree, $treeMap, $questionsMap) {
 
