@@ -103,7 +103,8 @@ class GeoReportJob extends Job
         }
 
         $id = Uuid::uuid4();
-        $filePath = storage_path("app/".$id . '.csv');
+        $fileName = $id . '.csv';
+        $filePath = storage_path('app/' . $fileName);
         $this->file = new CsvFileStream($filePath, $headers);
         $this->file->open();
         $this->file->writeHeader();
@@ -122,12 +123,7 @@ class GeoReportJob extends Job
             $mightHaveMore = $geos->count() > 0;
         } while ($mightHaveMore);
 
-        // Sort by num parents from low to high
-//        uasort($rows, function($a, $b){
-//            return $a[$this->numParentsKey] - $b[$this->numParentsKey];
-//        });
-
-//        ReportService::saveDataFile($this->report, $headers, $rows);
+        ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
     }
@@ -159,9 +155,7 @@ class GeoReportJob extends Job
         }
 
         // Write to disk
-        foreach ($rows as $row) {
-            $this->file->writeRow($row);
-        }
+        $this->file->writeRows($rows);
 
     }
 }

@@ -65,6 +65,12 @@ class CsvFileStream {
         fputcsv($this->file, $row);
     }
 
+    public function writeRows (&$rows) {
+        foreach ($rows as $row) {
+            $this->writeRow($row);
+        }
+    }
+
     public function close () {
         if (isset($this->file)) {
             fclose($this->file);
