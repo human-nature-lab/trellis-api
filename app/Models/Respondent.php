@@ -34,6 +34,11 @@ class Respondent extends Model
             ->with('geoType', 'nameTranslation', 'photos');
     }
 
+    public function rGeos () {
+        return $this->hasMany('App\Models\RespondentGeo')
+            ->with('geo');
+    }
+
     public function names () {
         return $this->hasMany('App\Models\RespondentName');
     }
