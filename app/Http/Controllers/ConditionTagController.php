@@ -36,6 +36,17 @@ class ConditionTagController extends Controller {
     }
 
     /**
+     * Get an array of distinct condition tag names
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getConditionTagNames () {
+        $conditionTagNames = DB::table('condition_tag')->select('name')->distinct()->pluck('name');
+        return response()->json([
+            'condition_tag_names' => $conditionTagNames
+        ], Response::HTTP_OK);
+    }
+
+    /**
      * Create a condition tag with the given name
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
