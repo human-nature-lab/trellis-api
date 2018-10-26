@@ -1,7 +1,8 @@
 <?php
 
 $router->group([
-    'prefix' => 'sync'
+    'prefix' => 'sync',
+    'middleware' => 'key'
 ], function () use ($router) {
 
     //**************************//
