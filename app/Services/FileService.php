@@ -60,7 +60,6 @@ class FileService{
             fputcsv($file, $row);
         }
 
-
         fclose($file);
 
     }
