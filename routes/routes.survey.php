@@ -23,6 +23,7 @@ $router->group([
 
     $router->post('condition-tag',                              'ConditionTagController@createConditionTag');
     $router->get('condition-tags',                              'ConditionTagController@getAllConditionTags');
+    $router->get('condition-tag-names',                         'ConditionTagController@getConditionTagNames');
     $router->get('condition-tags/respondent',                   'ConditionController@getAllRespondentConditionTags');
 
 
