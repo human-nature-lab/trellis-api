@@ -100,7 +100,7 @@ class RespondentService
 
         DB::transaction(function () use (&$newRGeo, &$oldRGeo) {
             $newRGeo->save();
-            $oldRGeo->delete();
+//            $oldRGeo->delete(); Don't delete these anymore6
             if ($oldRGeo->is_current) {
                 self::setIsCurrentFalseExceptFor($newRGeo->respondent_id, $newRGeo->id);
             }

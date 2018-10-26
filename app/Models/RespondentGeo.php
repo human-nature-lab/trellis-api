@@ -26,6 +26,6 @@ class RespondentGeo extends Pivot
     ];
 
     public function geo () {
-        return $this->hasOne('App/Models/Geo');
+        return $this->belongsTo('App\Models\Geo')->with('geoType', 'nameTranslation');
     }
 }

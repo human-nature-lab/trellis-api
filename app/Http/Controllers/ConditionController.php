@@ -232,11 +232,13 @@ class ConditionController extends Controller
                 $join->on('assign_condition_tag.condition_tag_id', '=', 'condition_tag.id');
                 $join->on('assign_condition_tag.scope', '=', DB::raw("'respondent'"));
             })
-            ->select('name')
+            ->select('respondent_condition_tag.*')
+            ->with('conditionTag')
             ->distinct();
-        Log::debug('respondent-condition-tag query: ' . $tags->toSql());
         return response()->json([
-            'conditions' => array_map(function ($t) {return $t['name'];}, $tags->get()->toArray())
+            'conditions' => $tags->get()->map(function ($item) {
+                return $item->conditionTag;
+            })
         ], Response::HTTP_OK);
     }
 }
