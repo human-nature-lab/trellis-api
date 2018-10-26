@@ -1,16 +1,24 @@
 <?php
 namespace App\Services;
 
+use App\Models\Report;
 use Log;
 use App\Models\ReportFile;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
-use App\Models\Datum;
-use App\Services\FileService;
-use App\Classes\Memoization;
 
-class ReportService
-{
+class ReportService {
+
+
+    public static function saveFileStream (Report $report, $fileName, $type = 'data') {
+        $csvReportFile = new ReportFile();
+        $csvReportFile->id = Uuid::uuid4();
+        $csvReportFile->report_id = $report->id;
+        $csvReportFile->file_type = $type;
+        $csvReportFile->file_name = $fileName;
+        $csvReportFile->save();
+        return $csvReportFile;
+    }
 
     public static function saveImagesFile(&$report, &$images){
         // Make sure that each image id is unique
@@ -40,7 +48,7 @@ class ReportService
      * @param string $type - The type of the report_file entry
      * @return bool - Whether or not the file was created. The file won't be created if there aren't any headers or rows.
      */
-    public static function saveDataFile($report, $headers, $rows, $type='data'){
+    public static function saveDataFile($report, $headers, &$rows, $type='data'){
         if(count($headers) === 0 || count($rows) === 0)
             return false;
         $csvReportFile = new ReportFile();
@@ -59,7 +67,7 @@ class ReportService
     /**
      * Save the meta file. This interperates the file headers based on unique values in each row.
      */
-    public static function saveMetaFile($report, $rows){
+    public static function saveMetaFile($report, &$rows){
 
         $headers = ['header'=>'header'];
         $newRows = [];
