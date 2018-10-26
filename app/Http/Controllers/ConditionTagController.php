@@ -40,7 +40,7 @@ class ConditionTagController extends Controller {
      * @return \Illuminate\Http\JsonResponse
      */
     public function getConditionTagNames () {
-        $conditionTagNames = DB::table('condition_tag')->select('name')->distinct()->get();
+        $conditionTagNames = DB::table('condition_tag')->select('name')->distinct()->pluck('name')->get();
         return response()->json([
             'condition_tag_names' => $conditionTagNames
         ], Response::HTTP_OK);
