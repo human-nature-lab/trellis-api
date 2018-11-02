@@ -121,6 +121,7 @@ $app->singleton(
      'token' => 'App\Http\Middleware\TokenMiddleware',
      'role' => 'App\Http\Middleware\RoleAuthMiddleware',
      'key' => 'App\Http\Middleware\KeyMiddleware',
+     'device' => 'App\Http\Middleware\DeviceMiddleware'
  ]);
 
 /*
