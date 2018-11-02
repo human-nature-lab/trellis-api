@@ -122,7 +122,6 @@ class FormReportJob extends Job
         }
 
         // Sort non default columns first then add default columns
-//        asort($this->headers);
         $this->headers = $this->defaultColumns + $this->headers; // add at the beginning of the array
 
         foreach ($rows as &$row) {
@@ -208,6 +207,8 @@ class FormReportJob extends Job
             $qd->fullData->sortBy('sort_order');
         }
 
+        // TODO: Make complete form test to use for exporting. Repeated sections with each question type
+
         // Make sure the $questionDatum are all ordered the same way
         $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap) {
             if ($a->question_id === $b->question_id) {
@@ -233,9 +234,19 @@ class FormReportJob extends Job
                     foreach ($question->choices as $choice) {
                         $key = $baseKey . '_' . $choice->id;
                         $this->headers[$key] = $baseName . '_' . $choice->val;
-                        // TODO: Set metadata here
-                        // TODO: Set other data here
-                        // TODO: Set notes data here
+                        $this->metaRows[$this->headers[$key]] = [
+                            'header' => $this->headers[$key],
+                            'question_type' => $question->questionType->name,
+                            'variable_name' => $question->var_name,
+                            'option_code' => $choice->val,
+                            'option_id' => $choice->id
+                        ];
+                        foreach ($choice->translations as $tt) {
+                            $metaData[$this->headers[$key]]["option_$tt->language_name"] = $tt->translated_text;
+                        }
+                        foreach ($question->translations as $tt) {
+                            $metaData[$this->headers[$key]]["question_$tt->language_name"] = $tt->translated_text;
+                        }
                     }
                     foreach ($qd->fullData as $datum) {
                         $key = $baseKey . '_' . $datum->choice->id;
@@ -245,17 +256,33 @@ class FormReportJob extends Job
                         } else {
                             $row[$key] = $this->translationToText($datum->choice->choiceTranslation, $this->config->locale);
                         }
+
+                        // This seems like the safest way to check if it's an other response
+                        if (isset($datum->val) && count($datum->val) > 0 && isset($datum->choice_id)) {
+                            $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
+                        }
                     }
+
+                    if (isset($qd->dk_rf)) {
+                        $this->addNote($this->headers[$baseKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                    }
+
                     break;
                 default:
                     $key = $baseKey;
                     $this->headers[$key] = $baseName;
                     $vals = [];
-                    // TODO: Set metadata here
-                    // TODO: Set other data here
-                    // TODO: Set notes data here
+                    $this->metaRows[$this->headers[$key]] = [
+                        'header' => $this->headers[$key],
+                        'question_type' => $question->questionType->name,
+                        'variable_name' => $question->var_name
+                    ];
+                    foreach ($question->questionTranslation->translationText as $t) {
+                        $this->metaRows[$this->headers[$key]]["question_$t->language_name"] = $t->translated_text;
+                    }
                     if (isset($qd->dk_rf)) {
                         array_push($vals, $qd->dk_rf ? 'DK' : 'RF');
+                        $this->addNote($this->headers[$key], $survey, $qd->dk_rf, $qd->dk_rf_val);
                     } else {
                         foreach ($qd->fullData as $datum) {
                             array_push($vals, $this->getDatumValue($datum, $this->config->locale));
@@ -362,13 +389,13 @@ class FormReportJob extends Job
         return $query->first();
     }
 
-    private function addNote($questionName, $survey, $datum){
+    private function addNote($questionName, $survey, $type, $text){
         array_push($this->notesRows, [
             'question' => $questionName,
             'survey_id' => $survey->id,
             'respondent_id' => $survey->respondent_id,
-            'type' => $datum->opt_out,
-            'text' => $datum->opt_out_val
+            'type' => $type,
+            'text' => $text
         ]);
     }
 
