@@ -132,7 +132,6 @@ class ImportUpload extends Command
                             if ($errorCode == 1062) {
                                 $this->info("Duplicate entry on insert, need to update.");
                                 $previousRow = json_encode(DB::table($tableName)->find($rowId));
-                                DB::table($tableName)->update($row);
                                 $uploadLog = new UploadLog;
                                 $uploadLog->upload_id = $upload->id;
                                 $uploadLog->table_Name = $tableName;
@@ -141,6 +140,9 @@ class ImportUpload extends Command
                                 $uploadLog->previous_row = $previousRow;
                                 $uploadLog->updated_row = json_encode($row);
                                 $uploadLog->save();
+                                $rowId = $row['id'];
+                                unset($row['id']);
+                                DB::table($tableName)->where('id', $rowId)->update($row);
                             }
                         }
                     }
@@ -196,7 +198,6 @@ class ImportUpload extends Command
                 rename($from, $to);
             }
         } finally {
-
             $nextPendingUpload = $this->getFirstPendingUpload();
             if ($nextPendingUpload == null) {
                 $this->info("No more uploads to process, sleeping.");
