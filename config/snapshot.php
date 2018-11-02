@@ -101,6 +101,9 @@ return [
             'upload_log' => [
                 '*' => null,
             ],
+            'client_log' => [
+                '*' => null
+            ]
         ],
     ],
 ];
