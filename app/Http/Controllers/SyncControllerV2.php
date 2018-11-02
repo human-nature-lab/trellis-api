@@ -2,10 +2,12 @@
 
 namespace app\Http\Controllers;
 
+use App\Models\ClientLog;
 use App\Models\Photo;
 use App\Models\Snapshot;
 use App\Models\Device;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 
 use App\Models\Upload;
@@ -19,9 +21,6 @@ use League\Flysystem\Adapter\Local;
 use Emgag\Flysystem\Hash\HashPlugin;
 use Symfony\Component\Finder\Finder;
 
-use League\Flysystem\Cached\CachedAdapter;
-use League\Flysystem\Cached\Storage\Memory as MemoryStore;
-
 use Ramsey\Uuid\Uuid;
 
 
@@ -33,19 +32,6 @@ class SyncControllerV2 extends Controller
     }
 
     public function authenticate(Request $request, $deviceId) {
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
         $device = Device::where('device_id', $deviceId)->get();
 
         if (count($device) === 0) {
@@ -59,11 +45,9 @@ class SyncControllerV2 extends Controller
 
     public function getSnapshotFileSize(Request $request, $deviceId, $snapshotId) {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $snapshotId,
-            'device_id' => $deviceId
+            'id' => $snapshotId
         ]), [
-            'id' => 'required|string|exists:snapshot,id',
-            'device_id' => 'required|string|exists:device,device_id'
+            'id' => 'required|string|exists:snapshot,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -100,11 +84,9 @@ class SyncControllerV2 extends Controller
 
     public function downloadSnapshot(Request $request, $deviceId, $snapshotId) {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $snapshotId,
-            'device_id' => $deviceId
+            'id' => $snapshotId
         ]), [
-            'id' => 'required|string|exists:snapshot,id',
-            'device_id' => 'required|string|exists:device,device_id'
+            'id' => 'required|string|exists:snapshot,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -191,19 +173,6 @@ class SyncControllerV2 extends Controller
     }
 
     public function verifyUpload(Request $request, $deviceId) {
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
         $adapter = new Local(storage_path() . '/uploads-pending');
         $filesystem = new Filesystem($adapter);
         $filesystem->addPlugin(new HashPlugin);
@@ -211,8 +180,7 @@ class SyncControllerV2 extends Controller
 
         if (!$exists) {
             return response()->json([
-                'msg' => 'Upload file not found.',
-                'err' => $validator->errors()
+                'msg' => 'Upload file not found.'
             ], Response::HTTP_BAD_REQUEST);
         }
 
@@ -220,8 +188,7 @@ class SyncControllerV2 extends Controller
 
         if ($md5 <> $request->get('md5hash')) {
             return response()->json([
-                'msg' => 'Calculated hash does not match provided hash.',
-                'err' => $validator->errors()
+                'msg' => 'Calculated hash does not match provided hash.'
             ], Response::HTTP_BAD_REQUEST);
         }
 
@@ -237,19 +204,6 @@ class SyncControllerV2 extends Controller
     }
 
     public function upload(Request $request, $deviceId) {
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
         if (! $request->hasFile('file')) {
             return response()->json([
                 'msg' => 'File not present in request.',
@@ -272,19 +226,6 @@ class SyncControllerV2 extends Controller
     }
 
     public function uploadImage(Request $request, $deviceId) {
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
         if (! $request->hasFile('file')) {
             return response()->json([
                 'msg' => 'File not present in request.',
@@ -307,19 +248,6 @@ class SyncControllerV2 extends Controller
     }
 
     public function getSnapshotInfo(Request $request, $deviceId) {
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
         $latestSnapshot = Snapshot::where('deleted_at',null)
             ->orderBy('created_at', 'desc')
             ->first();
@@ -329,19 +257,6 @@ class SyncControllerV2 extends Controller
 
     public function getPendingUploads(Request $request, $deviceId) {
         /* Returns both pending and error uploads to prevent end-users from downloading before their upload has been processed */
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
         $pendingUploads = Upload::where('deleted_at',null)
             ->where('status', 'PENDING')
             ->orWhere('status', 'ERROR')
@@ -352,19 +267,6 @@ class SyncControllerV2 extends Controller
 
     public function getImageSize(Request $request, $deviceId)
     {
-        $validator = Validator::make(array_merge([], [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|min:14|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        };
-
         $fileNames = $request->all();
         $totalSize = 0;
         $numberRequested = 0;
@@ -395,18 +297,6 @@ class SyncControllerV2 extends Controller
 
     public function getImage($deviceId, $fileName)
     {
-        $validator = Validator::make(array_merge([], [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|min:14|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        };
 
         $adapter = new Local(storage_path() . '/respondent-photos');
         $filesystem = new Filesystem($adapter);
@@ -424,19 +314,6 @@ class SyncControllerV2 extends Controller
 
     public function listMissingImages($deviceId)
     {
-        $validator = Validator::make(array_merge([], [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|min:14|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        };
-
         ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
 
         http_response_code(Response::HTTP_OK);
@@ -472,18 +349,6 @@ class SyncControllerV2 extends Controller
     public function listImages($deviceId)
     {
         //the fields are fileName:<string>, deviceId:<string>, action:<string>, length:<number>,base64:<string/base64>. Note that base64 uses no linefeeds
-        $validator = Validator::make(array_merge([], [
-            'id' => $deviceId
-        ]), [
-            'id' => 'required|string|min:14|exists:device,device_id'
-        ]);
-
-        if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        };
 
         ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
 
@@ -518,5 +383,19 @@ class SyncControllerV2 extends Controller
         }
 
         echo ']';
+    }
+
+    public function uploadLogs (Request $request, $deviceId) {
+        $logs = $request->get('logs');
+        foreach ($logs as $log) {
+            $log['created_at'] = Carbon::parse($log['created_at']);
+            $log['updated_at'] = Carbon::now();
+            ClientLog::firstOrCreate([
+                'id' => $log['id']
+            ], $log);
+        }
+        return response()->json([
+            'count' => count($logs)
+        ], Response::HTTP_OK);
     }
 }
