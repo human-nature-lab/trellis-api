@@ -141,7 +141,7 @@ class FormReportJob extends Job
     }
 
     private function translationToText (Translation $t, String $localeId = null) {
-        if ($t->translationText->count() === 0) {
+        if (!isset($t->translationText) || $t->translationText->count() === 0) {
             return '[No text for this translation]';
         }
         $text = null;
@@ -241,10 +241,10 @@ class FormReportJob extends Job
                             'option_code' => $choice->val,
                             'option_id' => $choice->id
                         ];
-                        foreach ($choice->translations as $tt) {
+                        foreach ($choice->choiceTranslation->translationText as $tt) {
                             $metaData[$this->headers[$key]]["option_$tt->language_name"] = $tt->translated_text;
                         }
-                        foreach ($question->translations as $tt) {
+                        foreach ($question->questionTranslation->translationText as $tt) {
                             $metaData[$this->headers[$key]]["question_$tt->language_name"] = $tt->translated_text;
                         }
                     }
