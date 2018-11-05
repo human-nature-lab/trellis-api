@@ -63,7 +63,7 @@ class FormReportJob extends Job
         } catch(Throwable $e){
             $this->report->status = 'failed';
             Log::debug("Form export $this->formId failed");
-            Log::error(json_encode($e));
+            Log::error($e);
         } finally{
             $this->report->save();
             $duration = microtime(true) - $startTime;
@@ -347,7 +347,7 @@ class FormReportJob extends Job
                         }
 
                         // This seems like the safest way to check if it's an other response
-                        if (isset($datum->val) && count($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice_id) {
+                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice_id) {
                             $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
