@@ -15,8 +15,8 @@ class EdgeReportJob extends Job
 
     protected $studyId;
     protected $report;
-    protected $headers;
-    protected $file;
+    private $headers;
+    private $file;
 
     /**
      * Create a new job instance.

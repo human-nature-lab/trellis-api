@@ -108,8 +108,6 @@ class FormReportJob extends Job
             ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable')
             ->with('choices');
 
-        Log::info($questions->toSql());
-
         $questions = $questions->get();
 
         $this->makeHeaders($questions);
@@ -183,10 +181,8 @@ class FormReportJob extends Job
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
                 })->select('sort_order')
                 ->distinct();
-                Log::info($q->toSql());
                 $repetitions = $q->get();
                 $repetitions = $repetitions->count();
-                Log::info($question->var_name . '  ' . $question->id . ' repetitions ' . $repetitions);
                 if ($repetitions > 0) {
                     for ($i = 0; $i < $repetitions; $i++) {
                         $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ($i + 1), $question);
