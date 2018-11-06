@@ -123,7 +123,6 @@ class GeoReportJob extends Job
             $mightHaveMore = $geos->count() > 0;
         } while ($mightHaveMore);
 
-        $this->file->close();
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
