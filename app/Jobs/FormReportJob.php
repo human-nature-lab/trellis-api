@@ -66,6 +66,9 @@ class FormReportJob extends Job
             Log::error($e);
         } finally{
             $this->report->save();
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $duration = microtime(true) - $startTime;
             Log::debug("FormReportJob - finished: $this->formId in $duration seconds");
         }
