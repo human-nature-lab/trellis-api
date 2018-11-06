@@ -8,6 +8,7 @@ use App\Jobs\GeoReportJob;
 use App\Jobs\InterviewReportJob;
 use App\Jobs\RespondentReportJob;
 use App\Jobs\TimingReportJob;
+use App\Models\Form;
 use App\Models\Report;
 use App\Models\Study;
 use Illuminate\Console\Command;
@@ -31,7 +32,7 @@ class MakeReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:make:reports';
+    protected $signature = 'trellis:make:reports {study}';
 
     /**
      * The console command description.
@@ -61,7 +62,7 @@ class MakeReports extends Command
         });
 
         $remainingJobIds = [];
-        $studyId = 'ad9a9086-8f15-4830-941d-416b59639c41';
+        $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $mainJobConstructors = [InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, TimingReportJob::class, RespondentReportJob::class];
 
@@ -69,20 +70,14 @@ class MakeReports extends Command
             $reportId = Uuid::uuid4();
             array_push($remainingJobIds, $reportId);
             $reportJob = new $constructor($studyId, $reportId, new \stdClass());
-            $this->dispatch($reportJob);
+            $reportJob->handle();
+//            dispatch($reportJob);
             $this->info("Queued $constructor");
         }
 
-        $formIds = [
-            '5612115f-9208-4696-9497-4398ae112f8b',
-            '03551748-f180-44fa-9d58-c6b720c095e9',
-            'be587a4a-38c6-46cb-a787-1fcb4813b274',
-            '4eac1508-0643-4a12-ac5c-f88e5523b9b4',
-            '363cc222-c84b-411b-be55-8c5cb3d20ad1',
-            '5826ca44-39a5-49cb-ae6d-779d0e9acfe7',
-            '310bf97e-df3d-4ec9-bed0-1c970984f817',
-            'a3a1386d-ebb0-4c3e-a72c-393e538abcd6',
-        ];
+        $formIds = Form::select('id')->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+            return $item->id;
+        });
 
         $config = new \stdClass();
         $config->studyId = $studyId;
@@ -94,7 +89,8 @@ class MakeReports extends Command
             $reportId = Uuid::uuid4();
             array_push($remainingJobIds, $reportId);
             $reportJob = new FormReportJob($formId, $reportId, $config);
-            $this->dispatch($reportJob);
+            $reportJob->handle();
+//            dispatch($reportJob);
             $this->info("Queued FormReportJob for form, $formId");
         }
 
