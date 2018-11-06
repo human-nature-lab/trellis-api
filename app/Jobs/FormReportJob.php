@@ -32,7 +32,7 @@ class FormReportJob extends Job
     protected $notesRows = [];
     protected $notesHeaders = [];
     protected $defaultColumns;
-    private $file = null;
+    private $file;
 
     /**
      * FormReportJob constructor.
@@ -95,15 +95,22 @@ class FormReportJob extends Job
         ];
 
         $questions = Question::join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
+            ->join('question_group', 'question.question_group_id', '=', 'question_group.id')
             ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
+            ->join('section', 'section_question_group.section_id', '=', 'section.id')
+            ->whereNull('section.deleted_at')
             ->whereNull('question.deleted_at')
             ->whereNull('section_question_group.deleted_at')
             ->whereNull('form_section.deleted_at')
+            ->whereNull('question_group.deleted_at')
             ->where('form_section.form_id', '=', $this->formId)
             ->orderBy('form_section.sort_order', 'section_question_group.question_group_order', 'question.sort_order')
             ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable')
-            ->with('choices')
-            ->get();
+            ->with('choices');
+
+        Log::info($questions->toSql());
+
+        $questions = $questions->get();
 
         $this->makeHeaders($questions);
 
@@ -135,7 +142,6 @@ class FormReportJob extends Job
             $mightHaveMore = $batch->count() > 0;
         } while ($mightHaveMore);
 
-        $this->file->close();
         ReportService::saveFileStream($this->report, $fileName);
         ReportService::saveMetaFile($this->report, $this->metaRows);
         ReportService::saveDataFile($this->report, $this->otherHeaders, $this->otherRows, 'other');
