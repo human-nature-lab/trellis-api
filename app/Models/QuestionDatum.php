@@ -49,7 +49,7 @@ class QuestionDatum extends Model
     public function fullData () {
         return $this->hasMany('App\Models\Datum', 'question_datum_id')
             ->whereNull('datum.deleted_at')
-            ->with('roster', 'choice', 'edge', 'photo', 'geo');
+            ->with('roster', 'choice', 'edge', 'photo', 'geo', 'respondentGeo', 'respondentName');
     }
 
 }
