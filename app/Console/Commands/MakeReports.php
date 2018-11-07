@@ -75,7 +75,9 @@ class MakeReports extends Command
             $this->info("Queued $constructor");
         }
 
-        $formIds = Form::select('id')->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+        $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+        })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
             return $item->id;
         });
 

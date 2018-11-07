@@ -14,22 +14,25 @@ class Datum extends Model
     protected $table = 'datum';
 
     public $fillable = [
+        'choice_id',
+        'datum_type_id',
+        'edge_id',
+        'event_order',
+        'geo_id',
         'id',
         'name',
-        'val',
-        'choice_id',
-        'survey_id',
-        'datum_type_id',
-        'sort_order',
-        'created_at',
-        'updated_at',
-        'deleted_at',
-        'question_datum_id',
-        'geo_id',
-        'edge_id',
         'photo_id',
+        'question_datum_id',
+        'respondent_geo_id',
+        'respondent_name_id',
         'roster_id',
-        'event_order'
+        'sort_order',
+        'survey_id',
+        'val',
+
+        'created_at',
+        'deleted_at',
+        'updated_at'
     ];
 
     public $dates = [
@@ -63,5 +66,16 @@ class Datum extends Model
     public function photo () {
         return $this->hasOne('App\Models\Photo', 'id', 'photo_id')
             ->whereNull('photo.deleted_at');
+    }
+
+    public function respondentGeo () {
+        return $this->hasOne('App\Models\RespondentGeo', 'id', 'respondent_geo_id')
+            ->whereNull('respondent_geo.deleted_at')
+            ->with('geo');
+    }
+
+    public function respondentName () {
+        return $this->hasOne('App\Models\RespondentName', 'id', 'respondent_name_id')
+            ->whereNull('respondent_name.deleted_at');
     }
 }
