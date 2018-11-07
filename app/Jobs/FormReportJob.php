@@ -158,17 +158,27 @@ class FormReportJob extends Job
 
         $headers = [];
 
+        $expandRespondentGeo = function ($baseKey, $baseName) use (&$headers) {
+            $headers[$baseKey . '_id'] = $baseName . '_id';
+            $headers[$baseKey . '_name'] = $baseName . '_name';
+        };
+
         $expandMultiSelect = function ($baseKey, $baseName, $choices) use (&$headers) {
             foreach ($choices as $choice) {
                 $key = $baseKey . '_' . $choice->id;
                 $headers[$key] = $baseName . '_' . $choice->val;
             }
         };
-        $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect) {
-            if ($question->questionType->name === 'multiple_select') {
-                $expandMultiSelect($baseKey, $baseName, $question->choices);
-            } else {
-                $headers[$baseKey] = $baseName;
+        $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect, $expandRespondentGeo) {
+            switch ($question->questionType->name) {
+                case 'multiple_select':
+                    $expandMultiSelect($baseKey, $baseName, $question->choices);
+                    break;
+                case 'respondent_geo':
+                    $expandRespondentGeo($baseKey, $baseName);
+                    break;
+                default:
+                    $headers[$baseKey] = $baseName;
             }
         };
         foreach ($questions as $question) {
@@ -235,6 +245,10 @@ class FormReportJob extends Job
         } else if (isset($datum->photo)) {
             // TODO: Store photos meta data here
             return $datum->photo->file_name;
+        } else if (isset($datum->respondentGeo)) {
+            return $this->translationToText($datum->respondentGeo->geo->nameTranslation, $localeId);
+        } else if (isset($datum->respondentName)) {
+            return $datum->respondentName->name;
         } else {
             return $datum->val;
         }
@@ -357,10 +371,33 @@ class FormReportJob extends Job
                         }
                     }
 
-                    if (isset($qd->dk_rf)) {
+                    if (!is_null($qd->dk_rf)) {
                         $this->addNote($this->headers[$baseKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
                     }
 
+                    break;
+                case 'respondent_geo':
+                    $idKey = $baseKey . '_id';
+                    $nameKey = $baseKey . '_name';
+                    if (!isset($this->headers[$idKey])) {
+                        throw new Exception("Header $idKey should already be defined");
+                    } else if (!isset($this->headers[$nameKey])) {
+                        throw new Exception("Header $nameKey should already be defined");
+                    }
+                    if (!is_null($qd->dk_rf)) {
+                        $row[$idKey] = $qd->dk_rf ? 'DK' : 'RF';
+                        $row[$nameKey] = $qd->dk_rf ? 'DK' : 'RF';
+                        $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                    } else {
+                        $ids = [];
+                        $names = [];
+                        foreach ($qd->fullData as $datum) {
+                            array_push($ids, isset($datum->respondentGeo) ? $datum->respondentGeo->geo_id : '');
+                            array_push($names, $this->getDatumValue($datum, $this->config->locale));
+                        }
+                        $row[$idKey] = $ids;
+                        $row[$nameKey] = $names;
+                    }
                     break;
                 default:
                     $key = $baseKey;

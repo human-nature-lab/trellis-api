@@ -42,11 +42,13 @@ class BundleLatestReports extends Command
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $types = ['geo', 'respondent', 'timing', 'interview', 'edge'];
-        $formIds = Form::select('id')->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+        $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+        })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
             return $item->id;
         });
         $reports = Report::whereIn("report.type", $types)
-            ->where("report.report_id", '=', $study->id)
+            ->where("report.report_id", '=', $studyId)
             ->orderBy('report.updated_at', 'desc')
             ->limit(count($types))
             ->with("files")
@@ -91,7 +93,6 @@ class BundleLatestReports extends Command
                 $zip->addFile(storage_path("app/".$file->file_name), $zipName);
             }
         }
-
 
         $zip->close();
         $this->info("Finished writing all reports to the archive");
