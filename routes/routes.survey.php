@@ -26,7 +26,6 @@ $router->group([
     $router->get('condition-tag-names',                         'ConditionTagController@getConditionTagNames');
     $router->get('condition-tags/respondent',                   'ConditionController@getAllRespondentConditionTags');
 
-
     $router->post('translation-text/{translation_text_id}',     'TranslationTextController@updateTranslatedTextById');
 
     $router->get('form/{form_id}',                              'FormController@getForm');
@@ -85,6 +84,7 @@ $router->group([
     $router->get('list-snapshots',                              'SyncControllerV2@listSnapshots');
     $router->post('generate-snapshot',                          'SyncControllerV2@generateSnapshot');
     $router->post('process-uploads',                            'SyncControllerV2@processUploads');
+    $router->get('upload-log/{upload_id}',                      'UploadLogController@getUploadLogs');
 
     $router->post('edges',                                      'EdgeController@createEdges');
     $router->get('edges/{e_ids}',                               'EdgeController@getEdgesById');
