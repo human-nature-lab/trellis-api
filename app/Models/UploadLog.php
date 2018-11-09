@@ -5,10 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class UploadLog extends Model
-{
-    use SoftDeletes;
-
+class UploadLog extends Model {
     public $incrementing = true;
 
     protected $table = 'upload_log';
@@ -22,7 +19,6 @@ class UploadLog extends Model
         'previous_row',
         'updated_row',
         'created_at',
-        'updated_at',
-        'deleted_at'
+        'updated_at'
     ];
 }
