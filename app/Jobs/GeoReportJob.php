@@ -89,6 +89,7 @@ class GeoReportJob extends Job
             'latitude' => 'latitude',
             'longitude' => 'longitude',
             'altitude' => 'altitude',
+            'type' => 'type',
             $this->numParentsKey => $this->numParentsKey
         ];
 
@@ -116,7 +117,7 @@ class GeoReportJob extends Job
             $geos = Geo::whereNull('geo.deleted_at')
                 ->limit($pageSize)
                 ->offset($page * $pageSize)
-                ->with('nameTranslation')
+                ->with('nameTranslation', 'geoType')
                 ->get();
             $this->processBatch($geos);
             $page++;
@@ -136,6 +137,7 @@ class GeoReportJob extends Job
             foreach (['latitude', 'id', 'longitude', 'altitude'] as $key) {
                 $row[$key] = $geo->$key;
             }
+            $row['type'] = $geo->geoType->name;
             foreach ($geo->nameTranslation->translationText as $tt) {
                 $row[$tt->locale->language_name] = $tt->translated_text;
             }
