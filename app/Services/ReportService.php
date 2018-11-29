@@ -29,7 +29,7 @@ class ReportService {
      * @param String $studyId
      * @return mixed
      */
-    public static function extractLocaleId ($config, String $studyId) {
+    public static function extractLocaleId ($config, $studyId) {
         if (isset($config) && (isset($config->localeId) || isset($config->locale))) {
             return isset($config->localeId) ? $config->localeId : $config->locale;
         } else if (isset($studyId)) {
