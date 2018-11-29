@@ -20,6 +20,7 @@ class GeoReportJob extends Job
     protected $maxDepth = 5;
     private $file = null;
     private $traverseGeoTree;
+    private $headers;
     protected $numParentsKey = 'numParents';
 
     /**
@@ -86,16 +87,12 @@ class GeoReportJob extends Job
 
         $this->localeId = ReportService::extractLocaleId(null, $this->studyId);
 
-        for ($i = 0; $i < 5; $i++) {
-            $key = 'parent' . $i;
-            $headers[$key . "_id"] = $key . "_id";
-            $headers[$key . "_name"] = $key . "_name";
-        }
+        $this->makeHeaders();
 
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $headers);
+        $this->file = new CsvFileStream($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 
@@ -138,6 +135,7 @@ class GeoReportJob extends Job
             $headers[$geoType->id . '_id'] = ReportService::makeTextSafe($geoType->name) . '_id';
             $headers[$geoType->id . '_name'] = ReportService::makeTextSafe($geoType->name) . '_name';
         }
+        $this->headers = $headers;
     }
 
     public function processBatch (&$geos) {

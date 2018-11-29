@@ -84,7 +84,7 @@ class RespondentReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $batchSize = 4000;
+        $batchSize = 3000;
         $skip = 0;
 
         // Streaming loop
@@ -96,6 +96,7 @@ class RespondentReportJob extends Job
             $this->processBatch($respondents);
             $skip += $batchSize;
             $mightHaveMore = count($respondents) > 0;
+            break;
         } while ($mightHaveMore);
 
         ReportService::saveFileStream($this->report, $fileName);
@@ -166,8 +167,12 @@ class RespondentReportJob extends Job
             // Apply geo headers
             if (isset($respondent->currentGeo)) {
                 $row['current_geo_id'] = $respondent->currentGeo->geo_id;
-                $row['current_geo_name'] = ReportService::translationToText($respondent->currentGeo->geo->nameTranslation, $this->localeId);
-                $row['current_geo_type'] = $respondent->currentGeo->geo->geoType->name;
+                if (isset($respondent->currentGeo->geo)) {
+                    $row['current_geo_name'] = ReportService::translationToText($respondent->currentGeo->geo->nameTranslation, $this->localeId);
+                    if (isset($respondent->currentGeo->geo->geoType)) {
+                        $row['current_geo_type'] = $respondent->currentGeo->geo->geoType->name;
+                    }
+                }
             }
 
             // Apply all condition tags for this respondent
