@@ -72,7 +72,9 @@ class GeoReportJob extends Job
             $duration = microtime(true) - $startTime;
             Log::debug("GeoReportJob - failed: $this->studyId after $duration seconds");
         } finally{
-            $this->file->close();
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $this->report->save();
             $duration = microtime(true) - $startTime;
             Log::debug("GeoReportJob - finished: $this->studyId in $duration seconds");
@@ -82,20 +84,7 @@ class GeoReportJob extends Job
 
     public function create(){
 
-        $study = Study::with('locales', 'defaultLocale')->find($this->studyId);
-        $this->localeId = $study->defaultLocale->id;
-        $headers = [
-            'id' => 'geo_id',
-            'latitude' => 'latitude',
-            'longitude' => 'longitude',
-            'altitude' => 'altitude',
-            'type' => 'type',
-            $this->numParentsKey => $this->numParentsKey
-        ];
-
-        foreach ($study->locales as $locale) {
-            $headers[$locale->language_name] = $locale->language_name;
-        }
+        $this->localeId = ReportService::extractLocaleId(null, $this->studyId);
 
         for ($i = 0; $i < 5; $i++) {
             $key = 'parent' . $i;
@@ -112,7 +101,7 @@ class GeoReportJob extends Job
 
         // Run this until we've grabbed all of the existing geos
         $page = 0;
-        $pageSize = 1000;
+        $pageSize = 3000;
         do {
             $geos = Geo::whereNull('geo.deleted_at')
                 ->limit($pageSize)
@@ -129,6 +118,28 @@ class GeoReportJob extends Job
 
     }
 
+    private function makeHeaders () {
+        $study = Study::with('locales', 'geoTypes')->find($this->studyId);
+        $headers = [
+            'id' => 'geo_id',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+            'altitude' => 'altitude',
+            'type' => 'type',
+            $this->numParentsKey => $this->numParentsKey
+        ];
+
+        foreach ($study->locales as $locale) {
+            $headers[$locale->language_name] = $locale->language_name;
+        }
+
+        // TODO: this could be a separate query to only get used geo types so we don't have empty columns
+        foreach ($study->geoTypes as $geoType) {
+            $headers[$geoType->id . '_id'] = ReportService::makeTextSafe($geoType->name) . '_id';
+            $headers[$geoType->id . '_name'] = ReportService::makeTextSafe($geoType->name) . '_name';
+        }
+    }
+
     public function processBatch (&$geos) {
 
         $rows = [];
@@ -143,7 +154,7 @@ class GeoReportJob extends Job
             }
             $parents = ($this->traverseGeoTree)($geo->parent_id, 5);
             foreach ($parents as $index => $parent) {
-                $key = "parent$index";
+                $key = $parent->geo_type_id;
                 $row[$key . "_id"] = $parent->id;
                 foreach ($parent->nameTranslation->translationText as $tt) {
                     if ($tt->locale_id === $this->localeId) {
