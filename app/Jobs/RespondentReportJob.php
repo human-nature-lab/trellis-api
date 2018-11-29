@@ -96,7 +96,6 @@ class RespondentReportJob extends Job
             $this->processBatch($respondents);
             $skip += $batchSize;
             $mightHaveMore = count($respondents) > 0;
-            break;
         } while ($mightHaveMore);
 
         ReportService::saveFileStream($this->report, $fileName);
