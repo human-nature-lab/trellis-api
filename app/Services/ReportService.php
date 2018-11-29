@@ -2,6 +2,9 @@
 namespace App\Services;
 
 use App\Models\Report;
+use App\Models\Study;
+use App\Models\Translation;
+use Exception;
 use Log;
 use App\Models\ReportFile;
 use Ramsey\Uuid\Uuid;
@@ -18,6 +21,35 @@ class ReportService {
         $csvReportFile->file_name = $fileName;
         $csvReportFile->save();
         return $csvReportFile;
+    }
+
+    /**
+     * Get the correct localeId to use for a report
+     * @param $config
+     * @param String $studyId
+     * @return mixed
+     */
+    public static function extractLocaleId ($config, String $studyId) {
+        if (isset($config) && (isset($config->localeId) || isset($config->locale))) {
+            return isset($config->localeId) ? $config->localeId : $config->locale;
+        } else if (isset($studyId)) {
+            $study = Study::find($studyId);
+            return $study->default_locale_id;
+        } else {
+            Log::error('Could not find valid localeId');
+            return null;
+        }
+    }
+
+    /**
+     * Convert the text into a safe version of the string. For headers.
+     * @param String $text
+     * @return mixed|String
+     */
+    public static function makeTextSafe (String $text) {
+        $text = str_replace(' ', '', $text);
+        // TODO: replace any strange characters with underscores
+        return $text;
     }
 
     public static function saveImagesFile(&$report, &$images){
@@ -170,6 +202,32 @@ class ReportService {
              $q->translations = $questionTranslations[$q->id];
         }
         return $questions;
+    }
+
+    /**
+     * Get the correct text for a translation.
+     * @param Translation $translation
+     * @param String $localeId
+     * @return null
+     */
+    public static function translationToText (Translation $translation, String $localeId = null) {
+        if (!isset($translation->translationText) || $translation->translationText->count() === 0) {
+            return '[No text for this translation]';
+        }
+        $text = null;
+        if ($localeId) {
+            foreach ($translation->translationText as $tt) {
+                if ($tt->locale_id === $localeId) {
+                    $text = $tt->translated_text;
+                }
+            }
+        }
+
+        if (is_null($text)) {
+            $text = $translation->translationText[0]->translated_text;
+        }
+
+        return $text;
     }
 
     public static function getFormSurveys($formId){
