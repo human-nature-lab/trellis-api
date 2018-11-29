@@ -81,7 +81,7 @@ class FormReportJob extends Job
      */
     private function create(){
 
-        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
+        $this->localeId = ReportService::extractLocaleId($this->config, null);
         $this->otherHeaders = [
             'question' => 'question',
             'survey_id' => "survey_id",
