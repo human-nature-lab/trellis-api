@@ -32,6 +32,7 @@ class FormReportJob extends Job
     protected $notesRows = [];
     protected $notesHeaders = [];
     protected $defaultColumns;
+    private $localeId;
     private $file;
 
     /**
@@ -80,6 +81,7 @@ class FormReportJob extends Job
      */
     private function create(){
 
+        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
         $this->otherHeaders = [
             'question' => 'question',
             'survey_id' => "survey_id",
@@ -213,40 +215,20 @@ class FormReportJob extends Job
         Log::info("$headersCount headers found");
     }
 
-    private function translationToText (Translation $t, String $localeId = null) {
-        if (!isset($t->translationText) || $t->translationText->count() === 0) {
-            return '[No text for this translation]';
-        }
-        $text = null;
-        if ($localeId) {
-            foreach ($t->translationText as $tt) {
-                if ($tt->locale_id === $localeId) {
-                    $text = $tt->translated_text;
-                }
-            }
-        }
-
-        if (is_null($text)) {
-            $text = $t->translationText[0]->translated_text;
-        }
-
-        return $text;
-    }
-
     private function getDatumValue (Datum $datum, String $localeId = null) {
         if (isset($datum->roster)) {
             return $datum->roster->val;
         } else if (isset($datum->choice)) {
-            return $this->translationToText($datum->choice->choiceTranslation, $localeId);
+            return ReportService::translationToText($datum->choice->choiceTranslation, $localeId);
         } else if (isset($datum->geo)) {
-            return $this->translationToText($datum->geo->nameTranslation, $localeId);
+            return ReportService::translationToText($datum->geo->nameTranslation, $localeId);
         } else if (isset($datum->edge)) {
             return $datum->edge->target_respondent_id;
         } else if (isset($datum->photo)) {
             // TODO: Store photos meta data here
             return $datum->photo->file_name;
         } else if (isset($datum->respondentGeo)) {
-            return $this->translationToText($datum->respondentGeo->geo->nameTranslation, $localeId);
+            return ReportService::translationToText($datum->respondentGeo->geo->nameTranslation, $localeId);
         } else if (isset($datum->respondentName)) {
             return $datum->respondentName->name;
         } else {
@@ -362,7 +344,7 @@ class FormReportJob extends Job
                         if (isset($qd->dk_rf)) {
                             $row[$key] = $qd->dk_rf ? 'DK' : 'RF';
                         } else {
-                            $row[$key] = $this->translationToText($datum->choice->choiceTranslation, $this->config->locale);
+                            $row[$key] = ReportService::translationToText($datum->choice->choiceTranslation, $this->localeId);
                         }
 
                         // This seems like the safest way to check if it's an other response
@@ -393,7 +375,7 @@ class FormReportJob extends Job
                         $names = [];
                         foreach ($qd->fullData as $datum) {
                             array_push($ids, isset($datum->respondentGeo) ? $datum->respondentGeo->geo_id : '');
-                            array_push($names, $this->getDatumValue($datum, $this->config->locale));
+                            array_push($names, $this->getDatumValue($datum, $this->localeId));
                         }
                         $row[$idKey] = $ids;
                         $row[$nameKey] = $names;
@@ -418,7 +400,7 @@ class FormReportJob extends Job
                         $this->addNote($this->headers[$key], $survey, $qd->dk_rf, $qd->dk_rf_val);
                     } else {
                         foreach ($qd->fullData as $datum) {
-                            array_push($vals, $this->getDatumValue($datum, $this->config->locale));
+                            array_push($vals, $this->getDatumValue($datum, $this->localeId));
                         }
                     }
                     $row[$key] = $vals;
