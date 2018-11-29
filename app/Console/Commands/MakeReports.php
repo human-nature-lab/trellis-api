@@ -6,6 +6,7 @@ use App\Jobs\EdgeReportJob;
 use App\Jobs\FormReportJob;
 use App\Jobs\GeoReportJob;
 use App\Jobs\InterviewReportJob;
+use App\Jobs\RespondentGeoJob;
 use App\Jobs\RespondentReportJob;
 use App\Jobs\TimingReportJob;
 use App\Models\Form;
@@ -64,7 +65,7 @@ class MakeReports extends Command
         $remainingJobIds = [];
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $mainJobConstructors = [InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, TimingReportJob::class, RespondentReportJob::class];
+        $mainJobConstructors = [RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, TimingReportJob::class, RespondentReportJob::class];
 
         foreach ($mainJobConstructors as $constructor){
             $reportId = Uuid::uuid4();
