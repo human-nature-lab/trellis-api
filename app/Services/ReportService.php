@@ -48,8 +48,8 @@ class ReportService {
      */
     public static function makeTextSafe (String $text) {
         $text = str_replace(' ', '', $text);
-        // TODO: replace any strange characters with underscores
-        return $text;
+        $text = strtolower($text);
+        return preg_replace('/[^a-z0-9_]/im', '_', $text);
     }
 
     public static function saveImagesFile(&$report, &$images){
