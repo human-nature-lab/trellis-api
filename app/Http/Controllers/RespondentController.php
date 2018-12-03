@@ -278,6 +278,7 @@ class RespondentController extends Controller
         $conditionTags = $request->query('c');
         $geos = $request->query('g');
         $includeChildren = $request->query('i');
+        $randomize = $request->query('r');
         $validator = Validator::make([
             'studyId' => $studyId,
             'associatedRespondent' => $request->get('associated_respondent_id'),
@@ -340,6 +341,10 @@ class RespondentController extends Controller
                 ->whereHas('geos', function ($q) use ($geoIds) {
                     $q->whereIn('respondent_geo.geo_id', $geoIds);
                 });
+        }
+
+        if ($randomize) {
+//            $respondentQuery = $respondentQuery->inRandomOrder();
         }
 
         $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
