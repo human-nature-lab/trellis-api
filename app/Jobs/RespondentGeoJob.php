@@ -92,7 +92,8 @@ class RespondentGeoJob extends Job
             'is_current' => 'is_current',
             'notes' => 'notes',
             'updated_at' => 'updated_at',
-            'created_at' => 'created_at'
+            'created_at' => 'created_at',
+            'deleted_at' => 'deleted_at'
         ];
     }
 }
