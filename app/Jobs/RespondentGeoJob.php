@@ -74,7 +74,7 @@ class RespondentGeoJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        RespondentGeo::chunk(1000, function ($rGeos) {
+        RespondentGeo::withTrashed()->chunk(1000, function ($rGeos) {
             $rGeos = $rGeos->toArray();
             $this->file->writeRows($rGeos);
         });
