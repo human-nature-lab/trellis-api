@@ -71,10 +71,14 @@ class RespondentGeoController extends Controller {
         $respondentGeoId = urldecode($respondentGeoId);
         $validator = Validator::make([
             'respondentGeoId' => $respondentGeoId,
-            'new_geo_id' => $request->get('new_geo_id')
+            'new_geo_id' => $request->get('new_geo_id'),
+            'is_current' => $request->get('is_current'),
+            'notes' => $request->get('notes')
         ], [
             'respondentGeoId' => 'required|string|min:36|exists:respondent_geo,id',
-            'new_geo_id' => 'nullable|string|min:36|exists:geo,id'
+            'new_geo_id' => 'nullable|string|min:36|exists:geo,id',
+            'is_current' => 'nullable|boolean',
+            'notes' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -83,7 +87,7 @@ class RespondentGeoController extends Controller {
             ], $validator->statusCode());
         }
 
-        $respondentGeo = RespondentService::moveRespondentGeo($respondentGeoId, $request->get('new_geo_id'));
+        $respondentGeo = RespondentService::moveRespondentGeo($respondentGeoId, $request->get('new_geo_id'), $request->get('is_current'), $request->get('notes'));
         $geo = null;
         if (isset($respondentGeo->geo_id)) {
             $geo = Geo::with('nameTranslation', 'photos', 'parent', 'geoType')->find($respondentGeo->geo_id);
