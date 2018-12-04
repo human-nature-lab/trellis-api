@@ -75,7 +75,10 @@ class RespondentGeoJob extends Job
         $this->file->writeHeader();
 
         RespondentGeo::withTrashed()->chunk(1000, function ($rGeos) {
-            $rGeos = $rGeos->toArray();
+            $rGeos = $rGeos->map(function ($rGeo) {
+                $rGeo->is_current = $rGeo->is_current === 1;
+                return $rGeo;
+            })->toArray();
             $this->file->writeRows($rGeos);
         });
         ReportService::saveFileStream($this->report, $fileName);
