@@ -89,7 +89,7 @@ class RespondentService
      * @param {string} $newGeoId
      * @return RespondentGeo
      */
-    public static function moveRespondentGeo ($oldRespondentGeoId, $newGeoId) {
+    public static function moveRespondentGeo ($oldRespondentGeoId, $newGeoId, $isCurrent, $notes) {
         $oldRGeo = RespondentGeo::find($oldRespondentGeoId);
         $newRGeo = $oldRGeo->replicate();
         $newRGeo->fill([
@@ -98,10 +98,17 @@ class RespondentService
             'previous_respondent_geo_id' => $oldRGeo->id
         ]);
 
+        if (isset($isCurrent)) {
+            $newRGeo->is_current = $isCurrent;
+        }
+
+        if (isset($notes)) {
+            $newRGeo->notes = $notes;
+        }
+
         DB::transaction(function () use (&$newRGeo, &$oldRGeo) {
             $newRGeo->save();
-//            $oldRGeo->delete(); Don't delete these anymore6
-            if ($oldRGeo->is_current) {
+            if ($newRGeo->is_current) {
                 self::setIsCurrentFalseExceptFor($newRGeo->respondent_id, $newRGeo->id);
             }
         });
