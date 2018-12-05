@@ -74,8 +74,11 @@ class RespondentGeoJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        RespondentGeo::chunk(1000, function ($rGeos) {
-            $rGeos = $rGeos->toArray();
+        RespondentGeo::withTrashed()->chunk(1000, function ($rGeos) {
+            $rGeos = $rGeos->map(function ($rGeo) {
+                $rGeo->is_current = $rGeo->is_current === 1;
+                return $rGeo;
+            })->toArray();
             $this->file->writeRows($rGeos);
         });
         ReportService::saveFileStream($this->report, $fileName);
@@ -92,7 +95,8 @@ class RespondentGeoJob extends Job
             'is_current' => 'is_current',
             'notes' => 'notes',
             'updated_at' => 'updated_at',
-            'created_at' => 'created_at'
+            'created_at' => 'created_at',
+            'deleted_at' => 'deleted_at'
         ];
     }
 }
