@@ -66,6 +66,18 @@ class Respondent extends Model
             ->withTimestamps();
     }
 
+    public function currentGeo () {
+        return $this->hasOne('App\Models\RespondentGeo')
+            ->whereNull('respondent_geo.deleted_at')
+            ->where('respondent_geo.is_current', '=', 1)
+            ->with('geo');
+    }
+
+    public function name () {
+        return $this->hasMany('App\Models\RespondentName')
+            ->where('respondent_name.is_display_name', '=', 1);
+    }
+
 
     /*
     public function delete()
