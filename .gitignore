@@ -50,3 +50,6 @@ Temporary Items
 
 laravel-queue-worker.conf
 laravel-worker.conf
+
+# Image processing scripts
+scripts/
