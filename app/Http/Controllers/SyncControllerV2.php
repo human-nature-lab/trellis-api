@@ -115,7 +115,12 @@ class SyncControllerV2 extends Controller
             ], Response::HTTP_BAD_REQUEST);
         }
 
-        return response()->download(storage_path() . '/snapshot/' . $snapshot->file_name);
+        $file = storage_path() . '/snapshot/' . $snapshot->file_name;
+        $headers = array(
+            'Content-Type: application/zip',
+            'Content-Length: ' . filesize($file)
+        );
+        return response()->download($file, $snapshot->file_name, $headers);
     }
 
     public function listUploads()
