@@ -41,7 +41,7 @@ class BundleLatestReports extends Command
     {
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $types = ['geo', 'respondent', 'timing', 'interview', 'edge'];
+        $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge'];
         $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
             $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
         })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {

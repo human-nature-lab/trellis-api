@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Classes\CsvFileStream;
 use App\Models\ConditionTag;
+use App\Models\Respondent;
 use App\Models\RespondentConditionTag;
 use App\Services\ReportService;
 use Log;
@@ -21,6 +22,7 @@ class RespondentReportJob extends Job
     private $file;
     private $headers;
     private $defaultHeaders;
+    private $localeId;
 
     /**
      * Create a new job instance.
@@ -50,6 +52,7 @@ class RespondentReportJob extends Job
     {
         set_time_limit(600);
         $startTime = microtime(true);
+        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
         Log::debug("RespondentReportJob - handling: $this->studyId, $this->report->id");
         try{
 //            ReportService::createRespondentReport($this->studyId, $this->report->id);
@@ -81,58 +84,17 @@ class RespondentReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $batchSize = 1000;
-        $page = 0;
+        $batchSize = 3000;
+        $skip = 0;
 
         // Streaming loop
         do {
-            $offset = $batchSize * $page;
-            $respondents = DB::select("select r.id, r.name as rname, r.created_at, r.updated_at, r.assigned_id,   
-              (select translated_text from translation_text where translation_id in 
-                (select household.name_translation_id from geo household where household.id = (
-                  select rg.geo_id from respondent_geo rg where rg.respondent_id = r.id and rg.is_current = 1 limit 1
-                )) 
-                limit 1
-              ) as household_name,
-            
-              (select h1.id from geo h1 where h1.id = r.geo_id) as household_id,
-            
-              (select translated_text from translation_text where translation_id in 
-                (select building.name_translation_id from geo building where building.id in 
-                  (select household.parent_id from geo household where household.id = (
-                    select rg.geo_id from respondent_geo rg where rg.respondent_id = r.id and rg.is_current = 1 limit 1
-                  )
-                  )
-                )   
-                limit 1
-              ) as building_name,
-            
-              (select household.parent_id from geo household where household.id = (
-                select rg.geo_id from respondent_geo rg where rg.respondent_id = r.id and rg.is_current = 1 limit 1
-              )) as building_id,
-            
-              (select translated_text from translation_text where translation_id in 
-                (select village.name_translation_id from geo village where village.id in 
-                  (select building.parent_id from geo building where building.id in 
-                    (select household.parent_id from geo household where household.id = (
-                      select rg.geo_id from respondent_geo rg where rg.respondent_id = r.id and rg.is_current = 1 limit 1
-                    ))
-                  )
-                ) 
-                limit 1
-              ) as village_name,
-            
-              (select building.parent_id from geo building where building.id in 
-                (select household.parent_id from geo household where household.id = (
-                  select rg.geo_id from respondent_geo rg where rg.respondent_id = r.id and rg.is_current = 1 limit 1
-                ))
-              ) as village_id
-            from respondent r
-            order by r.created_at asc
-            limit $batchSize
-            offset $offset;");
+            $respondents = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType')
+                ->take($batchSize)
+                ->skip($skip)
+                ->get();
             $this->processBatch($respondents);
-            $page++;
+            $skip += $batchSize;
             $mightHaveMore = count($respondents) > 0;
         } while ($mightHaveMore);
 
@@ -144,16 +106,15 @@ class RespondentReportJob extends Job
     private function makeHeaders () {
         $this->defaultHeaders = [
             'id' => "respondent_id",
-            'rname' => "respondent_name",
+            'name' => "respondent_name",
             'created_at' => "created_at",
-            'updated_at' => "updated_at",
-            "household_name" => "household_name",
-            "household_id" => "household_id",
-            "village_name" => "village_name",
-            "village_id" => "village_id",
-            "building_name" => "building_name",
-            "building_id" => "building_id",
-            "assigned_id" => "assigned_id"
+            'updated_at' => "updated_at"
+        ];
+
+        $geoHeaders = [
+            "current_geo_id" => "current_geo_id",
+            "current_geo_name" => "current_geo_name",
+            "current_geo_type" => "current_geo_type"
         ];
 
         $uniqueRCTQuery = ConditionTag::select('condition_tag.name')
@@ -170,15 +131,15 @@ class RespondentReportJob extends Job
         }
 
         asort($headers);
-        $this->headers = $this->defaultHeaders + $headers;
+        $this->headers = $this->defaultHeaders + $headers + $geoHeaders;
     }
 
     private function processBatch ($respondents) {
         $rows = [];
-
-        $respondentIds = array_map(function ($r) {
-            return $r->id;
-        }, $respondents);
+        $respondentIds = [];
+        foreach ($respondents as $r) {
+            array_push($respondentIds, $r->id);
+        }
 
         $rcts = RespondentConditionTag::whereIn('respondent_id', $respondentIds)
             ->with('conditionTag')
@@ -189,7 +150,9 @@ class RespondentReportJob extends Job
             if(!isset($rctMap[$rct->respondent_id])){
                 $rctMap[$rct->respondent_id] = [];
             }
-            array_push($rctMap[$rct->respondent_id], $rct->conditionTag->name);
+            if (isset($rct->conditionTag)) {
+                array_push($rctMap[$rct->respondent_id], $rct->conditionTag->name);
+            }
         }
 
         foreach ($respondents as $respondent) {
@@ -198,6 +161,17 @@ class RespondentReportJob extends Job
             // Apply default headers
             foreach ($this->defaultHeaders as $key => $name) {
                 $row[$key] = $respondent->$key;
+            }
+
+            // Apply geo headers
+            if (isset($respondent->currentGeo)) {
+                $row['current_geo_id'] = $respondent->currentGeo->geo_id;
+                if (isset($respondent->currentGeo->geo)) {
+                    $row['current_geo_name'] = ReportService::translationToText($respondent->currentGeo->geo->nameTranslation, $this->localeId);
+                    if (isset($respondent->currentGeo->geo->geoType)) {
+                        $row['current_geo_type'] = $respondent->currentGeo->geo->geoType->name;
+                    }
+                }
             }
 
             // Apply all condition tags for this respondent
