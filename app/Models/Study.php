@@ -69,6 +69,10 @@ class Study extends Model
             ->with('nameTranslation', 'skips');
     }
 
+    public function geoTypes () {
+        return $this->hasMany('App\Models\GeoType');
+    }
+
     /*
     public function delete()
     {

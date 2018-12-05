@@ -20,6 +20,7 @@ class GeoReportJob extends Job
     protected $maxDepth = 5;
     private $file = null;
     private $traverseGeoTree;
+    private $headers;
     protected $numParentsKey = 'numParents';
 
     /**
@@ -72,7 +73,9 @@ class GeoReportJob extends Job
             $duration = microtime(true) - $startTime;
             Log::debug("GeoReportJob - failed: $this->studyId after $duration seconds");
         } finally{
-            $this->file->close();
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $this->report->save();
             $duration = microtime(true) - $startTime;
             Log::debug("GeoReportJob - finished: $this->studyId in $duration seconds");
@@ -82,41 +85,25 @@ class GeoReportJob extends Job
 
     public function create(){
 
-        $study = Study::with('locales', 'defaultLocale')->find($this->studyId);
-        $this->localeId = $study->defaultLocale->id;
-        $headers = [
-            'id' => 'geo_id',
-            'latitude' => 'latitude',
-            'longitude' => 'longitude',
-            'altitude' => 'altitude',
-            $this->numParentsKey => $this->numParentsKey
-        ];
+        $this->localeId = ReportService::extractLocaleId(null, $this->studyId);
 
-        foreach ($study->locales as $locale) {
-            $headers[$locale->language_name] = $locale->language_name;
-        }
-
-        for ($i = 0; $i < 5; $i++) {
-            $key = 'parent' . $i;
-            $headers[$key . "_id"] = $key . "_id";
-            $headers[$key . "_name"] = $key . "_name";
-        }
+        $this->makeHeaders();
 
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $headers);
+        $this->file = new CsvFileStream($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 
         // Run this until we've grabbed all of the existing geos
         $page = 0;
-        $pageSize = 1000;
+        $pageSize = 3000;
         do {
             $geos = Geo::whereNull('geo.deleted_at')
                 ->limit($pageSize)
                 ->offset($page * $pageSize)
-                ->with('nameTranslation')
+                ->with('nameTranslation', 'geoType')
                 ->get();
             $this->processBatch($geos);
             $page++;
@@ -128,6 +115,29 @@ class GeoReportJob extends Job
 
     }
 
+    private function makeHeaders () {
+        $study = Study::with('locales', 'geoTypes')->find($this->studyId);
+        $headers = [
+            'id' => 'geo_id',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+            'altitude' => 'altitude',
+            'type' => 'type',
+            $this->numParentsKey => $this->numParentsKey
+        ];
+
+        foreach ($study->locales as $locale) {
+            $headers[$locale->language_name] = $locale->language_name;
+        }
+
+        // TODO: this could be a separate query to only get used geo types so we don't have empty columns
+        foreach ($study->geoTypes as $geoType) {
+            $headers[$geoType->id . '_id'] = ReportService::makeTextSafe($geoType->name) . '_id';
+            $headers[$geoType->id . '_name'] = ReportService::makeTextSafe($geoType->name) . '_name';
+        }
+        $this->headers = $headers;
+    }
+
     public function processBatch (&$geos) {
 
         $rows = [];
@@ -136,12 +146,13 @@ class GeoReportJob extends Job
             foreach (['latitude', 'id', 'longitude', 'altitude'] as $key) {
                 $row[$key] = $geo->$key;
             }
+            $row['type'] = $geo->geoType->name;
             foreach ($geo->nameTranslation->translationText as $tt) {
                 $row[$tt->locale->language_name] = $tt->translated_text;
             }
             $parents = ($this->traverseGeoTree)($geo->parent_id, 5);
             foreach ($parents as $index => $parent) {
-                $key = "parent$index";
+                $key = $parent->geo_type_id;
                 $row[$key . "_id"] = $parent->id;
                 foreach ($parent->nameTranslation->translationText as $tt) {
                     if ($tt->locale_id === $this->localeId) {
