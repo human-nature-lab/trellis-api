@@ -305,10 +305,6 @@ class RespondentController extends Controller
 
         DB::enableQueryLog();
         $respondentQuery = Respondent::whereRaw('`respondent`.`id` in (select respondent_id from study_respondent where study_id = ?)', [$studyId])
-            ->where(function ($q) use ($associatedRespondentId) {
-                $q->whereNull('associated_respondent_id');
-                $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
-            })
             ->with('photos', 'respondentConditionTags', 'names');
 
         // Add name search
@@ -332,16 +328,23 @@ class RespondentController extends Controller
 
         // TODO: Make this include any children on the parent geo ids
         // Add geo id filter
-        if ($geos) {
-            $geoIds = explode(',', $geos);
-            if ($includeChildren) {
-                $geoIds = self::getChildGeos($geoIds);
+        $respondentQuery->where(function ($q) use ($geos, $includeChildren, $associatedRespondentId) {
+            $q->where(function ($gq) use ($geos, $includeChildren) {
+                $gq->whereNull('associated_respondent_id');
+                if ($geos) {
+                    $geoIds = explode(',', $geos);
+                    if ($includeChildren) {
+                        $geoIds = self::getChildGeos($geoIds);
+                    }
+                    $gq->whereHas('geos', function ($q) use ($geoIds) {
+                        $q->whereIn('respondent_geo.geo_id', $geoIds);
+                    });
+                }
+            });
+            if (isset($associatedRespondentId)) {
+                $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
             }
-            $respondentQuery = $respondentQuery
-                ->whereHas('geos', function ($q) use ($geoIds) {
-                    $q->whereIn('respondent_geo.geo_id', $geoIds);
-                });
-        }
+        });
 
         if ($randomize) {
             $respondentQuery = $respondentQuery->inRandomOrder();
@@ -637,8 +640,8 @@ class RespondentController extends Controller
             'studyId' => $studyId
         ], [
             'name' => 'required|string|min:1|max:65535',
-            'associatedRespondentId' => 'nullable|string|max:36|exists:respondent,id',
-            'geoId' => 'nullable|string|max:36|exists:geo,id',
+            'associatedRespondentId' => 'nullable|string|min:36|exists:respondent,id',
+            'geoId' => 'nullable|string|min:36|exists:geo,id',
             'studyId' => 'required|string|min:36|exists:study,id'
         ]);
 
@@ -672,8 +675,8 @@ class RespondentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:1|max:65535',
-            'associated_respondent_id' => 'nullable|string|max:36|exists:respondent,id',
-            'geo_id' => 'nullable|string|max:36|exists:geo,id',
+            'associated_respondent_id' => 'nullable|string|min:36|exists:respondent,id',
+            'geo_id' => 'nullable|string|min:36|exists:geo,id',
             'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
