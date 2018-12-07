@@ -107,6 +107,7 @@ class RespondentReportJob extends Job
         $this->defaultHeaders = [
             'id' => "respondent_id",
             'name' => "respondent_name",
+            "associated_respondent_id" => "associated_respondent_id",
             'created_at' => "created_at",
             'updated_at' => "updated_at"
         ];
