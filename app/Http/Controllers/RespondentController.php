@@ -344,7 +344,7 @@ class RespondentController extends Controller
         }
 
         if ($randomize) {
-//            $respondentQuery = $respondentQuery->inRandomOrder();
+            $respondentQuery = $respondentQuery->inRandomOrder();
         }
 
         $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
