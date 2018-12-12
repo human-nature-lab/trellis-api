@@ -24,13 +24,7 @@ class RespondentPhoto extends Model
         'deleted_at'
     ];
 
-    /*
-    public function delete()
-    {
-        Photo::where('id', $this->photo_id)
-            ->delete();
-
-        return parent::delete();
+    public function photo () {
+        return $this->belongsTo('App\Models\Photo');
     }
-    */
 }
