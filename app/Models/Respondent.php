@@ -48,6 +48,7 @@ class Respondent extends Model
         return $this
             ->belongsToMany('App\Models\Photo', 'respondent_photo')
             ->whereNull('respondent_photo.deleted_at')
+            ->where('respondent_photo.sort_order', '=', '0')
             ->withTimestamps();
     }
 
