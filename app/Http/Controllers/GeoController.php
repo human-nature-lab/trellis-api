@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RespondentGeo;
+use App\Models\GeoPhoto;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -124,6 +124,79 @@ class GeoController extends Controller
         return response()->json([
             'geo' => $geoModel
         ], Response::HTTP_OK);
+    }
+
+    public function deleteGeoPhoto($geoPhotoId)
+    {
+        $validator = Validator::make([
+            'geoPhotoId' => $geoPhotoId
+        ], [
+            'geoPhotoId' => 'required|string|min:36|exists:geo_photo,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        GeoPhoto::where('id', $geoPhotoId)->delete();
+
+        return response()->json([], Response::HTTP_OK);
+    }
+
+    public function getGeoPhotos($geoId)
+    {
+        $geoId = urldecode($geoId);
+        $validator = Validator::make([
+            'geoId' => $geoId
+        ], [
+            'geoId' => 'required|string|min:32|exists:geo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => "Invalid respondent id",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $photos = GeoPhoto::with('photo')->where('geo_id', $geoId)->get();
+
+        return response()->json([
+            'photos' => $photos
+        ], Response::HTTP_OK);
+    }
+
+    public function updateGeoPhotos(Request $request)
+    {
+        $validator = Validator::make($request->all(),
+            [
+                'photos' => 'required|array'
+            ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $photos = $request->input('photos');
+
+        foreach ($photos as $photo) {
+            $geoPhoto = GeoPhoto::find($photo['pivot']['id']);
+
+            if ($geoPhoto !== null) {
+                // Update sort order and notes
+                $geoPhoto->sort_order = $photo['pivot']['sortOrder'];
+                $geoPhoto->notes = $photo['pivot']['notes'];
+                $geoPhoto->save();
+            }
+        }
+
+        return response()->json([], Response::HTTP_OK);
     }
 
     public function getAllGeos(Request $request, $localeId)
