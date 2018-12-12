@@ -70,6 +70,7 @@ $router->group([
         $router->get('/',                                       'RespondentController@getRespondentById');
         $router->get('fills',                                   'RespondentController@getRespondentFillsById');
         $router->post('name',                                   'RespondentNameController@createRespondentName');
+        $router->get('photos',                                  'RespondentController@getRespondentPhotos');
         $router->delete('name/{respondent_name_id}',            'RespondentNameController@deleteRespondentName');
         $router->put('name/{respondent_name_id}',               'RespondentNameController@editRespondentName');
         $router->post('geo',                                    'RespondentGeoController@createRespondentGeo');
@@ -100,11 +101,16 @@ $router->group([
     $router->get('geo/{geo_id}/ancestors',                      'GeoController@getAncestorsForGeoId');
     $router->delete('geo/{geo_id}',                             'GeoController@removeGeo');
     $router->post('geo/{geo_id}/move',                          'GeoController@moveGeo');
+    $router->get('geo/{geo_id}/photos',                         'GeoController@getGeoPhotos');
 
+    $router->post('geo-photos',                                 'GeoController@updateGeoPhotos');
+    $router->delete('geo-photo/{geo_photo_id}',                 'GeoController@deleteGeoPhoto');
     $router->get('geo-types',                                   'GeoTypeController@getGeoTypes');
 
     $router->get('photo/{p_id}',                                'PhotoController@getPhoto');
     $router->get('photos/{p_ids}',                              'PhotoController@getPhotos');
+    $router->post('respondent-photos',                          'RespondentController@updateRespondentPhotos');
+    $router->delete('respondent-photo/{respondent_photo_id}',   'RespondentController@deleteRespondentPhoto');
 
     $router->get('me/studies',                                  'UserController@getMyStudies');
 });
