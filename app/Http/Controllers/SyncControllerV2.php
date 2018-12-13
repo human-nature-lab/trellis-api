@@ -125,7 +125,7 @@ class SyncControllerV2 extends Controller
 
     public function listUploads()
     {
-        $uploads = Upload::all();
+        $uploads = Upload::with('device')->get();
 
         return response()->json(
             ['uploads' => $uploads],
