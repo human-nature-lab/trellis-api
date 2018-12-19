@@ -41,7 +41,10 @@ class Geo extends Model
 
     public function photos() {
         return $this
-            ->belongsToMany('App\Models\Photo', 'geo_photo', 'geo_id', 'photo_id');
+            ->belongsToMany('App\Models\Photo', 'geo_photo', 'geo_id', 'photo_id')
+            ->whereNull('geo_photo.deleted_at')
+            ->where('geo_photo.sort_order', '=', '0')
+            ->withTimestamps();
     }
 
     public function parent()
