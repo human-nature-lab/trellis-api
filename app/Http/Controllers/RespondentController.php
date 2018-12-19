@@ -791,6 +791,79 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function getRespondentPhotos($respondentId)
+    {
+        $respondentId = urldecode($respondentId);
+        $validator = Validator::make([
+            'respondentId' => $respondentId
+        ], [
+            'respondentId' => 'required|string|min:32|exists:respondent,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => "Invalid respondent id",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $photos = RespondentPhoto::with('photo')->where('respondent_id', $respondentId)->get();
+
+        return response()->json([
+            'photos' => $photos
+        ], Response::HTTP_OK);
+    }
+
+    public function deleteRespondentPhoto($respondentPhotoId)
+    {
+        $validator = Validator::make([
+            'respondentPhotoId' => $respondentPhotoId
+        ], [
+            'respondentPhotoId' => 'required|string|min:36|exists:respondent_photo,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        RespondentPhoto::where('id', $respondentPhotoId)->delete();
+
+        return response()->json([], Response::HTTP_OK);
+    }
+
+    public function updateRespondentPhotos(Request $request)
+    {
+        $validator = Validator::make($request->all(),
+            [
+                'photos' => 'required|array'
+            ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $photos = $request->input('photos');
+
+        foreach ($photos as $photo) {
+            $respondentPhoto = RespondentPhoto::find($photo['pivot']['id']);
+
+            if ($respondentPhoto !== null) {
+                // Update sort order and notes
+                $respondentPhoto->sort_order = $photo['pivot']['sortOrder'];
+                $respondentPhoto->notes = $photo['pivot']['notes'];
+                $respondentPhoto->save();
+            }
+        }
+
+        return response()->json([], Response::HTTP_OK);
+    }
+
     /**
      * Get an array of respondent fills for the specified respondent
      * @param {String} $respondentId

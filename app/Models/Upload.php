@@ -27,4 +27,10 @@ class Upload extends Model
         'error_trace',
         'error_line'
     ];
+
+    public function device()
+    {
+        return $this
+            ->hasOne('App\Models\Device', 'device_id', 'device_id');
+    }
 }
