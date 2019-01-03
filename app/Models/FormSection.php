@@ -26,6 +26,7 @@ class FormSection extends Pivot
         'max_repetitions',
         'repeat_prompt_translation_id',
         'follow_up_question_id',
+        'randomize_follow_up',
         'created_at',
         'updated_at',
         'deleted_at'
