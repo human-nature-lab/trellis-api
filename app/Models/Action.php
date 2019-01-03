@@ -19,6 +19,7 @@ class Action extends Model
 
     protected $fillable = [
         'id',
+        'survey_id',
         'interview_id',
         'question_id',
         'created_at',
@@ -26,7 +27,11 @@ class Action extends Model
         'action_type',
         'payload',
         'section_follow_up_repetition',
-        'section_repetition'
+        'section_repetition',
+        'preload_action_id',
+        'follow_up_action_id',
+        'random_sort_order',
+        'sort_order'
     ];
 
 }
