@@ -93,7 +93,7 @@ class InterviewController extends Controller
 
         return response()->json([
             'interview' => $interview
-        ], Response::HTTP_NO_CONTENT);
+        ], Response::HTTP_OK);
     }
 
     public function submit(Request $request, DatumService $datumService) {
