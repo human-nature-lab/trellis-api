@@ -385,7 +385,7 @@ class InterviewDataController
             if (isset($action['payload']) && !is_string($action['payload'])) {
                 $action['payload'] = json_encode($action['payload']);
             }
-            $fields = ['created_at', 'payload', 'action_type', 'survey_id', 'deleted_at','section_repetition','section_follow_up_repetition','question_id'];
+            $fields = ['created_at', 'payload', 'action_type', 'survey_id', 'deleted_at','section_repetition','section_follow_up_repetition','question_id', 'follow_up_action_id', 'random_sort_order', 'sort_order'];
             foreach ($fields as $field) {
                 if (!isset($action[$field])) {
                     $action[$field] = null;
