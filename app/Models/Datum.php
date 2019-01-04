@@ -29,6 +29,8 @@ class Datum extends Model
         'sort_order',
         'survey_id',
         'val',
+        'random_sort_order',
+        'action_id',
 
         'created_at',
         'deleted_at',

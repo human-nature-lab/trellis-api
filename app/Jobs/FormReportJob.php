@@ -287,7 +287,7 @@ class FormReportJob extends Job
 
         // Sort question datum
         foreach ($questionDatum as $qd) {
-            $qd->fullData->sortBy('sort_order');
+            $qd->fullData = $qd->fullData->sortBy('sort_order');
         }
 
         // TODO: Make complete form test to use for exporting. Repeated sections with each question type
