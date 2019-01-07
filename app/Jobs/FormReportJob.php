@@ -113,6 +113,7 @@ class FormReportJob extends Job
         $questions = $questions->get();
 
         $this->makeHeaders($questions);
+        $this->makeBaseFormMetadata($questions);
 
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
@@ -150,7 +151,7 @@ class FormReportJob extends Job
 
     }
 
-    private function makeHeaders ($questions) {
+    private function makeHeaders (&$questions) {
         $this->defaultColumns = [
             'id' => 'survey_id',
             'respondent_id' => 'respondent_master_id',
@@ -260,6 +261,50 @@ class FormReportJob extends Job
         $this->file->writeRows($rows);
     }
 
+    private function addMetadata (String $baseKey, Question $question) {
+        switch ($question->questionType->name) {
+            case 'multiple_select':
+                foreach ($question->choices as $choice) {
+                    $key = $baseKey . '_' . $choice->id;
+                    if (!isset($this->headers[$key])) {
+                        throw new Exception("Header $key should already be defined");
+                    }
+                    $this->metaRows[$this->headers[$key]] = [
+                        'header' => $this->headers[$key],
+                        'question_type' => $question->questionType->name,
+                        'variable_name' => $question->var_name,
+                        'option_code' => $choice->val,
+                        'option_id' => $choice->id
+                    ];
+                    foreach ($choice->choiceTranslation->translationText as $tt) {
+                        $lang = $tt->locale->language_name;
+                        $this->metaRows[$this->headers[$key]]["option_$lang"] = $tt->translated_text;
+                    }
+                    foreach ($question->questionTranslation->translationText as $tt) {
+                        $lang = $tt->locale->language_name;
+                        $this->metaRows[$this->headers[$key]]["question_$lang"] = $tt->translated_text;
+                    }
+                }
+                break;
+            default:
+                $this->metaRows[$this->headers[$baseKey]] = [
+                    'header' => $this->headers[$baseKey],
+                    'question_type' => $question->questionType->name,
+                    'variable_name' => $question->var_name
+                ];
+                foreach ($question->questionTranslation->translationText as $t) {
+                    $lang = $t->locale->language_name;
+                    $this->metaRows[$this->headers[$baseKey]]["question_$lang"] = $t->translated_text;
+                }
+        }
+    }
+
+    private function makeBaseFormMetadata (&$questions) {
+        foreach ($questions as $q) {
+            $this->addMetadata($q->id, $q);
+        }
+    }
+
     private function formatSurveyData ($survey, $questions, $questionsMap) {
         $questionDatum = QuestionDatum::where('survey_id', $survey->id)->with('fullData');
         Log::info($questionDatum->toSql());
@@ -313,28 +358,9 @@ class FormReportJob extends Job
                 $datum = $datumMap[$qd->follow_up_datum_id];
                 $baseKey .= '_r' . $datum->sort_order;
             }
+//            $this->addMetadata($baseKey, $question);
             switch ($question->questionType->name) {
                 case 'multiple_select':
-                    // Make all of the choices their own column
-                    foreach ($question->choices as $choice) {
-                        $key = $baseKey . '_' . $choice->id;
-                        if (!isset($this->headers[$key])) {
-                            throw new Exception("Header $key should already be defined");
-                        }
-                        $this->metaRows[$this->headers[$key]] = [
-                            'header' => $this->headers[$key],
-                            'question_type' => $question->questionType->name,
-                            'variable_name' => $question->var_name,
-                            'option_code' => $choice->val,
-                            'option_id' => $choice->id
-                        ];
-                        foreach ($choice->choiceTranslation->translationText as $tt) {
-                            $metaData[$this->headers[$key]]["option_$tt->language_name"] = $tt->translated_text;
-                        }
-                        foreach ($question->questionTranslation->translationText as $tt) {
-                            $metaData[$this->headers[$key]]["question_$tt->language_name"] = $tt->translated_text;
-                        }
-                    }
                     foreach ($qd->fullData as $datum) {
                         $key = $baseKey . '_' . $datum->choice->id;
                         if (!isset($this->headers[$key])) {
@@ -387,14 +413,6 @@ class FormReportJob extends Job
                         throw new Exception("Header $key should already be defined");
                     }
                     $vals = [];
-                    $this->metaRows[$this->headers[$key]] = [
-                        'header' => $this->headers[$key],
-                        'question_type' => $question->questionType->name,
-                        'variable_name' => $question->var_name
-                    ];
-                    foreach ($question->questionTranslation->translationText as $t) {
-                        $this->metaRows[$this->headers[$key]]["question_$t->language_name"] = $t->translated_text;
-                    }
                     if (isset($qd->dk_rf)) {
                         array_push($vals, $qd->dk_rf ? 'DK' : 'RF');
                         $this->addNote($this->headers[$key], $survey, $qd->dk_rf, $qd->dk_rf_val);
@@ -407,6 +425,11 @@ class FormReportJob extends Job
             }
         }
         return $row;
+    }
+
+    private function makeMultiSelectMeta (Question $question, String $baseKey) {
+        // Make all of the choices their own column
+
     }
 
     private function addNote($questionName, $survey, $type, $text){
