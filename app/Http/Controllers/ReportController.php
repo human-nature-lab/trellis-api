@@ -1,5 +1,6 @@
 <?php namespace App\Http\Controllers;
 
+use App\Jobs\ActionReportJob;
 use App\Jobs\CleanReportsJob;
 use App\Jobs\FormReportJob;
 use App\Jobs\InterviewReportJob;
@@ -109,7 +110,7 @@ class ReportController extends Controller {
     }
 
 
-    public function dispatchTimingreport(Request $request, $studyId){
+    public function dispatchActionsReport(Request $request, $studyId){
 
         $config = new \stdClass();
 
@@ -128,7 +129,7 @@ class ReportController extends Controller {
 
         // Generate the report csv contents and store is with a unique filename
         $reportId = Uuid::uuid4();
-        $reportJob = new TimingReportJob($studyId, $reportId, $config);
+        $reportJob = new ActionReportJob($studyId, $reportId, $config);
 
         $this->dispatch($reportJob);
 
