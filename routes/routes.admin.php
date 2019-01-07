@@ -277,7 +277,7 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->post('report/study/{study_id}/edges',                              'ReportController@dispatchEdgesReport');
         $router->post('report/study/{study_id}/geo',                                'ReportController@dispatchGeoReport');
         $router->post('report/study/{study_id}/interview',                          'ReportController@dispatchInterviewReport');
-        $router->post('report/study/{study_id}/timing',                             'ReportController@dispatchTimingReport');
+        $router->post('report/study/{study_id}/actions',                            'ReportController@dispatchActionsReport');
         $router->get('report/{report_id}',                                          'ReportController@getReport');
         $router->get('report/{report_id}/status',                                   'ReportController@getReportStatus');
         $router->post('report/images',                                              'PhotoController@getZipPhotos');
