@@ -276,6 +276,7 @@ class RespondentController extends Controller
     public function searchRespondentsByStudyId (Request $request, $studyId) {
         $query = $request->query('q');
         $conditionTags = $request->query('c');
+        $orConditionTags = $request->query('oc');
         $geos = $request->query('g');
         $includeChildren = $request->query('i');
         $randomize = $request->query('r');
@@ -328,7 +329,7 @@ class RespondentController extends Controller
 
         // TODO: Make this include any children on the parent geo ids
         // Add geo id filter
-        $respondentQuery->where(function ($q) use ($geos, $includeChildren, $associatedRespondentId) {
+        $respondentQuery->where(function ($q) use ($geos, $includeChildren, $associatedRespondentId, $orConditionTags) {
             $q->where(function ($gq) use ($geos, $includeChildren) {
                 $gq->whereNull('associated_respondent_id');
                 if ($geos) {
@@ -343,6 +344,11 @@ class RespondentController extends Controller
             });
             if (isset($associatedRespondentId)) {
                 $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
+            }
+
+            // Or condition tag filters
+            if (isset($orConditionTags)) {
+                $q->orWhereRaw('`respondent`.`id` in (select distinct respondent_id from respondent_condition_tag where deleted_at is null and condition_tag_id in (select id from condition_tag where name in (?)))', [$orConditionTags]);
             }
         });
 
