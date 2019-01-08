@@ -313,9 +313,9 @@ class GeoController extends Controller
             'id' => 'required|string|min:36',
             'geo_type_id' => 'nullable|string|min:36',
             'parent_id' => 'nullable|string|min:36',
-            'latitude' => 'nullable|integer|min:1',
-            'longitude' => 'nullable|integer|min:1',
-            'altitude' => 'nullable|integer|min:1',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'altitude' => 'nullable|numeric',
             'name_translation_id' => 'nullable|string|min:36'
         ]);
 
