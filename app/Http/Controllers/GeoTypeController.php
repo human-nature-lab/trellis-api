@@ -53,10 +53,10 @@ class GeoTypeController extends Controller
         }
 
         $studyId = $request->query('study_id');
-        $getUserAddable = $request->query('get_user_addable', false);
+        $getUserAddable = $request->query('get_user_addable', 'false');
 
         $q = GeoType::where('study_id', $studyId);
-        if ($getUserAddable) {
+        if ($getUserAddable == 'true') {
             $q = $q->where('can_user_add', 1);
         }
 
