@@ -3,11 +3,14 @@
 namespace App\Jobs;
 
 
+use App\Classes\CsvFileStream;
+use App\Models\QuestionDatum;
 use App\Services\ReportService;
 use Log;
 use App\Models\Report;
 use App\Models\Datum;
 use App\Models\Study;
+use Ramsey\Uuid\Uuid;
 
 
 class TimingReportJob extends Job
@@ -15,6 +18,8 @@ class TimingReportJob extends Job
 
     protected $studyId;
     protected $report;
+    protected $headers;
+    private $file;
 
     public function __construct($studyId, $fileId)
     {
@@ -40,44 +45,18 @@ class TimingReportJob extends Job
             $duration = microtime(true) - $startTime;
             Log::debug("TimingReportJob - failed: $this->studyId after $duration seconds");
         } finally{
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $this->report->save();
             $duration = microtime(true) - $startTime;
             Log::debug("TimingReportJob - finished: $this->studyId in $duration seconds");
         }
     }
 
-
     public function create(){
 
-        $study = Study::find($this->studyId);
-
-        $datum = Datum::join('survey', 'survey.id', '=', 'datum.survey_id')
-            ->join('interview', 'interview.survey_id', '=', 'survey.id')
-            ->join('user', 'interview.user_id', '=', 'user.id')
-            ->join('question', 'question.id', '=', 'datum.question_id')
-            ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
-            ->where('survey.study_id', '=', $study->id)
-            ->orderBy('interview_id')
-            ->orderBy('datum.created_at', 'asc')
-            ->select(
-                "interview.id as interview_id",
-                "datum.survey_id",
-                'datum.question_id',
-                "survey.form_id",
-                "survey.respondent_id",
-                "interview.user_id",
-                "user.name",
-                "user.username",
-                "datum.val",
-                "datum.name as question_name",
-                "question_type.name as question_type",
-                'datum.created_at',
-                'datum.updated_at',
-                'datum.deleted_at');
-
-        Log::debug($datum->toSql());
-
-        $headers =[
+        $this->headers = [
             'interview_id' => "interview_id",
             'survey_id' => "survey_id",
             'respondent_id' => 'respondent_id',
@@ -86,7 +65,6 @@ class TimingReportJob extends Job
             'user_id' => "user_id",
             'name' => "user_name",
             'username' => "user_username",
-            'val' => "datum_value",
             'question_type' => "question_type",
             'question_name' => "question_name",
             'created_at' => 'created_at',
@@ -94,13 +72,48 @@ class TimingReportJob extends Job
             "deleted_at" => 'deleted_at'
         ];
 
-        // Sort by num parents from low to high
-        $rows = [];
-        foreach($datum->get() as $row){
-            array_push($rows, $row->toArray());
-        }
+        $id = Uuid::uuid4();
+        $fileName = $id . '.csv';
+        $filePath = storage_path('app/' . $fileName);
+        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file->open();
+        $this->file->writeHeader();
 
-        ReportService::saveDataFile($this->report, $headers, $rows);
+        $study = Study::find($this->studyId);
+
+        $q = QuestionDatum::join('survey', 'survey.id', '=', 'question_datum.survey_id')
+            ->join('interview', 'interview.survey_id', '=', 'survey.id')
+            ->join('user', 'interview.user_id', '=', 'user.id')
+            ->join('question', 'question.id', '=', 'question_datum.question_id')
+            ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
+            ->where('survey.study_id', '=', $study->id)
+            ->orderBy('survey.respondent_id')
+            ->orderBy('survey.id')
+            ->orderBy('question_datum.created_at', 'asc')
+            ->select(
+                "interview.id as interview_id",
+                "question_datum.survey_id",
+                'question_datum.question_id',
+                "survey.form_id",
+                "survey.respondent_id",
+                "interview.user_id",
+                "user.name",
+                "user.username",
+                "question.var_name as question_name",
+                "question_type.name as question_type",
+                'question_datum.created_at',
+                'question_datum.updated_at',
+                'question_datum.deleted_at');
+
+        Log::debug($q->toSql());
+
+        $q->chunk(1000, function ($datum) {
+            $datum = $datum->toArray();
+            $this->file->writeRows($datum);
+        });
+
+        ReportService::saveFileStream($this->report, $fileName);
+
         // TODO: create zip file with location images
 
     }
