@@ -107,10 +107,16 @@ class FormReportJob extends Job
             ->whereNull('question_group.deleted_at')
             ->where('form_section.form_id', '=', $this->formId)
             ->orderBy('form_section.sort_order', 'section_question_group.question_group_order', 'question.sort_order')
-            ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable')
+            ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable', 'form_section.randomize_follow_up')
             ->with('choices');
 
         $questions = $questions->get();
+
+        $questionsMap = [];
+        foreach ($questions as $question) {
+            $question->has_follow_up = isset($question->follow_up_question_id);
+            $questionsMap[$question->id] = $question;
+        }
 
         $this->makeHeaders($questions);
         $this->makeBaseFormMetadata($questions);
@@ -121,12 +127,6 @@ class FormReportJob extends Job
         $this->file = new CsvFileStream($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
-
-        $questionsMap = [];
-        foreach ($questions as $question) {
-            $question->has_follow_up = isset($question->follow_up_question_id);
-            $questionsMap[$question->id] = $question;
-        }
 
         $page = 0;
         $pageSize = 200;
@@ -198,12 +198,11 @@ class FormReportJob extends Job
                 $repetitions = $repetitions->count();
                 if ($repetitions > 0) {
                     for ($i = 0; $i < $repetitions; $i++) {
-                        $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ($i + 1), $question);
+                        $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
                     }
                 } else {
                     $assignQuestionHeaders($baseKey, $baseName, $question);
                 }
-
             } else {
                 $assignQuestionHeaders($baseKey, $baseName, $question);
             }
@@ -262,52 +261,62 @@ class FormReportJob extends Job
     }
 
     private function addMetadata (String $baseKey, Question $question) {
+        $keys = [$baseKey];
         switch ($question->questionType->name) {
             case 'multiple_select':
-                foreach ($question->choices as $choice) {
-                    $key = $baseKey . '_' . $choice->id;
-                    if (!isset($this->headers[$key])) {
-                        throw new Exception("Header $key should already be defined");
-                    }
-                    $this->metaRows[$this->headers[$key]] = [
-                        'header' => $this->headers[$key],
-                        'question_type' => $question->questionType->name,
-                        'variable_name' => $question->var_name,
-                        'option_code' => $choice->val,
-                        'option_id' => $choice->id
-                    ];
-                    foreach ($choice->choiceTranslation->translationText as $tt) {
-                        $lang = $tt->locale->language_name;
-                        $this->metaRows[$this->headers[$key]]["option_$lang"] = $tt->translated_text;
-                    }
-                    foreach ($question->questionTranslation->translationText as $tt) {
-                        $lang = $tt->locale->language_name;
-                        $this->metaRows[$this->headers[$key]]["question_$lang"] = $tt->translated_text;
+                foreach ($keys as $bKey) {
+                    foreach ($question->choices as $choice) {
+                        $key = $bKey . '_' . $choice->id;
+                        if (!isset($this->headers[$key])) {
+                            throw new Exception("Header $key should already be defined");
+                        }
+                        $this->metaRows[$this->headers[$key]] = [
+                            'header' => $this->headers[$key],
+                            'question_type' => $question->questionType->name,
+                            'variable_name' => $question->var_name,
+                            'option_code' => $choice->val,
+                            'option_id' => $choice->id
+                        ];
+                        foreach ($choice->choiceTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$this->headers[$key]]["option_$lang"] = $tt->translated_text;
+                        }
+                        foreach ($question->questionTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$this->headers[$key]]["question_$lang"] = $tt->translated_text;
+                        }
                     }
                 }
                 break;
+            case 'respondent_geo':
+                $keys = [$baseKey . '_id', $baseKey . '_name'];
             default:
-                $this->metaRows[$this->headers[$baseKey]] = [
-                    'header' => $this->headers[$baseKey],
-                    'question_type' => $question->questionType->name,
-                    'variable_name' => $question->var_name
-                ];
-                foreach ($question->questionTranslation->translationText as $t) {
-                    $lang = $t->locale->language_name;
-                    $this->metaRows[$this->headers[$baseKey]]["question_$lang"] = $t->translated_text;
+                foreach ($keys as $key) {
+                    $this->metaRows[$this->headers[$key]] = [
+                        'header' => $this->headers[$key],
+                        'question_type' => $question->questionType->name,
+                        'variable_name' => $question->var_name
+                    ];
+                    foreach ($question->questionTranslation->translationText as $t) {
+                        $lang = $t->locale->language_name;
+                        $this->metaRows[$this->headers[$key]]["question_$lang"] = $t->translated_text;
+                    }
                 }
         }
     }
 
     private function makeBaseFormMetadata (&$questions) {
         foreach ($questions as $q) {
-            $this->addMetadata($q->id, $q);
+            if (!$q->has_follow_up) {
+                $this->addMetadata($q->id, $q);
+            } else {
+                $this->addMetadata($q->id . '_r0', $q);
+            }
         }
     }
 
     private function formatSurveyData ($survey, $questions, $questionsMap) {
         $questionDatum = QuestionDatum::where('survey_id', $survey->id)->with('fullData');
-        Log::info($questionDatum->toSql());
         $questionDatum = $questionDatum->get();
         $row = [];
 
@@ -319,10 +328,25 @@ class FormReportJob extends Job
                 $questionToQuestionDatumMap[$qd->question_id] = [];
             }
             array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
+            $i = 0;
             foreach ($qd->fullData as $datum) {
+                $datum->repeat_index = $i;
                 $datumMap[$datum->id] = $datum; // For looking up follow up info
+                $i++;
             }
         }
+        $count = $questionDatum->count();
+        Log::info("pre filter: $count");
+
+        // Filter out questionDatum that are from deleted datum
+        $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
+            $question = $questionsMap[$qd->question_id];
+            $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
+            return $keep;
+        });
+
+        $count = $questionDatum->count();
+        Log::info("post filter: $count");
 
         // Index the question order
         $questionOrderMap = [];
@@ -332,7 +356,7 @@ class FormReportJob extends Job
 
         // Sort question datum
         foreach ($questionDatum as $qd) {
-            $qd->fullData = $qd->fullData->sortBy('sort_order');
+            $qd->fullData = $qd->fullData->sortBy('repeat_index');
         }
 
         // TODO: Make complete form test to use for exporting. Repeated sections with each question type
@@ -342,7 +366,7 @@ class FormReportJob extends Job
             if ($a->question_id === $b->question_id) {
                 if (isset($a->follow_up_datum_id) && isset($b->follow_up_datum_id)) {
                     Log::info('follow up question found '. $a->id);
-                    return $datumMap[$a->follow_up_datum_id]->sort_order - $datumMap[$b->follow_up_datum_id]->sort_order;
+                    return $datumMap[$a->follow_up_datum_id]->repeat_index - $datumMap[$b->follow_up_datum_id]->repeat_index;
                 } else {
                     return $a->section_repetition - $b->section_repetition;
                 }
@@ -353,10 +377,10 @@ class FormReportJob extends Job
 
         foreach ($questionDatum as $qd) {
             $question = $questionsMap[$qd->question_id];
-            $baseKey = $question->id; // TODO: Add repetitions
+            $baseKey = $question->id;
             if ($question->has_follow_up) {
                 $datum = $datumMap[$qd->follow_up_datum_id];
-                $baseKey .= '_r' . $datum->sort_order;
+                $baseKey .= '_r' . $datum->repeat_index;
             }
 //            $this->addMetadata($baseKey, $question);
             switch ($question->questionType->name) {
