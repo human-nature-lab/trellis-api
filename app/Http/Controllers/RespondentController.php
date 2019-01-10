@@ -313,7 +313,8 @@ class RespondentController extends Controller
             $nameQuery = RespondentName::select('respondent_id')->distinct();
             $terms = explode(',', $query);
             foreach ($terms as $term) {
-                $nameQuery = $nameQuery->where('name', 'like', "%$term%");
+                // TODO: prefer matches to first name first
+                $nameQuery = $nameQuery->whereRaw("concat(' ', name) like ?", ["% $term%"]);
             }
             $respondentQuery = $respondentQuery->whereIn('id', $nameQuery);
         }
