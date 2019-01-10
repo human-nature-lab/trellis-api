@@ -100,6 +100,7 @@ $router->group([
     $router->get('geo/search',                                  'GeoController@searchGeos');
     $router->get('geo/{geo_id}/ancestors',                      'GeoController@getAncestorsForGeoId');
     $router->delete('geo/{geo_id}',                             'GeoController@removeGeo');
+    $router->post('geo/{geo_id}',                               'GeoController@updateGeo');
     $router->post('geo/{geo_id}/move',                          'GeoController@moveGeo');
     $router->get('geo/{geo_id}/photos',                         'GeoController@getGeoPhotos');
 
