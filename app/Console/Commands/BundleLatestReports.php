@@ -6,6 +6,7 @@ use App\Models\Form;
 use App\Models\Report;
 use App\Models\Study;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
 class BundleLatestReports extends Command
@@ -41,7 +42,7 @@ class BundleLatestReports extends Command
     {
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge'];
+        $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
         $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
             $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
         })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
@@ -68,8 +69,9 @@ class BundleLatestReports extends Command
         $fullPath = $saveDir . "/" . $filename;
 
         // Remove the existing reports if it's the default
-        if($filename == "reports.zip" && file_exists($fullPath)) {
-            unlink($fullPath);
+        if(file_exists(storage_path($fullPath))) {
+            $this->info("removing existing reports at $fullPath");
+            unlink(storage_path($fullPath));
         }
 
         $zip  = new ZipArchive();

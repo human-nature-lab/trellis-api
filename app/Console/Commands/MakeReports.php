@@ -34,7 +34,7 @@ class MakeReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:make:reports {study}';
+    protected $signature = 'trellis:make:reports {study} {--only-forms}';
 
     /**
      * The console command description.
@@ -66,16 +66,20 @@ class MakeReports extends Command
         $remainingJobIds = [];
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $mainJobConstructors = [RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
+        $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
 
-        foreach ($mainJobConstructors as $constructor){
-            $reportId = Uuid::uuid4();
-            array_push($remainingJobIds, $reportId);
-            $reportJob = new $constructor($studyId, $reportId, new \stdClass());
-            $reportJob->handle();
+        if (!$this->option('only-forms')) {
+            foreach ($mainJobConstructors as $constructor){
+                $reportId = Uuid::uuid4();
+                array_push($remainingJobIds, $reportId);
+                $reportJob = new $constructor($studyId, $reportId, new \stdClass());
+                $reportJob->handle();
 //            dispatch($reportJob);
-            $this->info("Queued $constructor");
+                $this->info("Queued $constructor");
+            }
         }
+
+
 
         $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
             $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
@@ -100,38 +104,38 @@ class MakeReports extends Command
 
 
         // Poll the Reports to check if they have completed
-        $pollCount = 0;
-        $totalJobs = count($mainJobConstructors) + count($formIds);
-        $bar = $this->output->createProgressBar($totalJobs);
-        $bar->setFormatDefinition("detailed", ' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-        $bar->setFormat("detailed");
-        while(true){
-            sleep(5);
-            for($i=0; $i < count($remainingJobIds); $i++){
-                $id = $remainingJobIds[$i];
-                if(Report::find($id)->status == "saved"){
-                    array_splice($remainingJobIds, $i, 1);
-                    $i --;
-                    $bar->advance();
-                }
-            }
-
-            if(count($remainingJobIds) <= 0){
-                $bar->finish();
-                $this->info("\nAll jobs have completed successfully!");
-                break;
-            }
-
-            if($pollCount > 200){
-                $jobCount = Job::count();
-                $this->error("\nGenerating the reports took too long. $jobCount / $totalJobs jobs have not completed.");
-                return;
-            }
-
-            $pollCount ++;
-            $c = count($remainingJobIds);
-            $bar->setMessage("$c / $totalJobs jobs have completed...");
-        }
+//        $pollCount = 0;
+//        $totalJobs = count($mainJobConstructors) + count($formIds);
+//        $bar = $this->output->createProgressBar($totalJobs);
+//        $bar->setFormatDefinition("detailed", ' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+//        $bar->setFormat("detailed");
+//        while(true){
+//            sleep(5);
+//            for($i=0; $i < count($remainingJobIds); $i++){
+//                $id = $remainingJobIds[$i];
+//                if(Report::find($id)->status == "saved"){
+//                    array_splice($remainingJobIds, $i, 1);
+//                    $i --;
+//                    $bar->advance();
+//                }
+//            }
+//
+//            if(count($remainingJobIds) <= 0){
+//                $bar->finish();
+//                $this->info("\nAll jobs have completed successfully!");
+//                break;
+//            }
+//
+//            if($pollCount > 200){
+//                $jobCount = Job::count();
+//                $this->error("\nGenerating the reports took too long. $jobCount / $totalJobs jobs have not completed.");
+//                return;
+//            }
+//
+//            $pollCount ++;
+//            $c = count($remainingJobIds);
+//            $bar->setMessage("$c / $totalJobs jobs have completed...");
+//        }
 
 
     }
