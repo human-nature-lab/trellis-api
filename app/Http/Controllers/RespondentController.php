@@ -311,7 +311,7 @@ class RespondentController extends Controller
         // Add name search
         if ($query) {
             $nameQuery = RespondentName::select('respondent_id')->distinct();
-            $terms = explode(',', $query);
+            $terms = explode(' ', $query);
             foreach ($terms as $term) {
                 // TODO: prefer matches to first name first
                 $nameQuery = $nameQuery->whereRaw("concat(' ', name) like ?", ["% $term%"]);
