@@ -53,19 +53,11 @@ class GeoController extends Controller
             $terms = explode(" ", $query);
             Log::debug(json_encode($terms));
             foreach ($terms as $i => $term) {
-                if ($i === 0) {
-                    $q = $q->whereIn('name_translation_id', function ($sq) use ($term) {
-                        $sq->select('translation_id')
-                            ->from('translation_text')
-                            ->where('translated_text', 'like', "%$term%");
-                    });
-                } else {
-                    $q = $q->orWhereIn('name_translation_id', function ($sq) use ($term) {
-                        $sq->select('translation_id')
-                            ->from('translation_text')
-                            ->where('translated_text', 'like', "%$term%");
-                    });
-                }
+              $q = $q->whereIn('name_translation_id', function ($sq) use ($term) {
+                  $sq->select('translation_id')
+                      ->from('translation_text')
+                      ->where('translated_text', 'like', "%$term%");
+              });
             }
         }
 
