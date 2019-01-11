@@ -75,7 +75,7 @@ class EdgeReportJob extends Job
         $this->file->writeHeader();
 
         $page = 0;
-        $batchSize = 1000;
+        $batchSize = 200;
         do {
             $edges = Edge::leftJoin('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
                 ->leftJoin('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
