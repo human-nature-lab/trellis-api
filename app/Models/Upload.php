@@ -28,9 +28,12 @@ class Upload extends Model
         'error_line'
     ];
 
+    /*
+     * This method doesn't work if the case of the device_id varies between tables
     public function device()
     {
         return $this
             ->hasOne('App\Models\Device', 'device_id', 'device_id');
     }
+    */
 }
