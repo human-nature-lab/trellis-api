@@ -14,6 +14,7 @@ use App\Models\Upload;
 
 use Laravel\Lumen\Routing\Controller;
 use Validator;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use League\Flysystem\Filesystem;
@@ -125,7 +126,14 @@ class SyncControllerV2 extends Controller
 
     public function listUploads()
     {
-        $uploads = Upload::with('device')->get();
+        // This method doesn't work if the case of the device_id varies between tables
+        // $uploads = Upload::with('device')->get();
+        $uploads = DB::table('upload')
+          ->select('upload.*', 'device.name as device_name')
+          ->join('device', function ($join) {
+              $join->on('upload.device_id', '=', 'device.device_id');
+          })
+          ->get();
 
         return response()->json(
             ['uploads' => $uploads],
