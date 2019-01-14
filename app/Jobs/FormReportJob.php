@@ -398,7 +398,7 @@ class FormReportJob extends Job
                         }
 
                         // This seems like the safest way to check if it's an other response
-                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice_id) {
+                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice->val) {
                             $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }

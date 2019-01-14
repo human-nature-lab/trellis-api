@@ -78,7 +78,7 @@ class ActionReportJob extends Job
             ->select('action.*')
             ->orderBy('action.created_at');
 
-        $q->chunk(1000, function ($actions) {
+        $q->chunk(200, function ($actions) {
             $actions = $actions->toArray();
             $this->file->writeRows($actions);
         });
