@@ -66,6 +66,9 @@ class MakeReports extends Command
         $remainingJobIds = [];
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
+        if (!isset($study)) {
+            throw Error('Study id must be valid');
+        }
         $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
 
         if (!$this->option('only-forms')) {
@@ -78,8 +81,6 @@ class MakeReports extends Command
                 $this->info("Queued $constructor");
             }
         }
-
-
 
         $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
             $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
