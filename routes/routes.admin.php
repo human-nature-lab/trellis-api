@@ -81,10 +81,12 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->get('user/me',                                         'UserController@getMe');
         $router->get('user/{id}',                                       'UserController@getUser');
         $router->delete('user/{id}',                                    'UserController@removeUser');
-        $router->get('user',                                            'UserController@getAllUsers');
-        $router->put('user/{user_id}/studies/{study_id}',               'UserController@saveStudy');
+        $router->get('user',                                            'UserController@getUsersPage');
+        $router->post('user/{user_id}/studies/{study_id}',              'UserController@addStudy');
         $router->delete('user/{user_id}/studies/{study_id}',            'UserController@deleteStudy');
-
+        $router->group(['middleware' => 'role-or-user:ADMIN'], function () use ($router) {
+            $router->put('user/{user_id}/update-password', 'UserController@updatePassword');
+        });
 
 
         //* Locale Controller Routes *//
@@ -264,8 +266,8 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 
 
         //* Create User Route *//
-        $router->put('user',        'UserController@createUser');
-        $router->post('user/{id}',  'UserController@updateUser');
+        $router->post('user',           'UserController@createUser');
+        $router->put('user/{id}',       'UserController@updateUser');
 
 
 
