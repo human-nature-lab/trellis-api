@@ -169,8 +169,7 @@ class UserController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function updateUser(Request $request, $id)
-    {
+    public function updateUser (Request $request, $id) {
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $id
         ]), [
@@ -198,12 +197,12 @@ class UserController extends Controller
         }
 
         $userPassword = Hash::make($request->input('password'));
-        $userModel->fill($request->input());
+        $userModel->fill($request->all());
         $userModel->password = $userPassword;
         $userModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'user' => $userModel
         ], Response::HTTP_OK);
     }
 
