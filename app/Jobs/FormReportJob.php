@@ -22,7 +22,9 @@ class FormReportJob extends Job
 
     protected $formId;
     protected $report;
-    protected $config;
+    protected $config = [
+        'useRespondentNames' => false // Adds the respondent name column and makes relationship question types use the name instead of the ID
+    ];
     protected $images = [];
     protected $rows = [];
     protected $headers = [];
@@ -180,6 +182,10 @@ class FormReportJob extends Job
             'completed_at' => 'completed_at'
         ];
 
+//        if ($this->config['useRespondentNames']) {
+//            $this->defaultColumns['respondent_name'] = 'respondent_name';
+//        }
+
         $headers = [];
 
         $expandRespondentGeo = function ($baseKey, $baseName) use (&$headers) {
@@ -194,6 +200,7 @@ class FormReportJob extends Job
                 $headers[$key] = $baseName . '_' . $choice->val;
             }
         };
+
         $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect, $expandRespondentGeo) {
             switch ($question->questionType->name) {
                 case 'multiple_select':
@@ -206,6 +213,7 @@ class FormReportJob extends Job
                     $headers[$baseKey] = $baseName;
             }
         };
+
         foreach ($questions as $question) {
             $baseKey = $question->id;
             $baseName = $question->var_name;
