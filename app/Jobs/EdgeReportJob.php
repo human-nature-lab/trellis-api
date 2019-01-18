@@ -93,7 +93,8 @@ class EdgeReportJob extends Job
                     'question.var_name',
                     'survey.updated_at',
                     'question_datum.dk_rf',
-                    'question_datum.dk_rf_val'
+                    'question_datum.dk_rf_val',
+                    'question_datum.survey_id'
                 )
                 ->take($batchSize)
                 ->skip($page * $batchSize)
@@ -119,7 +120,8 @@ class EdgeReportJob extends Job
             'var_name' => 'question',
             'updated_at' => 'survey_updated_at',
             'dk_rf' => "question_dk_rf",
-            'dk_rf_val' => "question_dk_rf_response"
+            'dk_rf_val' => "question_dk_rf_response",
+            'survey_id' => 'survey_id'
         ];
     }
 }
