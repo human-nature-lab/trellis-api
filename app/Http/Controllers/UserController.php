@@ -196,9 +196,13 @@ class UserController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $userPassword = Hash::make($request->input('password'));
-        $userModel->fill($request->all());
-        $userModel->password = $userPassword;
+        $all = $request->all();
+        unset($all['password']); // Make sure we don't overwrite the password with gibberish
+        $userModel->fill($all);
+        if ($request->has('password') && !is_null($request->get('password'))) {
+            $userPassword = Hash::make($request->get('password'));
+            $userModel->password = $userPassword;
+        }
         $userModel->save();
 
         return response()->json([
