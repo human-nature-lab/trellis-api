@@ -109,6 +109,31 @@ class ReportController extends Controller {
 
     }
 
+    public function getLatestStudyReports (Request $request, $studyId) {
+        $validator = Validator::make([
+            'studyId' => $studyId
+        ], [
+            'studyId' => 'string|min:41|exists:study,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        // Get all distinct combinations of type/report_id in the report table. This is necessary because most of the forms
+        $distinctReportTypes = Report::distinct('report_id', 'type')->where('status', '=', 'saved')->get();
+
+        $reports = Report::with('files')
+            ->whereIn('id', function ($q) {
+               $q->select('id')
+                   ->from('report')
+            });
+
+
+    }
+
 
     public function dispatchActionsReport(Request $request, $studyId){
 

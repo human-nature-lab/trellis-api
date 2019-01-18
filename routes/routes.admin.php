@@ -272,6 +272,7 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 
 
         //* Report Routes *//
+        $router->get('study/{study_id}/reports/latest',                             'ReportController@getLatestStudyReports');
         $router->get('report/completed',                                            'ReportController@getAllSavedReports');
         $router->get('report/download/{file_name}',                                 'ReportController@downloadFile');
         $router->post('report/form/{form_id}',                                      'ReportController@dispatchFormReport');
