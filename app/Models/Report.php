@@ -18,7 +18,8 @@ class Report extends Model
     protected $fillable = [
         'id',
         'type',
-        'report_id',
+        'study_id',
+        'form_id',
         'status',
         'created_at',
         'updated_at',
