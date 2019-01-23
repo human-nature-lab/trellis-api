@@ -33,7 +33,7 @@ class EdgeReportJob extends Job
         $this->report->id = Uuid::uuid4();
         $this->report->type = 'edge';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 

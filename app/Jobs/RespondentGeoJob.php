@@ -15,7 +15,7 @@ class RespondentGeoJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     private $headers;
     private $file;
 
@@ -25,15 +25,15 @@ class RespondentGeoJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $config)
     {
         Log::debug("RespondentGeoReport - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'respondent_geo';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
