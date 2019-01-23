@@ -15,7 +15,7 @@ class GeoReportJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     protected $localeId;
     protected $maxDepth = 5;
     private $file = null;
@@ -30,16 +30,15 @@ class GeoReportJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId, $config)
-    {
+    public function __construct ($studyId, $config) {
         Log::debug("GeoReportJob - constructing: $studyId");
         $this->config = $config;
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'geo';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
         $this->traverseGeoTree = Memoization::memoizeMax(function ($id, $maxDepth = 10, $depth = 0) {
             $tree = [];

@@ -16,7 +16,7 @@ class RespondentReportJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     protected $config;
     protected $maxGeoDepth=4;
     private $file;
@@ -30,16 +30,16 @@ class RespondentReportJob extends Job
      * @param  $formId
      * @return void
      */
-    public function __construct($studyId, $fileId, $config)
+    public function __construct($studyId, $config)
     {
         Log::debug("RespondentReportJob - constructing: $studyId");
         $this->config = $config;
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'respondent';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -91,6 +91,7 @@ class RespondentReportJob extends Job
         // Streaming loop
         do {
             $respondents = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType')
+                ->whereNull('deleted_at')
                 ->take($batchSize)
                 ->skip($skip)
                 ->get();

@@ -21,7 +21,7 @@ class FormReportJob extends Job
 {
 
     protected $formId;
-    protected $report;
+    public $report;
     protected $config = [
         'useRespondentNames' => false // Adds the respondent name column and makes relationship question types use the name instead of the ID
     ];
@@ -45,16 +45,17 @@ class FormReportJob extends Job
      * @param $reportId - The id of the report we're generating. This is used on the client side to check if the report has finished exporting
      * @param $config - Any configuration options used to generate this report
      */
-    public function __construct($formId, $reportId, $config)
+    public function __construct($studyId, $formId, $config)
     {
         Log::debug("FormReportJob - constructing: $formId");
         $this->config = $config;
         $this->formId = $formId;
         $this->report = new Report();
-        $this->report->id = $reportId;
+        $this->report->id = Uuid::uuid4();
+        $this->report->form_id = $formId;
         $this->report->type = 'form';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->formId;
+        $this->report->study_id = $studyId;
         $this->report->save();
     }
 
