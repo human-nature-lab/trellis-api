@@ -196,12 +196,9 @@ class FormReportJob extends Job
                 ->distinct();
                 $repetitions = $q->get();
                 $repetitions = $repetitions->count();
-                if ($repetitions > 0) {
-                    for ($i = 0; $i < $repetitions; $i++) {
-                        $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
-                    }
-                } else {
-                    $assignQuestionHeaders($baseKey, $baseName, $question);
+                $repetitions = $repetitions === 0 ? 1 : $repetitions;
+                for ($i = 0; $i < $repetitions; $i++) {
+                    $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
                 }
             } else {
                 $assignQuestionHeaders($baseKey, $baseName, $question);
