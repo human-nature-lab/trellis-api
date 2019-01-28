@@ -31,8 +31,8 @@ class ActionReportJob extends Job
         $this->report->save();
     }
 
-    public function handle()
-    {
+
+    public function handle () {
         set_time_limit(60 * 15);
         $startTime = microtime(true);
         Log::debug("ActionReportJob - handling: $this->studyId, $this->report->id");

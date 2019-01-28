@@ -25,8 +25,7 @@ class RespondentGeoJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $config)
-    {
+    public function __construct ($studyId, $config) {
         Log::debug("RespondentGeoReport - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
@@ -42,8 +41,7 @@ class RespondentGeoJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
         set_time_limit(300);
         $startTime = microtime(true);
         Log::debug("RespondentGeoReport - handling: $this->studyId, $this->report->id");
