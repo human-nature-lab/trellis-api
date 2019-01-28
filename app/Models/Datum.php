@@ -72,7 +72,6 @@ class Datum extends Model
 
     public function respondentGeo () {
         return $this->hasOne('App\Models\RespondentGeo', 'id', 'respondent_geo_id')
-            ->whereNull('respondent_geo.deleted_at')
             ->with('geo');
     }
 

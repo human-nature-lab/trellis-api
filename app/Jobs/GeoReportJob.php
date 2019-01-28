@@ -40,20 +40,6 @@ class GeoReportJob extends Job
         $this->report->status = 'queued';
         $this->report->study_id = $this->studyId;
         $this->report->save();
-        $this->traverseGeoTree = Memoization::memoizeMax(function ($id, $maxDepth = 10, $depth = 0) {
-            $tree = [];
-            if ($depth > $maxDepth) return $tree;
-            $geo = Geo::where('id', '=', $id)->with('nameTranslation')->first();
-            if (isset($geo)) {
-                array_push($tree, $geo);
-                if (isset($geo->parent_id)) {
-                    $tree = array_merge($tree, ($this->traverseGeoTree)($geo->parent_id, $maxDepth, $depth + 1));
-                }
-            }
-            return $tree;
-        }, 1000, function ($id) {
-            return isset($id) ? $id : false;
-        });
     }
 
     /**
@@ -61,8 +47,7 @@ class GeoReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
         set_time_limit(60 * 10);
         $startTime = microtime(true);
         Log::debug("GeoReportJob - handling: $this->studyId, $this->report->id");
@@ -84,9 +69,23 @@ class GeoReportJob extends Job
     }
 
 
-    public function create(){
+    public function create () {
 
         $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
+        $this->traverseGeoTree = Memoization::memoizeMax(function ($id, $maxDepth = 10, $depth = 0) {
+            $tree = [];
+            if ($depth > $maxDepth) return $tree;
+            $geo = Geo::where('id', '=', $id)->with('nameTranslation')->first();
+            if (isset($geo)) {
+                array_push($tree, $geo);
+                if (isset($geo->parent_id)) {
+                    $tree = array_merge($tree, ($this->traverseGeoTree)($geo->parent_id, $maxDepth, $depth + 1));
+                }
+            }
+            return $tree;
+        }, 1000, function ($id) {
+            return isset($id) ? $id : false;
+        });
 
         $this->makeHeaders();
 
@@ -162,6 +161,9 @@ class GeoReportJob extends Job
 
         // Write to disk
         $this->file->writeRows($rows);
+    }
 
+    public function failed (Exception $exception) {
+        // Send user notification of failure, etc...
     }
 }
