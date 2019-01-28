@@ -136,16 +136,23 @@ class ReportController extends Controller {
         }
 
         // Get all distinct combinations of type/report_id in the report table. This is necessary because most of the forms
-        $distinctReportTypes = Report::distinct('type', 'study_id', 'form_id')->get();
+        $distinctReportTypes = Report::select('type', 'study_id', 'form_id')
+            ->where('type', '!=', 'failed')
+            ->distinct();
+        $distinctReportTypes = $distinctReportTypes->get();
         $distinctSieve = [];
 
         foreach ($distinctReportTypes as $rType) {
             $distinctSieve[$rType->type . $rType->study_id . $rType->form_id] = false;
         }
 
-        $reports = Report::with('files')->limit(200)->get();
+        $reports = Report::with('files')
+            ->orderBy('created_at', 'desc')
+            ->where('type', '!=', 'failed')
+            ->limit(200)
+            ->get();
 
-        $reports = $reports->filter(function ($report) use ($distinctSieve) {
+        $reports = $reports->filter(function ($report) use (&$distinctSieve) {
             if (!$distinctSieve[$report->type . $report->study_id . $report->form_id]) {
                 $distinctSieve[$report->type . $report->study_id . $report->form_id] = true;
                 return true;
@@ -154,7 +161,7 @@ class ReportController extends Controller {
         });
 
         return response()->json([
-            'reports' => $reports
+            'reports' => $reports->values()
         ], Response::HTTP_OK);
     }
 
@@ -230,7 +237,7 @@ class ReportController extends Controller {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
         ]), [
-            'reports' => 'array|exists:report,id',
+            'reports' => 'required|array|exists:report,id',
             'studyId' => 'string|min:36|max:41|exists:study,id'
         ]);
 
@@ -242,21 +249,23 @@ class ReportController extends Controller {
 
         $localeId = "48984fbe-84d4-11e5-ba05-0800279114ca";
         $study = Study::find($studyId);
-        $reports = Report::with('files')->whereIn('id', $request->get('reports'))->get();
+        $reports = Report::with('files')
+            ->whereIn('id', $request->get('reports'))
+            ->get();
 
-        $response = new StreamedResponse(function() use ($reports, $localeId, $study) {
-            $zip = new \Barracuda\ArchiveStream\ZipArchive('reports.zip');
+        return new StreamedResponse(function() use ($reports, $localeId, $study) {
+            $zip = new \ZipStream\ZipStream('reports.zip');
             $errors = [];
             foreach($reports as $report){
                 if ($report->type === 'form') {
                     $form = Form::with("nameTranslation")
-                        ->find($report->report_id);
+                        ->find($report->form_id);
                     foreach($report->files as $file){
                         $formName = ReportService::translationToText($form->nameTranslation, $localeId);;
                         $zipName = $file->file_type."/".$formName.'_'.$file->file_type.'_export.csv';
                         $path = storage_path("app/".$file->file_name);
                         if (is_readable($path)) {
-                            $zip->add_file_from_path($zipName, $path);
+                            $zip->addFileFromPath($zipName, $path);
                         } else {
                             Log::error("Unable to access file at $path");
                             array_push($errors, $path);
@@ -267,7 +276,7 @@ class ReportController extends Controller {
                         $zipName = $study->name . '_' . $report->type . '_export.csv';
                         $path = storage_path("app/".$file->file_name);
                         if (is_readable($path)) {
-                            $zip->add_file_from_path($zipName, $path);
+                            $zip->addFileFromPath($zipName, $path);
                         } else {
                             Log::error("Unable to access file at $path");
                             array_push($errors, $path);
@@ -277,13 +286,10 @@ class ReportController extends Controller {
             }
             // Add error file
             if(count($errors) > 0){
-                $zip->add_file('errors.txt', "unable to read:\n" . implode("\n", $errors));
+                $zip->addFile('errors.txt', "unable to read:\n" . implode("\n", $errors));
             }
             $zip->finish();
         });
-
-
-        return $response;
 
     }
 

@@ -15,7 +15,8 @@
       "league/flysystem": "^1.0",
       "doctrine/dbal": "^2.7",
         "league/flysystem-cached-adapter": "^1.0",
-        "emgag/flysystem-hash": "^1.0"
+        "emgag/flysystem-hash": "^1.0",
+        "maennchen/zipstream-php": "^0.5.2"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
