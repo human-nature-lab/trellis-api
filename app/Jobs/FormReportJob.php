@@ -56,6 +56,7 @@ class FormReportJob extends Job
 
     public function handle()
     {
+        set_time_limit(300);
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
@@ -167,6 +168,7 @@ class FormReportJob extends Job
         };
 
         $expandMultiSelect = function ($baseKey, $baseName, $choices) use (&$headers) {
+            $headers[$baseKey] = $baseName;
             foreach ($choices as $choice) {
                 $key = $baseKey . '_' . $choice->id;
                 $headers[$key] = $baseName . '_' . $choice->val;
@@ -332,8 +334,6 @@ class FormReportJob extends Job
                 $i++;
             }
         }
-        $count = $questionDatum->count();
-        Log::info("pre filter: $count");
 
         // Filter out questionDatum that are from deleted datum
         $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
@@ -341,9 +341,6 @@ class FormReportJob extends Job
             $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
             return $keep;
         });
-
-        $count = $questionDatum->count();
-        Log::info("post filter: $count");
 
         // Index the question order
         $questionOrderMap = [];
@@ -362,7 +359,6 @@ class FormReportJob extends Job
         $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap, $datumMap) {
             if ($a->question_id === $b->question_id) {
                 if (isset($a->follow_up_datum_id) && isset($b->follow_up_datum_id)) {
-                    Log::info('follow up question found '. $a->id);
                     return $datumMap[$a->follow_up_datum_id]->repeat_index - $datumMap[$b->follow_up_datum_id]->repeat_index;
                 } else {
                     return $a->section_repetition - $b->section_repetition;
