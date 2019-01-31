@@ -44,6 +44,7 @@ class RespondentGeoJob extends Job
      */
     public function handle()
     {
+        set_time_limit(300);
         $startTime = microtime(true);
         Log::debug("RespondentGeoReport - handling: $this->studyId, $this->report->id");
         try{
@@ -74,7 +75,34 @@ class RespondentGeoJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        RespondentGeo::withTrashed()->chunk(1000, function ($rGeos) {
+        $q = RespondentGeo::withTrashed()
+            ->addSelect(DB::raw('*'))
+            ->addSelect(DB::raw('(select qd.question_id from question_datum qd where qd.id = (
+                select question_datum_id from datum d 
+                where d.respondent_geo_id = respondent_geo.id and (d.val = "Add respondent geo" or d.val = "Move respondent")
+                limit 1
+                )
+            ) as added_question_id'))
+            ->addSelect(DB::raw('(select qd.survey_id from question_datum qd where qd.id = (
+                select question_datum_id from datum d 
+                where d.respondent_geo_id = respondent_geo.id and (d.val = "Add respondent geo" or d.val = "Move respondent")
+                limit 1
+                )
+            ) as added_survey_id'))
+            ->addSelect(DB::raw('(select qd.question_id from question_datum qd where qd.id = (
+                select question_datum_id from datum d 
+                where d.respondent_geo_id = respondent_geo.id and d.val = "Remove respondent geo"
+                limit 1
+                )
+            ) as removed_question_id'))
+            ->addSelect(DB::raw('(select qd.survey_id from question_datum qd where qd.id = (
+                select question_datum_id from datum d 
+                where d.respondent_geo_id = respondent_geo.id and d.val = "Remove respondent geo"
+                limit 1
+                )
+            ) as removed_survey_id'));
+
+        $q->chunk(200, function ($rGeos) {
             $rGeos = $rGeos->map(function ($rGeo) {
                 $rGeo->is_current = $rGeo->is_current === 1;
                 return $rGeo;
@@ -96,7 +124,11 @@ class RespondentGeoJob extends Job
             'notes' => 'notes',
             'updated_at' => 'updated_at',
             'created_at' => 'created_at',
-            'deleted_at' => 'deleted_at'
+            'deleted_at' => 'deleted_at',
+            'added_question_id' => 'added_question_id',
+            'added_survey_id' => 'added_survey_id',
+            'removed_question_id' => 'removed_question_id',
+            'removed_survey_id' => 'removed_survey_id'
         ];
     }
 }

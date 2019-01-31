@@ -23,18 +23,12 @@ use Ramsey\Uuid\Uuid;
 class MakeReports extends Command
 {
 
-    /*
-    use DispatchesJobs, AutoDispatch {
-        AutoDispatch::dispatch insteadof DispatchesJobs;
-    }
-    */
-
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'trellis:make:reports {study} {--only-forms}';
+    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms}';
 
     /**
      * The console command description.
@@ -56,8 +50,7 @@ class MakeReports extends Command
      *
      * @return mixed
      */
-    public function handle()
-    {
+    public function handle () {
 
         Queue::after(function ($connection, $job, $data) {
             Log::debug("Finished job: ", $job->id, $data);
@@ -71,73 +64,37 @@ class MakeReports extends Command
         }
         $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
 
-        if (!$this->option('only-forms')) {
+        if (!$this->option('skip-main')) {
             foreach ($mainJobConstructors as $constructor){
                 $reportId = Uuid::uuid4();
                 array_push($remainingJobIds, $reportId);
                 $reportJob = new $constructor($studyId, $reportId, new \stdClass());
                 $reportJob->handle();
-//            dispatch($reportJob);
                 $this->info("Queued $constructor");
             }
         }
 
-        $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
-            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-        })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
-            return $item->id;
-        });
+        if (!$this->option('skip-forms')) {
+            $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+                $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+            })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+                return $item->id;
+            });
 
-        $config = new \stdClass();
-        $config->studyId = $studyId;
-        $config->useChoiceNames = true;
-        $config->locale = $study->defaultLocale->id;
-        $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
+            $config = new \stdClass();
+            $config->studyId = $studyId;
+            $config->useChoiceNames = true;
+            $config->locale = $study->defaultLocale->id;
+            $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
 
-        foreach ($formIds as $formId){
-            $reportId = Uuid::uuid4();
-            array_push($remainingJobIds, $reportId);
-            $reportJob = new FormReportJob($formId, $reportId, $config);
-            $reportJob->handle();
-//            dispatch($reportJob);
-            $this->info("Queued FormReportJob for form, $formId");
+            foreach ($formIds as $formId){
+                $reportId = Uuid::uuid4();
+                array_push($remainingJobIds, $reportId);
+                $reportJob = new FormReportJob($formId, $reportId, $config);
+                $reportJob->handle();
+                $this->info("Queued FormReportJob for form, $formId");
+            }
         }
-
-
-        // Poll the Reports to check if they have completed
-//        $pollCount = 0;
-//        $totalJobs = count($mainJobConstructors) + count($formIds);
-//        $bar = $this->output->createProgressBar($totalJobs);
-//        $bar->setFormatDefinition("detailed", ' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
-//        $bar->setFormat("detailed");
-//        while(true){
-//            sleep(5);
-//            for($i=0; $i < count($remainingJobIds); $i++){
-//                $id = $remainingJobIds[$i];
-//                if(Report::find($id)->status == "saved"){
-//                    array_splice($remainingJobIds, $i, 1);
-//                    $i --;
-//                    $bar->advance();
-//                }
-//            }
-//
-//            if(count($remainingJobIds) <= 0){
-//                $bar->finish();
-//                $this->info("\nAll jobs have completed successfully!");
-//                break;
-//            }
-//
-//            if($pollCount > 200){
-//                $jobCount = Job::count();
-//                $this->error("\nGenerating the reports took too long. $jobCount / $totalJobs jobs have not completed.");
-//                return;
-//            }
-//
-//            $pollCount ++;
-//            $c = count($remainingJobIds);
-//            $bar->setMessage("$c / $totalJobs jobs have completed...");
-//        }
-
 
     }
 
