@@ -47,6 +47,7 @@ class InterviewReportJob extends Job
      */
     public function handle()
     {
+        set_time_limit(300);
         $startTime = microtime(true);
         Log::debug("InterviewReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -81,35 +82,22 @@ class InterviewReportJob extends Job
 
         $study = Study::find($this->studyId);
 
+        $q = Interview::join('survey', 'survey.id', '=', 'interview.survey_id')
+            ->join('form', 'form.id', '=', 'survey.form_id')
+            ->join('translation_text', function($join) use ($study){
+                $join->on('translation_text.translation_id', '=', 'form.name_translation_id');
+                $join->on('translation_text.locale_id', '=', DB::raw("'$study->default_locale_id'"));
+            })
+            ->leftJoin('user', 'user.id', '=', 'interview.user_id')
+            ->where('survey.study_id', '=', $this->studyId)
+            ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username', 'translation_text.translated_text as form_name')
+            ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = true) as dk_count"))
+            ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = false) as rf_count"))
+            ->orderBy('interview.created_at', 'asc');
 
-        $page = 0;
-        $batchSize = 1000;
-        do {
-            $interviews = Interview::join('survey', 'survey.id', '=', 'interview.survey_id')
-                ->join('form', 'form.id', '=', 'survey.form_id')
-                ->join('translation_text', function($join) use ($study){
-                    $join->on('translation_text.translation_id', '=', 'form.name_translation_id');
-                    $join->on('translation_text.locale_id', '=', DB::raw("'$study->default_locale_id'"));
-                })
-                ->leftJoin('user', 'user.id', '=', 'interview.user_id')
-                ->where('survey.study_id', '=', $this->studyId)
-                ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username', 'translation_text.translated_text as form_name')
-                ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = true) as dk_count"))
-                ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = false) as rf_count"))
-                ->orderBy('interview.created_at', 'asc')
-                ->take($batchSize)
-                ->skip($page * $batchSize);
-
+        $q->chunk(500, function ($interviews) {
             $this->file->writeRows($interviews);
-            $page++;
-            $mightHaveMore = $interviews->count() > 0;
-        } while ($mightHaveMore);
-
-        // Sort by num parents from low to high
-        $rows = [];
-        foreach($interviews->get() as $row){
-            array_push($rows, $row->toArray());
-        }
+        });
 
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images

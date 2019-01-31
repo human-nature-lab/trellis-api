@@ -129,20 +129,28 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $page = 0;
-        $pageSize = 200;
-        do {
-            $batch = Survey::whereNull('survey.deleted_at')
-                ->where('form_id', '=', $this->formId)
-                ->limit($pageSize)
-                ->offset($page * $pageSize)
-                ->get();
-            $batchCount = $batch->count();
-            Log::info("Processing $batchCount surveys");
-            $this->processBatch($batch, $questions, $questionsMap);
-            $page++;
-            $mightHaveMore = $batch->count() > 0;
-        } while ($mightHaveMore);
+        $q = Survey::where('form_id', '=', $this->formId)
+            ->leftJoin('respondent_geo as rg', function ($join) {
+                $join->on('rg.respondent_id', '=', 'survey.respondent_id');
+                $join->on('rg.is_current', '=', DB::raw('1'));
+            })
+            ->leftJoin('geo', 'geo.id', '=', 'rg.geo_id')
+            ->leftJoin('translation_text as tt', function ($join) {
+                $join->on('tt.translation_id', '=', 'geo.name_translation_id');
+                $join->on('tt.locale_id', '=', DB::raw('"'.$this->localeId.'"'));
+            })
+            ->select(
+                'survey.*',
+                'rg.id as rg_id',
+                'rg.geo_id as current_location_id',
+                'tt.translated_text as current_location_name'
+            );
+
+        $q->chunk(200, function ($surveys) use ($questions, $questionsMap) {
+            $count = $surveys->count();
+            Log::info("Processing $count surveys");
+            $this->processBatch($surveys, $questions, $questionsMap);
+        });
 
         ReportService::saveFileStream($this->report, $fileName);
         ReportService::saveMetaFile($this->report, $this->metaRows);
@@ -156,6 +164,8 @@ class FormReportJob extends Job
         $this->defaultColumns = [
             'id' => 'survey_id',
             'respondent_id' => 'respondent_master_id',
+            'current_location_id' => 'current_location_id',
+            'current_location_name' => 'current_location_name',
             'created_at' => 'created_at',
             'completed_at' => 'completed_at'
         ];
@@ -163,8 +173,8 @@ class FormReportJob extends Job
         $headers = [];
 
         $expandRespondentGeo = function ($baseKey, $baseName) use (&$headers) {
-            $headers[$baseKey . '_id'] = $baseName . '_id';
-            $headers[$baseKey . '_name'] = $baseName . '_name';
+            $headers[$baseKey . '_ids'] = $baseName . '_ids';
+            $headers[$baseKey . '_actions'] = $baseName . '_actions';
         };
 
         $expandMultiSelect = function ($baseKey, $baseName, $choices) use (&$headers) {
@@ -240,8 +250,13 @@ class FormReportJob extends Job
         $rows = [];
         foreach ($surveys as $survey) {
             $row = $this->formatSurveyData($survey, $questions, $questionsMap);
-            foreach($this->defaultColumns as $key=>$name){
+            foreach($this->defaultColumns as $key => $name){
                 $row[$key] = $survey->$key;
+            }
+            // Show a different value for the Unknown location besides null
+            if (!is_null($survey['rg_id']) && is_null($survey['current_location_id'])) {
+                $row['current_location_name'] = 'UNKNOWN LOCATION';
+                $row['current_location_id'] = 'UNKNOWN LOCATION';
             }
             array_push($rows, $row);
         }
@@ -288,7 +303,7 @@ class FormReportJob extends Job
                 }
                 break;
             case 'respondent_geo':
-                $keys = [$baseKey . '_id', $baseKey . '_name'];
+                $keys = [$baseKey . '_ids', $baseKey . '_actions'];
             default:
                 foreach ($keys as $key) {
                     $this->metaRows[$this->headers[$key]] = [
@@ -402,26 +417,26 @@ class FormReportJob extends Job
 
                     break;
                 case 'respondent_geo':
-                    $idKey = $baseKey . '_id';
-                    $nameKey = $baseKey . '_name';
+                    $idKey = $baseKey . '_ids';
+                    $actionKey = $baseKey . '_actions';
                     if (!isset($this->headers[$idKey])) {
                         throw new Exception("Header $idKey should already be defined");
-                    } else if (!isset($this->headers[$nameKey])) {
-                        throw new Exception("Header $nameKey should already be defined");
+                    } else if (!isset($this->headers[$actionKey])) {
+                        throw new Exception("Header $actionKey should already be defined");
                     }
                     if (!is_null($qd->dk_rf)) {
                         $row[$idKey] = $qd->dk_rf ? 'DK' : 'RF';
-                        $row[$nameKey] = $qd->dk_rf ? 'DK' : 'RF';
+                        $row[$actionKey] = $qd->dk_rf ? 'DK' : 'RF';
                         $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
                     } else {
                         $ids = [];
-                        $names = [];
+                        $actions = [];
                         foreach ($qd->fullData as $datum) {
-                            array_push($ids, isset($datum->respondentGeo) ? $datum->respondentGeo->geo_id : '');
-                            array_push($names, $this->getDatumValue($datum, $this->localeId));
+                            array_push($ids, $datum->respondent_geo_id);
+                            array_push($actions, $datum->val);
                         }
                         $row[$idKey] = $ids;
-                        $row[$nameKey] = $names;
+                        $row[$actionKey] = $actions;
                     }
                     break;
                 default:
