@@ -275,6 +275,7 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->get('study/{study_id}/reports/latest',                             'ReportController@getLatestStudyReports');
         $router->post('study/{study_id}/reports/dispatch',                          'ReportController@dispatchReports');
         $router->get('study/{study_id}/reports/download',                           'ReportController@downloadReports');
+        $router->get('study/{study_id}/reports/{r_ids}',                            'ReportController@getReports');
         $router->get('report/completed',                                            'ReportController@getAllSavedReports');
         $router->get('report/download/{file_name}',                                 'ReportController@downloadFile');
         $router->post('report/form/{form_id}',                                      'ReportController@dispatchFormReport');
