@@ -21,6 +21,7 @@ class GeoReportJob extends Job
     private $file = null;
     private $traverseGeoTree;
     private $headers;
+    private $config;
     protected $numParentsKey = 'numParents';
 
     /**
@@ -29,9 +30,10 @@ class GeoReportJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $fileId, $config)
     {
         Log::debug("GeoReportJob - constructing: $studyId");
+        $this->config = $config;
         $this->studyId = $studyId;
         $this->report = new Report();
         $this->report->id = $fileId;
@@ -85,7 +87,7 @@ class GeoReportJob extends Job
 
     public function create(){
 
-        $this->localeId = ReportService::extractLocaleId(null, $this->studyId);
+        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
 
         $this->makeHeaders();
 

@@ -28,7 +28,7 @@ class MakeReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms}';
+    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms} {--locale=}';
 
     /**
      * The console command description.
@@ -59,8 +59,9 @@ class MakeReports extends Command
         $remainingJobIds = [];
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
+        $localeId = $this->option('locale') ?: '48984fbe-84d4-11e5-ba05-0800279114ca';
         if (!isset($study)) {
-            throw Error('Study id must be valid');
+            throw Exception('Study id must be valid');
         }
         $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
 
@@ -68,7 +69,9 @@ class MakeReports extends Command
             foreach ($mainJobConstructors as $constructor){
                 $reportId = Uuid::uuid4();
                 array_push($remainingJobIds, $reportId);
-                $reportJob = new $constructor($studyId, $reportId, new \stdClass());
+                $config = new \stdClass();
+                $config->localeId = $localeId;
+                $reportJob = new $constructor($studyId, $reportId, $config);
                 $reportJob->handle();
                 $this->info("Queued $constructor");
             }
