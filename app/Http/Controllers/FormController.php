@@ -467,29 +467,26 @@ class FormController extends Controller
         ]);
     }
 
-    public function removeForm($id)
+    public function removeForm($studyId, $formId)
     {
-        $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36|exists:form,id']
-        );
+        $validator = Validator::make([
+            'formId' => $formId,
+            'studyId' => $studyId
+        ], [
+            'formId' => 'required|string|min:36|exists:form,id',
+            'studyId' => 'string|min:36|exists:study,id'
+        ]);
 
         if ($validator->fails() === true) {
             return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
+                'msg' => $validator->errors()
             ], $validator->statusCode());
         }
 
-        $formModel = Form::find($id);
-
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource was not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $formModel->delete();
+        DB::transaction(function () use ($formId, $studyId) {
+            StudyForm::where('study_id', $studyId)->where('form_id', $formId)->destroy();
+            Form::destroy($formId);
+        });
 
         return response()->json();
     }
