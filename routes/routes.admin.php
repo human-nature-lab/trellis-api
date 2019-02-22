@@ -41,11 +41,11 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->put('study/{study_id}/form/{form_id}',                             'FormController@updateStudyForm');
         $router->get('study/{studyId}/form',                                        'FormController@getAllStudyForms');
         $router->get('form/{id}',                                                   'FormController@getForm');
-        $router->delete('form/{id}',                                                'FormController@removeForm');
-        $router->post('form/{id}',                                                  'FormController@updateForm');
-        $router->post('form/{form_master_id}/publish',                              'FormController@publishForm');
+        $router->delete('study/{study_id}/form/{id}',                               'FormController@removeForm');
+        $router->put('form/{id}',                                                   'FormController@updateForm');
+        $router->put('form/{form_master_id}/publish',                               'FormController@publishForm');
         $router->get('form',                                                        'FormController@getAllForms');
-        $router->put('form',                                                        'FormController@createForm');
+        $router->post('form',                                                       'FormController@createForm');
         $router->patch('form/reorder',                                              'FormController@reorderForms');
         $router->get('study/{studyId}/form/{formId}/master/{formMasterId}/edit',    'FormController@editFormPrep');
         $router->post('study/{studyId}/form/import',                                'FormController@importForm');
@@ -181,12 +181,14 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 
 
         //* Skip Controller Routes *//
-        $router->put('form/skip/',                                          'SkipController@createSkipGeneralized');
         $router->put('form/section/group/skip/',                            'SkipController@createQuestionGroupSkip');
-        $router->post('form/section/group/skip/{id}',                       'SkipController@updateQuestionGroupSkip');
+        $router->post('form/section/group/skip/{id}',                       'SkipController@updateSkip');
         $router->delete('form/section/group/skip/{id}',                     'SkipController@deleteQuestionGroupSkip');
         $router->get('form/section/group/skip/',                            'SkipController@getAllQuestionGroupSkips');
 
+        $router->post('form/{form_id}/skip',                                'SkipController@createFormSkip');
+        $router->put('skip/{skip_id}',                                      'SkipController@updateSkip');
+        $router->delete('form/{form_id}/skip/{skip_id}',                    'SkipController@deleteFormSkip');
 
 
         //* Question Controller Routes *//
