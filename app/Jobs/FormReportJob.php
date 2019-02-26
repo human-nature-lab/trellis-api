@@ -56,6 +56,7 @@ class FormReportJob extends Job
 
     public function handle()
     {
+        set_time_limit(300);
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
@@ -128,20 +129,28 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $page = 0;
-        $pageSize = 200;
-        do {
-            $batch = Survey::whereNull('survey.deleted_at')
-                ->where('form_id', '=', $this->formId)
-                ->limit($pageSize)
-                ->offset($page * $pageSize)
-                ->get();
-            $batchCount = $batch->count();
-            Log::info("Processing $batchCount surveys");
-            $this->processBatch($batch, $questions, $questionsMap);
-            $page++;
-            $mightHaveMore = $batch->count() > 0;
-        } while ($mightHaveMore);
+        $q = Survey::where('form_id', '=', $this->formId)
+            ->leftJoin('respondent_geo as rg', function ($join) {
+                $join->on('rg.respondent_id', '=', 'survey.respondent_id');
+                $join->on('rg.is_current', '=', DB::raw('1'));
+            })
+            ->leftJoin('geo', 'geo.id', '=', 'rg.geo_id')
+            ->leftJoin('translation_text as tt', function ($join) {
+                $join->on('tt.translation_id', '=', 'geo.name_translation_id');
+                $join->on('tt.locale_id', '=', DB::raw('"'.$this->localeId.'"'));
+            })
+            ->select(
+                'survey.*',
+                'rg.id as rg_id',
+                'rg.geo_id as current_location_id',
+                'tt.translated_text as current_location_name'
+            );
+
+        $q->chunk(200, function ($surveys) use ($questions, $questionsMap) {
+            $count = $surveys->count();
+            Log::info("Processing $count surveys");
+            $this->processBatch($surveys, $questions, $questionsMap);
+        });
 
         ReportService::saveFileStream($this->report, $fileName);
         ReportService::saveMetaFile($this->report, $this->metaRows);
@@ -155,6 +164,8 @@ class FormReportJob extends Job
         $this->defaultColumns = [
             'id' => 'survey_id',
             'respondent_id' => 'respondent_master_id',
+            'current_location_id' => 'current_location_id',
+            'current_location_name' => 'current_location_name',
             'created_at' => 'created_at',
             'completed_at' => 'completed_at'
         ];
@@ -162,11 +173,12 @@ class FormReportJob extends Job
         $headers = [];
 
         $expandRespondentGeo = function ($baseKey, $baseName) use (&$headers) {
-            $headers[$baseKey . '_id'] = $baseName . '_id';
-            $headers[$baseKey . '_name'] = $baseName . '_name';
+            $headers[$baseKey . '_ids'] = $baseName . '_ids';
+            $headers[$baseKey . '_actions'] = $baseName . '_actions';
         };
 
         $expandMultiSelect = function ($baseKey, $baseName, $choices) use (&$headers) {
+            $headers[$baseKey] = $baseName;
             foreach ($choices as $choice) {
                 $key = $baseKey . '_' . $choice->id;
                 $headers[$key] = $baseName . '_' . $choice->val;
@@ -196,12 +208,9 @@ class FormReportJob extends Job
                 ->distinct();
                 $repetitions = $q->get();
                 $repetitions = $repetitions->count();
-                if ($repetitions > 0) {
-                    for ($i = 0; $i < $repetitions; $i++) {
-                        $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
-                    }
-                } else {
-                    $assignQuestionHeaders($baseKey, $baseName, $question);
+                $repetitions = $repetitions === 0 ? 1 : $repetitions;
+                for ($i = 0; $i < $repetitions; $i++) {
+                    $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
                 }
             } else {
                 $assignQuestionHeaders($baseKey, $baseName, $question);
@@ -241,8 +250,13 @@ class FormReportJob extends Job
         $rows = [];
         foreach ($surveys as $survey) {
             $row = $this->formatSurveyData($survey, $questions, $questionsMap);
-            foreach($this->defaultColumns as $key=>$name){
+            foreach($this->defaultColumns as $key => $name){
                 $row[$key] = $survey->$key;
+            }
+            // Show a different value for the Unknown location besides null
+            if (!is_null($survey['rg_id']) && is_null($survey['current_location_id'])) {
+                $row['current_location_name'] = 'UNKNOWN LOCATION';
+                $row['current_location_id'] = 'UNKNOWN LOCATION';
             }
             array_push($rows, $row);
         }
@@ -289,7 +303,7 @@ class FormReportJob extends Job
                 }
                 break;
             case 'respondent_geo':
-                $keys = [$baseKey . '_id', $baseKey . '_name'];
+                $keys = [$baseKey . '_ids', $baseKey . '_actions'];
             default:
                 foreach ($keys as $key) {
                     $this->metaRows[$this->headers[$key]] = [
@@ -335,8 +349,6 @@ class FormReportJob extends Job
                 $i++;
             }
         }
-        $count = $questionDatum->count();
-        Log::info("pre filter: $count");
 
         // Filter out questionDatum that are from deleted datum
         $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
@@ -344,9 +356,6 @@ class FormReportJob extends Job
             $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
             return $keep;
         });
-
-        $count = $questionDatum->count();
-        Log::info("post filter: $count");
 
         // Index the question order
         $questionOrderMap = [];
@@ -365,7 +374,6 @@ class FormReportJob extends Job
         $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap, $datumMap) {
             if ($a->question_id === $b->question_id) {
                 if (isset($a->follow_up_datum_id) && isset($b->follow_up_datum_id)) {
-                    Log::info('follow up question found '. $a->id);
                     return $datumMap[$a->follow_up_datum_id]->repeat_index - $datumMap[$b->follow_up_datum_id]->repeat_index;
                 } else {
                     return $a->section_repetition - $b->section_repetition;
@@ -409,26 +417,26 @@ class FormReportJob extends Job
 
                     break;
                 case 'respondent_geo':
-                    $idKey = $baseKey . '_id';
-                    $nameKey = $baseKey . '_name';
+                    $idKey = $baseKey . '_ids';
+                    $actionKey = $baseKey . '_actions';
                     if (!isset($this->headers[$idKey])) {
                         throw new Exception("Header $idKey should already be defined");
-                    } else if (!isset($this->headers[$nameKey])) {
-                        throw new Exception("Header $nameKey should already be defined");
+                    } else if (!isset($this->headers[$actionKey])) {
+                        throw new Exception("Header $actionKey should already be defined");
                     }
                     if (!is_null($qd->dk_rf)) {
                         $row[$idKey] = $qd->dk_rf ? 'DK' : 'RF';
-                        $row[$nameKey] = $qd->dk_rf ? 'DK' : 'RF';
+                        $row[$actionKey] = $qd->dk_rf ? 'DK' : 'RF';
                         $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
                     } else {
                         $ids = [];
-                        $names = [];
+                        $actions = [];
                         foreach ($qd->fullData as $datum) {
-                            array_push($ids, isset($datum->respondentGeo) ? $datum->respondentGeo->geo_id : '');
-                            array_push($names, $this->getDatumValue($datum, $this->localeId));
+                            array_push($ids, $datum->respondent_geo_id);
+                            array_push($actions, $datum->val);
                         }
                         $row[$idKey] = $ids;
-                        $row[$nameKey] = $names;
+                        $row[$actionKey] = $actions;
                     }
                     break;
                 default:
