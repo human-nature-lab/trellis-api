@@ -74,36 +74,34 @@ class EdgeReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $page = 0;
-        $batchSize = 200;
-        do {
-            $edges = Edge::leftJoin('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
-                ->leftJoin('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
-                ->leftJoin('datum', 'datum.edge_id', '=', 'edge.id')
-                ->leftJoin('question_datum', 'datum.question_datum_id', '=', 'question_datum.id')
-                ->leftJoin('question', 'question.id', '=', 'question_datum.question_id')
-                ->leftJoin('survey', 'survey.id', '=', 'question_datum.survey_id')
-                ->where('survey.study_id', '=', $this->studyId)
-                ->select(
-                    'edge.id',
-                    'sourceR.id as sId',
-                    'targetR.id as tId',
-                    'sourceR.name as sName',
-                    'targetR.name as tName',
-                    'question.var_name',
-                    'survey.updated_at',
-                    'question_datum.dk_rf',
-                    'question_datum.dk_rf_val'
-                )
-                ->take($batchSize)
-                ->skip($page * $batchSize)
-                ->orderBy('edge.created_at', 'asc')
-                ->distinct()
-                ->get();
-            $this->file->writeRows($edges);
-            $page++;
-            $mightHaveMore = $edges->count() > 0;
-        } while ($mightHaveMore);
+        Edge::leftJoin('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
+            ->leftJoin('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
+            ->leftJoin('datum', 'datum.edge_id', '=', 'edge.id')
+            ->leftJoin('question_datum', 'datum.question_datum_id', '=', 'question_datum.id')
+            ->leftJoin('question', 'question.id', '=', 'question_datum.question_id')
+            ->leftJoin('survey', 'survey.id', '=', 'question_datum.survey_id')
+            ->where('survey.study_id', '=', $this->studyId)
+            ->select(
+                'edge.id',
+                'sourceR.id as sId',
+                'targetR.id as tId',
+                'sourceR.name as sName',
+                'targetR.name as tName',
+                'question.var_name',
+                'survey.updated_at',
+                'question_datum.dk_rf',
+                'question_datum.dk_rf_val',
+                'question_datum.survey_id'
+            )->chunk(200, function ($edges) {
+                $e = $edges->map(function ($m) {
+                    $dk = 'dk_rf';
+                    if (!is_null($m[$dk])) {
+                        $m[$dk] = $m[$dk] === 1 ? 'Dont_know': 'Refused';
+                    }
+                    return $m;
+                });
+                $this->file->writeRows($e);
+            });
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
@@ -119,7 +117,8 @@ class EdgeReportJob extends Job
             'var_name' => 'question',
             'updated_at' => 'survey_updated_at',
             'dk_rf' => "question_dk_rf",
-            'dk_rf_val' => "question_dk_rf_response"
+            'dk_rf_val' => "question_dk_rf_response",
+            'survey_id' => 'survey_id'
         ];
     }
 }
