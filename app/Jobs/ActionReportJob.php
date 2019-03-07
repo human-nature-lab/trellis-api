@@ -35,6 +35,7 @@ class ActionReportJob extends Job
 
     public function handle()
     {
+        set_time_limit(60 * 15);
         $startTime = microtime(true);
         Log::debug("ActionReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -75,13 +76,13 @@ class ActionReportJob extends Job
         $q = Action::join('interview', 'interview.id', '=', 'action.interview_id')
             ->join('survey', 'interview.survey_id', '=', 'survey.id')
             ->where('survey.study_id', '=', $this->studyId)
-            ->select('action.*')
+            ->select('action.*', 'interview.survey_id')
             ->orderBy('action.created_at');
 
-        $q->chunk(200, function ($actions) {
-            $actions = $actions->toArray();
-            $this->file->writeRows($actions);
-        });
+        foreach ($q->cursor() as $action) {
+            $actionRow = $action->toArray();
+            $this->file->writeRow($actionRow);
+        }
         ReportService::saveFileStream($this->report, $fileName);
 
     }
