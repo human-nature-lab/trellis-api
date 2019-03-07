@@ -133,6 +133,8 @@ class SyncControllerV2 extends Controller
           ->join('device', function ($join) {
               $join->on('upload.device_id', '=', 'device.device_id');
           })
+          ->orderBy('created_at', 'desc')
+          ->limit(150)
           ->get();
 
         return response()->json(
