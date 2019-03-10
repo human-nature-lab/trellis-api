@@ -94,6 +94,7 @@ class FormReportJob extends Job
             'question' => 'question',
             'survey_id' => 'survey_id',
             'respondent_id' => 'respondent_id',
+            'type' => 'type',
             'text' => 'response'
         ];
 
@@ -412,7 +413,7 @@ class FormReportJob extends Job
                     }
 
                     if (!is_null($qd->dk_rf)) {
-                        $this->addNote($this->headers[$baseKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                        $this->addNote($this->headers[$baseKey], $survey, $qd->dk_rf ? 'DK' : 'RF', $qd->dk_rf_val);
                     }
 
                     break;
@@ -446,8 +447,9 @@ class FormReportJob extends Job
                     }
                     $vals = [];
                     if (isset($qd->dk_rf)) {
-                        array_push($vals, $qd->dk_rf ? 'DK' : 'RF');
-                        $this->addNote($this->headers[$key], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                        $dkRf = $qd->dk_rf ? 'DK' : 'RF';
+                        array_push($vals, $dkRf);
+                        $this->addNote($this->headers[$key], $survey, $dkRf, $qd->dk_rf_val);
                     } else {
                         foreach ($qd->fullData as $datum) {
                             array_push($vals, $this->getDatumValue($datum, $this->localeId));
@@ -464,7 +466,7 @@ class FormReportJob extends Job
 
     }
 
-    private function addNote($questionName, $survey, $type, $text){
+    private function addNote ($questionName, $survey, $type, $text){
         array_push($this->notesRows, [
             'question' => $questionName,
             'survey_id' => $survey->id,
