@@ -33,8 +33,8 @@ class TimingReportJob extends Job
         $this->report->save();
     }
 
-    public function handle()
-    {
+    public function handle () {
+        set_time_limit(60 * 15);
         $startTime = microtime(true);
         Log::debug("TimingReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -88,8 +88,6 @@ class TimingReportJob extends Job
             ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
             ->where('survey.study_id', '=', $study->id)
             ->orderBy('survey.respondent_id')
-            ->orderBy('survey.id')
-            ->orderBy('question_datum.created_at', 'asc')
             ->select(
                 "interview.id as interview_id",
                 "question_datum.survey_id",
@@ -107,10 +105,10 @@ class TimingReportJob extends Job
 
         Log::debug($q->toSql());
 
-        $q->chunk(1000, function ($datum) {
+        foreach ($q->cursor() as $datum) {
             $datum = $datum->toArray();
-            $this->file->writeRows($datum);
-        });
+            $this->file->writeRow($datum);
+        }
 
         ReportService::saveFileStream($this->report, $fileName);
 

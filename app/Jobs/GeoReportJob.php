@@ -64,7 +64,7 @@ class GeoReportJob extends Job
      */
     public function handle()
     {
-        set_time_limit(170);
+        set_time_limit(60 * 10);
         $startTime = microtime(true);
         Log::debug("GeoReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -99,18 +99,12 @@ class GeoReportJob extends Job
         $this->file->writeHeader();
 
         // Run this until we've grabbed all of the existing geos
-        $page = 0;
-        $pageSize = 3000;
-        do {
-            $geos = Geo::whereNull('geo.deleted_at')
-                ->limit($pageSize)
-                ->offset($page * $pageSize)
-                ->with('nameTranslation', 'geoType')
-                ->get();
+        $q = Geo::whereNull('geo.deleted_at')->with('nameTranslation', 'geoType');
+
+        foreach ($q->cursor() as $geo) {
+            $geos = [$geo];
             $this->processBatch($geos);
-            $page++;
-            $mightHaveMore = $geos->count() > 0;
-        } while ($mightHaveMore);
+        }
 
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
