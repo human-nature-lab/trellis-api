@@ -124,18 +124,36 @@ class SyncControllerV2 extends Controller
         return response()->download($file, $snapshot->file_name, $headers);
     }
 
-    public function listUploads()
+    public function listUploads(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'nullable|number',
+            'page' => 'nullable|integer',
+            'orderBy' => 'nullable|string',
+            'direction' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $limit = $request->get('limit', 500);
+        $page = $request->get('page', 0);
+        $orderBy = $request->get('orderBy', 'created_at');
+        $direction = $request->get('direction', 1);
         // This method doesn't work if the case of the device_id varies between tables
         // $uploads = Upload::with('device')->get();
         $uploads = DB::table('upload')
-          ->select('upload.*', 'device.name as device_name')
-          ->join('device', function ($join) {
-              $join->on('upload.device_id', '=', 'device.device_id');
-          })
-          ->orderBy('created_at', 'desc')
-          ->limit(150)
-          ->get();
+            ->select('upload.*', 'device.name as device_name')
+            ->join('device', function ($join) {
+                $join->on('upload.device_id', '=', 'device.device_id');
+            })
+            ->orderBy($orderBy, $direction ? 'desc' : 'asc')
+            ->take($limit)
+            ->skip($page * $limit)
+            ->get();
 
         return response()->json(
             ['uploads' => $uploads],
