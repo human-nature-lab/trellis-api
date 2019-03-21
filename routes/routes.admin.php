@@ -45,7 +45,7 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->put('form/{id}',                                                   'FormController@updateForm');
         $router->put('form/{form_master_id}/publish',                               'FormController@publishForm');
         $router->get('form',                                                        'FormController@getAllForms');
-        $router->post('form',                                                       'FormController@createForm');
+        $router->post('study/{study_id}/form',                                      'FormController@createForm');
         $router->patch('form/reorder',                                              'FormController@reorderForms');
         $router->get('study/{studyId}/form/{formId}/master/{formMasterId}/edit',    'FormController@editFormPrep');
         $router->post('study/{studyId}/form/import',                                'FormController@importForm');
