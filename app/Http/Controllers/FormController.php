@@ -367,16 +367,7 @@ class FormController extends Controller
         $studyModel = Study::find($studyId);
         $forms = $studyModel->forms()->get();
 
-        //$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
-
-        /*
-        $forms = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
-            ->join('translation_text AS tt', 'tt.translation_id', '=', 'form.name_translation_id')
-            ->join('study_form AS sf', 'sf.form_master_id', '=', 'form.form_master_id')
-            ->where('sf.study_id', $studyId)
-            ->where('tt.locale_id', $localeId)
-            ->get();
-        */
+//        $q = StudyForm::where('study_id', $studyId)->with('form')->get();
 
         return response()->json(
             ['forms' => $forms],
@@ -491,9 +482,9 @@ class FormController extends Controller
         return response()->json();
     }
 
-    public function createForm(Request $request, FormService $formService)
+    public function createForm(Request $request, $studyId)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(array_merge($request->all(), ['study_id' => $studyId]), [
             'name' => 'nullable|string',
             'study_id' => 'required|string|min:36|exists:study,id',
             'form_type' => 'integer|min:0|max:255'
@@ -507,12 +498,12 @@ class FormController extends Controller
         }
 
         $formName = ($request->input('name') == null) ? "" : $request->input('name');
-        $studyId = $request->input('study_id');
+        $formType = $request->get('form_type');
 
         $newFormModel = FormService::createFormWithStudyForm(
             $formName,
             $studyId,
-            $request->input('form_type')
+            $formType
         );
 
         if ($newFormModel === null) {
@@ -1052,8 +1043,6 @@ class FormController extends Controller
                    }
                 })
                 ->with('studyForm', 'nameTranslation', 'skips');
-
-        Log::debug($q->toSql());
 
         return response()->json([
             'forms' => $q->get()
