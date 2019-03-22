@@ -710,6 +710,8 @@ class RespondentController extends Controller
 
     public function removeRespondent($id)
     {
+        $id = urldecode($id);
+
         $validator = Validator::make(
             ['respondentId' => $id],
             ['respondentId' => 'required|string|min:36|exists:respondent,id']
