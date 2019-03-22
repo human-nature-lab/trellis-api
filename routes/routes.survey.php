@@ -76,6 +76,7 @@ $router->group([
         $router->post('geo',                                    'RespondentGeoController@createRespondentGeo');
         $router->post('geo/{respondent_geo_id}/move',           'RespondentGeoController@moveRespondentGeo');
         $router->delete('geo/{respondent_geo_id}',              'RespondentGeoController@deleteRespondentGeo');
+        $router->put('geo/{respondent_geo_id}',                 'RespondentGeoController@editRespondentGeo');
         $router->post('condition-tag/{c_id}',                   'ConditionTagController@createRespondentConditionTag');
         $router->delete('condition-tag/{condition_tag_id}',     'ConditionTagController@deleteRespondentConditionTag');
     });
