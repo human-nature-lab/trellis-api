@@ -93,10 +93,8 @@ previous step.*
 ### Install PHP
 
 ```
-$ sudo apt install php-fpm php-mysql
-$ sudo apt install php-gmp
-$ sudo apt install php-mbstring
-$ sudo apt install php-dom
+$ sudo apt install php-fpm php-mysql php-gmp php-mbstring php-dom php-cli
+$ sudo apt install php-dev php-xml php-zip php-json php-curl php-pear
 ```
 
 ------
@@ -148,6 +146,12 @@ save and exit.
 ```
 $ sudo chown -R "$USER":www-data /var/www
 $ sudo chmod -R 755 /var/www
+```
+
+### Run the database migrations
+```
+$ cd /var/www/trellis-api
+$ php artisan migrate --seed
 ```
 
 
