@@ -1,21 +1,23 @@
-# Lumen PHP Framework
+# Trellis API
+The Trellis API survey is built on an API optimized version of Laravel called Lumen.
 
-[![Build Status](https://travis-ci.org/laravel/lumen-framework.svg)](https://travis-ci.org/laravel/lumen-framework)
-[![Total Downloads](https://poser.pugx.org/laravel/lumen-framework/d/total.svg)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Stable Version](https://poser.pugx.org/laravel/lumen-framework/v/stable.svg)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Unstable Version](https://poser.pugx.org/laravel/lumen-framework/v/unstable.svg)](https://packagist.org/packages/laravel/lumen-framework)
-[![License](https://poser.pugx.org/laravel/lumen-framework/license.svg)](https://packagist.org/packages/laravel/lumen-framework)
 
-Laravel Lumen is a stunningly fast PHP micro-framework for building web applications with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Lumen attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as routing, database abstraction, queueing, and caching.
+## Development
 
-## Official Documentation
+### Debugging
 
-Documentation for the framework can be found on the [Lumen website](http://lumen.laravel.com/docs).
+#### Command line
+Use the `-dxdebug.remote_autostart` option from the command line to start the debugger.
 
-## Security Vulnerabilities
+Ex.
 
-If you discover a security vulnerability within Lumen, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
+    php7.1 -dxdebug.remote_autostart trellis:make:reports {study_id}
 
-## License
+### Profiling
+From the command line you can start the profiling using the `-dxdebug.profiler_enable` option. 
 
-The Lumen framework is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)
+Ex
+
+    php7.1 -dxdebug.profiler_enable -dxdebug.extended_info=0 {study_id
+       
+The `-dxdebug.extended_info=0` command limits the amount of data written to the profile dump and reduces the performance overhead caused by profiling.
