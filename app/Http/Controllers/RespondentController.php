@@ -232,9 +232,9 @@ class RespondentController extends Controller
 
         return response()->json(
             ['respondents' => $respondents,
-             'count' => $count,
-             'limit' => $limit,
-             'offset' => $offset],
+                'count' => $count,
+                'limit' => $limit,
+                'offset' => $offset],
             Response::HTTP_OK
         );
     }
@@ -245,7 +245,7 @@ class RespondentController extends Controller
      * @return array
      */
     private static function getChildGeos ($geos) {
-        $parentGeos = array_merge([], $geos);
+        $parentGeos = array_replace([], $geos);
         $moreChildren = true;
         $c = 0;
         while ($moreChildren && $c < 10) {
@@ -254,7 +254,7 @@ class RespondentController extends Controller
             $children = Geo::select('geo.id', 'geo_type.can_contain_respondent')->join('geo_type', 'geo.geo_type_id', '=', 'geo_type.id')->whereIn('geo.parent_id', $parentGeos)->get();
             if (count($children) > 0) {
                 $moreChildren = true;
-                $geos = array_merge($geos, $children->filter(function ($c) {return $c->can_contain_respondent;})->reduce(function ($arr, $c) {
+                $geos = array_replace($geos, $children->filter(function ($c) {return $c->can_contain_respondent;})->reduce(function ($arr, $c) {
                     array_push($arr, $c->id);
                     return $arr;
                 }, []));
@@ -283,18 +283,21 @@ class RespondentController extends Controller
         $validator = Validator::make([
             'studyId' => $studyId,
             'associatedRespondent' => $request->get('associated_respondent_id'),
-            'limit' => $request->get('limit'),
-            'offset' => $request->get('offset')
+            'page' => $request->get('page'),
+            'size' => $request->get('size'),
+            'seed' => $request->get('seed')
         ], [
             'studyId' => 'required|string|min:36|exists:study,id',
             'associatedRespondent' => 'nullable|string|min:36|exists:respondent,id',
-            'limit' => 'nullable|integer|max:200|min:0',
-            'offset' => 'nullable|integer|min:0'
+            'page' => 'nullable|integer|min:0',
+            'size' => 'nullable|integer|min:0|max:200',
+            'seed' => 'nullable|integer|min:0'
         ]);
 
         // Default to limit = 50 and offset = 0
-        $limit = $request->input('limit', 50);
-        $offset = $request->input('offset', 0);
+        $page = $request->get('page', 0);
+        $size = $request->get('size', $request->get('limit', 50));
+        $seed = $request->get('seed', rand());
         $associatedRespondentId = $request->get('associated_respondent_id');
 
         if ($validator->fails() === true) {
@@ -304,7 +307,6 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        DB::enableQueryLog();
         $respondentQuery = Respondent::whereRaw('`respondent`.`id` in (select respondent_id from study_respondent where study_id = ?)', [$studyId])
             ->with('photos', 'respondentConditionTags', 'names');
 
@@ -328,7 +330,6 @@ class RespondentController extends Controller
                 }, '=', count($tagNames));
         }
 
-        // TODO: Make this include any children on the parent geo ids
         // Add geo id filter
         $respondentQuery->where(function ($q) use ($geos, $includeChildren, $associatedRespondentId, $orConditionTags) {
             $q->where(function ($gq) use ($geos, $includeChildren) {
@@ -354,19 +355,20 @@ class RespondentController extends Controller
         });
 
         if ($randomize) {
-            $respondentQuery = $respondentQuery->inRandomOrder();
+            $respondentQuery = $respondentQuery->inRandomOrder($seed);
         }
 
-        $respondents = $respondentQuery->limit($limit)->offset($offset)->get();
-        $currentQuery = DB::getQueryLog();
-        // Log::info(json_encode($currentQuery));
-        DB::disableQueryLog();
+        $skip = $page * $size;
+        $respondents = $respondentQuery->take($size)->skip($skip)->get();
+
         return response()->json(
-            ['respondents' => $respondents,
-                'count' => count($respondents),
-                'limit' => $limit,
-                'offset' => $offset],
-            Response::HTTP_OK
+            [
+                'data' => $respondents,
+                'seed' => $seed,
+                'total' => 0,
+                'page' => $page,
+                'size' => $size
+            ],Response::HTTP_OK
         );
     }
 
@@ -708,6 +710,8 @@ class RespondentController extends Controller
 
     public function removeRespondent($id)
     {
+        $id = urldecode($id);
+
         $validator = Validator::make(
             ['respondentId' => $id],
             ['respondentId' => 'required|string|min:36|exists:respondent,id']
