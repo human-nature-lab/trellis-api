@@ -375,13 +375,14 @@ class FormController extends Controller
         );
     }
 
-    public function updateForm(Request $request, $id)
+    public function updateForm(Request $request, $formId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'formId' => $formId
         ]), [
-            'id' => 'required|string|min:36',
+            'formId' => 'string|min:36|exists:form,id',
             'form_master_id' => 'nullable|string|min:36|exists:form,id',
+            'is_published' => 'boolean',
             'name_translation_id' => 'nullable|string|min:36|exists:translation,id'
         ]);
 
@@ -392,15 +393,16 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        $formModel = Form::find($id);
+        $formModel = Form::find($formId);
 
         $formModel->fill($request->all());
         $formModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'form' => $formModel
         ], Response::HTTP_OK);
     }
+
 
     public function updateStudyForm (Request $request, $studyId, $formId) {
         $validator = Validator::make(array_merge($request->all(), [
