@@ -223,8 +223,11 @@ class ReportService {
             }
         }
 
-        if (is_null($text)) {
-            $text = $translation->translationText[0]->translated_text;
+        if (is_null($text) || strlen($text) === 0) {
+            $tt = $translation->translationText[0];
+            $locale = $tt->locale;
+            $languageTag = $locale->language_tag;
+            $text = $tt->translated_text . " ($languageTag)";
         }
 
         return $text;
