@@ -108,9 +108,9 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         //* Device Controller Routes *//
         $router->get('device/{id}',                                     'DeviceController@getDevice');
         $router->delete('device/{id}',                                  'DeviceController@removeDevice');
-        $router->post('device/{id}',                                    'DeviceController@updateDevice');
+        $router->put('device/{id}',                                     'DeviceController@updateDevice');
         $router->get('device',                                          'DeviceController@getAllDevices');
-        $router->put('device',                                          'DeviceController@createDevice');
+        $router->post('device',                                         'DeviceController@createDevice');
 
 
 
