@@ -81,8 +81,8 @@ class DeviceController extends Controller
     public function createDevice(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'id' => 'required|string|min:1|max:255',
-            'name' => 'required|string|min:1|max:255'
+            'device_id' =>  'string|min:1|max:255',
+            'name' =>       'string|min:1|max:255'
         ]);
 
         if ($validator->fails() === true) {
@@ -92,12 +92,11 @@ class DeviceController extends Controller
             ], $validator->statusCode());
         }
 
-        $id = Uuid::uuid4();
-        $deviceName = $request->input('name');
-        $deviceId = $request->input('id');
+        $deviceName = $request->get('name');
+        $deviceId = $request->get('device_id');
 
         $newDeviceModel = new Device;
-        $newDeviceModel->id = $id;
+        $newDeviceModel->id = Uuid::uuid4();
         $newDeviceModel->name = $deviceName;
         $newDeviceModel->device_id = $deviceId;
         $newDeviceModel->save();
@@ -136,6 +135,7 @@ class DeviceController extends Controller
         $deviceModel->save();
 
         return response()->json([
+            'device' => $deviceModel,
             'msg' => Response::$statusTexts[Response::HTTP_OK]
         ], Response::HTTP_OK);
     }
