@@ -153,6 +153,16 @@ $ sudo chmod -R 755 /var/www
 $ cd /var/www/trellis-api
 $ php artisan migrate --seed
 ```
+Enter and confirm a password for the admin user when prompted.
+
+### Download the latest Trellis web app
+```
+$ cd /var/www/trellis-api
+$ php artisan php trellis:download-app //TODO
+```
+Select the desired version of the app from the menu and to download and install it on the server.
+
+
 
 
 
