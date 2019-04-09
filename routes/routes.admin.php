@@ -67,11 +67,11 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->delete('study/{id}/parameter/{parameter_id}',          'StudyController@deleteParameter');
         $router->post('study/{id}/parameter',                           'StudyController@createOrUpdateParameter');
         $router->delete('study/{id}',                                   'StudyController@removeStudy');
-        $router->post('study/{id}',                                     'StudyController@updateStudy');
+        $router->put('study/{id}',                                      'StudyController@updateStudy');
         $router->get('study/{id}',                                      'StudyController@getStudy');
         $router->get('study',                                           'StudyController@getAllStudies');
-        $router->put('study',                                           'StudyController@createStudy');
-        $router->put('study/{study_id}/locales/{locale_id}',            'StudyController@saveLocale');
+        $router->post('study',                                          'StudyController@createStudy');
+        $router->post('study/{study_id}/locales/{locale_id}',           'StudyController@saveLocale');
         $router->delete('study/{study_id}/locales/{locale_id}',         'StudyController@deleteLocale');
         // $router->get('study/{id}',                                   'StudyController@getStudy');
 
@@ -237,13 +237,13 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 
 
         //* Geo Type Controller Routes *//
-        $router->put('geo/type',                                                    'GeoTypeController@createGeoType');
+        $router->post('study/{study_id}/geo/type',                                  'GeoTypeController@createGeoType');
         $router->delete('geo/type/{geo_type_id}',                                   'GeoTypeController@removeGeoType');
         $router->get('geo/type/{geo_type_id}',                                      'GeoTypeController@getGeoType');
         $router->get('geo/type',                                                    'GeoTypeController@getAllGeoTypes');
         $router->get('study/{study_id}/geo/type',                                   'GeoTypeController@getAllGeoTypesByStudyId');
         $router->get('geo/type/{parent_geo_id}/parent',                             'GeoTypeController@getAllEligibleGeoTypesOfParentGeo');
-        $router->post('geo/type/{geo_type_id}',                                     'GeoTypeController@updateGeoType');
+        $router->put('geo/type/{geo_type_id}',                                      'GeoTypeController@updateGeoType');
 
 
 
