@@ -29,7 +29,7 @@ class MakeReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:make:reports';
+    protected $signature = 'trellis:make:reports {--skip-main} {--form=} {--skip-forms}';
 
     /**
      * The console command description.
@@ -53,7 +53,7 @@ class MakeReports extends Command
      */
     public function handle()
     {
-
+        set_time_limit(0);
         Queue::after(function ($connection, $job, $data) {
             Log::debug("Finished job: ", $job->id, $data);
         });
@@ -63,25 +63,45 @@ class MakeReports extends Command
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $mainJobConstructors = [InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, TimingReportJob::class, RespondentReportJob::class];
 
-        foreach ($mainJobConstructors as $constructor){
-            $reportId = Uuid::uuid4();
-            array_push($remainingJobIds, $reportId);
-            $reportJob = new $constructor($studyId, $reportId, new \stdClass());
-            $this->dispatch($reportJob);
-            $this->info("Queued $constructor");
+        if (!$this->option('skip-main')) {
+            foreach ($mainJobConstructors as $constructor){
+                $reportId = Uuid::uuid4();
+                array_push($remainingJobIds, $reportId);
+                $reportJob = new $constructor($studyId, $reportId, new \stdClass());
+                $this->dispatch($reportJob);
+                $this->info("Queued $constructor");
+            }
         }
 
-        $forms = Form::join('study_form', 'study_form.form_master_id', '=', 'form.id')
-            ->where('study_form.study_id', '=', $studyId)
-            ->where('form.is_published', '=', 1)
-            ->whereNull('form.deleted_at')
-            ->whereNull('study_form.deleted_at')
-            ->select('form.id', 'form.is_published')
-            ->get();
+//        $skipForms = ["03551748-f180-44fa-9d58-c6b720c095e9",
+//            "310bf97e-df3d-4ec9-bed0-1c970984f817",
+//            "5612115f-9208-4696-9497-4398ae112f8b",
+//            "6e01e7dd-4b9b-4e70-be50-2d7b7b68fd5f",
+//            "5826ca44-39a5-49cb-ae6d-779d0e9acfe7",
+//            "a3a1386d-ebb0-4c3e-a72c-393e538abcd6"];
 
-        $formIds = array_map(function ($form) {
-            return $form['id'];
-        }, $forms->toArray());
+        $skipForms = [];
+
+        if ($this->option('skip-forms')) {
+            $formIds = [];
+        } else if ($this->option('form')) {
+            $formIds = [$this->option('form')];
+        } else {
+            $forms = Form::join('study_form', 'study_form.form_master_id', '=', 'form.id')
+                ->where('study_form.study_id', '=', $studyId)
+                ->where('form.is_published', '=', 1)
+                ->whereNull('form.deleted_at')
+                ->whereNull('study_form.deleted_at')
+                ->select('form.id', 'form.is_published')
+                ->get();
+            $formIds = array_map(function ($form) {
+                return $form['id'];
+            }, $forms->toArray());
+        }
+
+        $formIds = array_filter($formIds, function ($id) use ($skipForms) {
+           return !in_array($id, $skipForms);
+        });
 
         $config = new \stdClass();
         $config->studyId = $studyId;

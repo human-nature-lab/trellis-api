@@ -54,6 +54,7 @@ class FormReportJob extends Job
 
     public function handle()
     {
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
@@ -397,13 +398,23 @@ class FormReportJob extends Job
         $name = $question->var_name . $repeatString;
         $headers = [$key=>$name];
         $data = [];
-        $metaData[$headers[$key]] = [
-            'header' => $headers[$key],
-            'question_type' => $question->qtype,
-            'variable_name' => $question->var_name
-        ];
-        foreach ($question->translations as $t) {
-            $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
+
+        $possibleChoices = ReportService::getQuestionChoices($question, $locale);
+        foreach ($possibleChoices as $choice){
+            $choiceKey = $question->var_name . $repeatString . '_' . $choice->val;
+            $metaData[$choiceKey] = [
+                'header' => $choiceKey,
+                'variable_name' => $question->var_name,
+                'question_type' => $question->qtype,
+                'option_code' => $choice->val,
+                'option_id' => $choice->id
+            ];
+            foreach ($question->translations as $t) {
+                $metaData[$choiceKey]["question_$t->language_name"] = $t->translated_text;
+            }
+            foreach ($choice->translations as $t) {
+                $metaData[$choiceKey]["option_$t->language_name"] = $t->translated_text;
+            }
         }
         if($datum !== null){
             if($datum->opt_out !== null){
