@@ -425,6 +425,11 @@ class FormReportJob extends Job
                         $row[$actionKey] = $actions;
                     }
                     break;
+                case 'relationship':
+                    if (isset($qd->no_one) && $qd->no_one) {
+                        $row[$baseKey] = ['No_One'];
+                        break;
+                    }
                 default:
                     $key = $baseKey;
                     if (!isset($this->headers[$key])) {
