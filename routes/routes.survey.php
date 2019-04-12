@@ -11,7 +11,7 @@ $router->group([
     'prefix' => 'survey-view',
     'middleware' => ['key'],
 ], function () use ($router) {
-    $router->post('login',                                      'TokenController@createToken');
+    $router->post('login',                                          'TokenController@createToken');
 });
 
 $router->group([
@@ -19,16 +19,17 @@ $router->group([
     'middleware' => ['key', 'token']
 ], function () use ($router) {
 
-    $router->get('user/me',                                     'UserController@getMe');
+    $router->get('user/me',                                         'UserController@getMe');
 
-    $router->post('condition-tag',                              'ConditionTagController@createConditionTag');
-    $router->get('condition-tags',                              'ConditionTagController@getAllConditionTags');
-    $router->get('condition-tag-names',                         'ConditionTagController@getConditionTagNames');
-    $router->get('condition-tags/respondent',                   'ConditionController@getAllRespondentConditionTags');
+    $router->post('condition-tag',                                  'ConditionTagController@createConditionTag');
+    $router->get('condition-tags',                                  'ConditionTagController@getAllConditionTags');
+    $router->get('condition-tag-names',                             'ConditionTagController@getConditionTagNames');
+    $router->get('condition-tags/respondent',                       'ConditionController@getAllRespondentConditionTags');
 
-    $router->post('translation-text/{translation_text_id}',     'TranslationTextController@updateTranslatedTextById');
+    $router->post('translation/{translation_id}/translation-text',  'TranslationTextController@createTranslationText');
+    $router->put('translation-text/{translation_text_id}',          'TranslationTextController@updateTranslatedTextById');
 
-    $router->get('form/{form_id}',                              'FormController@getForm');
+    $router->get('form/{form_id}',                                  'FormController@getForm');
 
     $router->group([
         'prefix' => 'interview/{i_id}'
