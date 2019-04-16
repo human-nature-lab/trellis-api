@@ -1,16 +1,26 @@
 - [Trellis Server](#trellis-server)
   * [Prerequisites](#prerequisites)
     + [Domains and sub-domains](#domains-and-sub-domains)
-  * [Installing Nginx](#prerequisites)
-  * [Installation](#installation)
-    + [Install trellis-api](#install-trellis-api)
-      - [Add trellis-api to Homestead.yaml](#add-trellis-api-to-homesteadyaml)
-      - [Add trellis-api to your hosts file](#add-trellis-api-to-your-hosts-file)
-      - [Provision Homestead](#provision-homestead-1)
-      - [Open the ~/Code/trellis-api directory in your local editor (Atom, PHPStorm, etc)](#open-the-codetrellis-api-directory-in-your-local-editor-atom-phpstorm-etc)
-      - [Create database within Homestead](#create-database-within-homestead)
-      - [Install trellis-api](#install-trellis-api-1)
-      - [Visit trellis-api in the browser: http://api.trellislocaldev.net/](#visit-trellis-api-in-the-browser-httpapitrellislocaldevnet)
+  * [Nginx](#nginx)
+    + [Installing Nginx](#install-nginx)
+  * [MySQL](#mysql)
+    + [Install MySQL](#install-mysql)
+    + [Secure the MySQL installation](#secure-the-mysql-installation)
+    + [Create the Trellis database](#create-the-trellis-database)
+  * [PHP](#php)
+    + [Install PHP](#install-php)
+  * [Zip](#zip)
+    + [Install Zip](#install-zip)
+  * [Trellis API](#trellis-api)
+    + [Change the permissions of the www directory](#change-the-permissions-of-the-www-directory)
+    + [Clone the trellis API repository](#clone-the-trellis-api-repository)
+    + [Install Composer](#install-composer)
+    + [Configure Trellis](#configure-trellis)
+    + [Change the permissions of the storage directory](#change-the-permissions-of-the-storage-directory)
+    + [Run the database migrations](#run-the-database-migrations)
+    + [Download the latest Trellis web app](#download-the-latest-trellis-web-app)
+  * [Trellis App](#trellis-app)
+
 ------
 
 # Trellis Server
@@ -155,12 +165,23 @@ $ php artisan migrate --seed
 ```
 Enter and confirm a password for the admin user when prompted.
 
+## Trellis App
+
+### Create the trellis-app directory and change its permissions
+```
+$ sudo mkdir /var/www/trellis-app
+$ sudo chown "$USER":www-data /var/www/trellis-app
+$ sudo chmod 775 /var/www/trellis-app
+```
+
 ### Download the latest Trellis web app
 ```
 $ cd /var/www/trellis-api
-$ php artisan php trellis:download-app //TODO
+$ php artisan trellis:download-app
 ```
-Select the desired version of the app from the menu and to download and install it on the server.
+Select the desired version of the app from the menu and to download. 
+
+Specify the directory you created in the previous step (e.g. `var/www/trellis-app`) when prompted.
 
 
 
