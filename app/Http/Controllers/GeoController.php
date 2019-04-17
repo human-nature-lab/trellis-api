@@ -521,18 +521,39 @@ class GeoController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function getGeosByParentId ($parent_id) {
-        $geos = Geo::with('photos', 'nameTranslation', 'geoType');
-        if ($parent_id == "null") {
-            $geos = $geos->whereNull('parent_id');
-        } else {
-            $geos = $geos->where('parent_id', '=', $parent_id);
-        }
-        $geos = $geos->whereNull('deleted_at')
-            ->get();
+    public function getGeosByParentId ($studyId, $parentId) {
 
-        return response()->json([
-            'geos' => $geos
+        if ($parentId === 'null') {
+            $parentId = null;
+        }
+
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'parentId' => $parentId
+        ], [
+            'studyId' => 'string|min:36|exists:study,id',
+            'parentId' => 'nullable|string|min:36|exists:geo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $geos = Geo::with('photos', 'nameTranslation', 'geoType')
+            ->whereIn('geo_type_id', function ($q) use ($studyId) {
+                return $q->select('id')
+                    ->from('geo_type')
+                    ->where('geo_type.study_id', '=', $studyId);
+            });
+        if (!isset($parentId)) {
+            $geos = $geos->whereNull('geo.parent_id');
+        } else {
+            $geos = $geos->where('geo.parent_id', '=', $parentId);
+        }
+         return response()->json([
+            'geos' => $geos->get()
         ], Response::HTTP_OK);
     }
 
