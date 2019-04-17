@@ -56,17 +56,17 @@ class DownloadApp extends Command
         $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, (count($choices) - 1));
         $chosenVersion = array_values(array_filter($versions, function($v) use ($chosenVersionName) { return $v["name"] == $chosenVersionName; }));
 
+        $this->info("Downloading...");
         $this->info($chosenVersion[0]["url"]);
         curl_setopt($ch, CURLOPT_URL, $chosenVersion[0]["url"]);
         curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 
         $bar = $this->output->createProgressBar(100);
-        curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $download_size, $downloaded, $upload_size, $uploaded) use ($bar) {
-          $bar->setProgress($downloaded / $download_size  * 100);
-          ob_flush();
-          flush();
-          sleep(1); // just to see effect
+        $bar->setProgress(0);
+        curl_setopt($ch, CURLOPT_NOPROGRESS, false);
+        curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, function ($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) use ($bar) {
+            $this->progress($downloadSize, $downloaded, $bar);
         });
 
         $rawFile = curl_exec($ch);
@@ -95,5 +95,11 @@ class DownloadApp extends Command
         curl_close($ch);
         $this->info('Done!');
         return 0;
+    }
+
+    private function progress($downloadSize, $downloaded, $bar) {
+        if ($downloadSize > 0) {
+            $bar->setProgress(($downloaded/$downloadSize) * 100);
+        }
     }
 }
