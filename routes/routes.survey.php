@@ -98,7 +98,7 @@ $router->group([
 
     $router->put('geo',                                         'GeoController@createGeoFromModel');
     $router->get('geos/{g_ids}',                                'GeoController@getGeosById');
-    $router->get('geos/parent/{parent_id}',                     'GeoController@getGeosByParentId');
+    $router->get('study/{study_id}/geos/parent/{parent_id}',    'GeoController@getGeosByParentId');
     $router->get('geo/search',                                  'GeoController@searchGeos');
     $router->get('geo/{geo_id}/ancestors',                      'GeoController@getAncestorsForGeoId');
     $router->delete('geo/{geo_id}',                             'GeoController@removeGeo');
