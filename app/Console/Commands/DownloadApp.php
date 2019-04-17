@@ -56,8 +56,8 @@ class DownloadApp extends Command
         $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, (count($choices) - 1));
         $chosenVersion = array_values(array_filter($versions, function($v) use ($chosenVersionName) { return $v["name"] == $chosenVersionName; }));
 
-        $this->info("Downloading...");
         $this->info($chosenVersion[0]["url"]);
+        $this->info("Downloading...");
         curl_setopt($ch, CURLOPT_URL, $chosenVersion[0]["url"]);
         curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
@@ -80,7 +80,10 @@ class DownloadApp extends Command
         $zipPath = storage_path('temp/trellis-app.zip');
         file_put_contents($zipPath, $rawFile);
 
-        $trellisAppDir = $this->anticipate('Where do you want to install the trellis app?', ['/var/www/trellis-app']);
+        $this->info("");
+        $trellisAppDir = $this->ask('Where do you want to install the trellis web application?', '/var/www/trellis-app');
+
+        $this->info("Extracting \"$chosenVersionName\" to \"$trellisAppDir\"...");
 
         $zip = new ZipArchive;
         $res = $zip->open($zipPath);
@@ -93,7 +96,8 @@ class DownloadApp extends Command
         unlink($zipPath);
 
         curl_close($ch);
-        $this->info('Done!');
+        $this->info("");
+        $this->info("Done!");
         return 0;
     }
 
