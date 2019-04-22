@@ -300,35 +300,43 @@ class SyncControllerV2 extends Controller
         return response()->json($pendingUploads, Response::HTTP_OK);
     }
 
-    public function getImageSize(Request $request, $deviceId)
+    public function getImageSize (Request $request)
     {
         $fileNames = $request->all();
-        $totalSize = 0;
-        $numberRequested = 0;
-        $numberFound = 0;
 
-        // Add caching to optimize this part for multiple requests
-        // https://flysystem.thephpleague.com/docs/advanced/caching/
-//        $cacheStore = new MemoryStore();
         $localAdapter = new Local(storage_path() . '/respondent-photos');
-//        $adapter = new CachedAdapter($localAdapter, $cacheStore);
         $filesystem = new Filesystem($localAdapter);
 
+        $sampleCount = 0;
+        $numberFound = 0;
+        $totalNumber = count($fileNames);
+        $sampleSize = 0;
+        $useEstimate = false;
         foreach($fileNames as $fileName) {
-            $numberRequested++;
-            $exists = $filesystem->has($fileName);
-            if ($exists) {
+            $sampleCount++;
+            try {
+                $sampleSize += $filesystem->getSize($fileName);
                 $numberFound++;
-                $size = $filesystem->getSize($fileName);
-                $totalSize += $size;
+            } catch (\Exception $e) {}
+
+            if ($sampleCount > 1000) {
+                $useEstimate = true;
+                break;
             }
         }
 
+        if ($useEstimate) {
+            $sampleSize = ($sampleSize / $sampleCount) * $totalNumber;
+        }
+
         return response()->json([
-            'total_size' => $totalSize,
-            'photos_requested' => $numberRequested,
-            'photos_found' => $numberFound], Response::HTTP_OK);
+            'total_size' => $sampleSize,
+            'photos_requested' => $totalNumber,
+            'is_estimate' => $useEstimate,
+            'photos_found' => $useEstimate ? round(($numberFound / $sampleCount) * $totalNumber) : $numberFound
+        ], Response::HTTP_OK);
     }
+
 
     public function getImage($deviceId, $fileName)
     {
