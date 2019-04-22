@@ -13,7 +13,8 @@ class CorsMiddleware
         'Content-Length',
         'X-Key',
         'X-Token',
-        'X-Powered-By'
+        'X-Powered-By',
+        'Authorization'
     ];
 
     protected $methods = [

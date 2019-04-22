@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Report;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -13,6 +14,11 @@ class AddStudyIdFormIdToReport extends Migration
      */
     public function up()
     {
+        $reportCount = Report::count();
+        if ($reportCount > 0) {
+            throw new Exception("The reports table should be truncated before running this migration");
+        }
+
         Schema::table('report', function (Blueprint $table) {
             $table->dropColumn('report_id');
 
