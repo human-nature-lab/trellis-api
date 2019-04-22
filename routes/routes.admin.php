@@ -4,25 +4,10 @@
 //* Token Controller Routes *//
 //***************************//
 
-$router->group(['middleware' => 'key'], function () use ($router) {
+$router->group([], function () use ($router) {
 
-    $router->post(
-        'token',
-        'TokenController@createToken'
-    );
-
-
-    //**************************//
-    //* Sync Controller Routes *//
-    //**************************//
-    $router->get('heartbeat',                       'SyncController@heartbeat');
-    $router->post('device/{device_id}/image',       'SyncController@syncImages');
-    $router->get('device/{device_id}/image',        'SyncController@listImages');
-    $router->put('device/{device_id}/sync',         'SyncController@upload');
-    $router->post('device/{device_id}/sync',        'SyncController@download');
-    $router->post('device/{device_id}/upload',      'SyncController@uploadSync');
-    $router->get('device/{device_id}/download',     'SyncController@downloadSync');
-
+    $router->post('token',      'TokenController@createToken');
+    $router->post('device',     'DeviceController@createDevice');
 
     $router->group(['middleware' => 'token'], function () use ($router) {
 
@@ -34,7 +19,6 @@ $router->group(['middleware' => 'key'], function () use ($router) {
 
         //* Census Form Controller Routes *//
         $router->get('form/census/types',   'CensusFormController@getCensusFormTypes');
-
 
 
         //* Form Controller Routes *//
@@ -110,8 +94,6 @@ $router->group(['middleware' => 'key'], function () use ($router) {
         $router->delete('device/{id}',                                  'DeviceController@removeDevice');
         $router->put('device/{id}',                                     'DeviceController@updateDevice');
         $router->get('device',                                          'DeviceController@getAllDevices');
-        $router->post('device',                                         'DeviceController@createDevice');
-
 
 
         //* Respondent Controller Routes *//
