@@ -1,8 +1,6 @@
 - [Trellis Server](#trellis-server)
   * [Prerequisites](#prerequisites)
     + [Domains and sub-domains](#domains-and-sub-domains)
-  * [Nginx](#nginx)
-    + [Installing Nginx](#install-nginx)
   * [MySQL](#mysql)
     + [Install MySQL](#install-mysql)
     + [Secure the MySQL installation](#secure-the-mysql-installation)
@@ -20,6 +18,11 @@
     + [Run the database migrations](#run-the-database-migrations)
     + [Download the latest Trellis web app](#download-the-latest-trellis-web-app)
   * [Trellis App](#trellis-app)
+    + [Create the trellis-app directory and change its permissions](#create-the-trellis-app-directory-and-change-its-permissions)
+    + [Download the latest Trellis web app](#download-the-latest-trellis-web-app)
+  * [Nginx](#nginx)
+    + [Installing Nginx](#install-nginx)
+    + [Configuring Nginx](#configuring-nginx)
 
 ------
 
@@ -38,26 +41,6 @@ documentation.
 
 You will need to register a domain name and point both `yourdomainname.com` and `api.yourdomainname.com` to the IP
 address of your server (optionally also `www.yourdomainname.com`).
-
-
-------
-
-## Nginx
-
-We'll be using the Nginx web server to serve Trellis, other web servers such as Apache should work but the instructions
-will be different.
-
-### Install Nginx
-
-```
-$ sudo apt update
-$ sudo apt install nginx
-```
-
-Now if you navigate to `yourdomainname.com` you should see a **Welcome to nginx!** message. 
-
-*Note: if you can't access your server, make sure ports 80 and 443 are open in your server's firewall and check if Linux
-has additional firewall software, such as `ufw`, that needs to be configured.*
 
 ------
 
@@ -182,6 +165,28 @@ $ php artisan trellis:download-app
 Select the desired version of the app from the menu and to download. 
 
 Specify the directory you created in the previous step (e.g. `var/www/trellis-app`) when prompted.
+
+------
+
+## Nginx
+
+We'll be using the Nginx web server to serve Trellis, other web servers such as Apache should work but the instructions
+will be different.
+
+### Install Nginx
+
+```
+$ sudo apt update
+$ sudo apt install nginx
+```
+
+Now if you navigate to `yourdomainname.com` you should see a **Welcome to nginx!** message. 
+
+*Note: if you can't access your server, make sure ports 80 and 443 are open in your server's firewall and check if Linux
+has additional firewall software, such as `ufw`, that needs to be configured.*
+
+### Configuring Nginx
+
 
 
 
