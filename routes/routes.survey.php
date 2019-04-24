@@ -1,22 +1,14 @@
 <?php
 
-//***************************//
-//* Token Controller Routes *//
-//***************************//
-
-
-use Illuminate\Support\Facades\Artisan;
-
 $router->group([
-    'prefix' => 'survey-view',
-    'middleware' => ['key'],
+    'prefix' => 'survey-view'
 ], function () use ($router) {
     $router->post('login',                                          'TokenController@createToken');
 });
 
 $router->group([
     'prefix' => 'survey-view',
-    'middleware' => ['key', 'token']
+    'middleware' => ['token']
 ], function () use ($router) {
 
     $router->get('user/me',                                         'UserController@getMe');
