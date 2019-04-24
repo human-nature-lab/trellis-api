@@ -6,8 +6,9 @@
 
 $router->group([], function () use ($router) {
 
-    $router->post('token',      'TokenController@createToken');
-    $router->post('device',     'DeviceController@createDevice');
+    $router->post('token',          'TokenController@createToken');
+    $router->post('device',         'DeviceController@createDevice');
+    $router->get('config',          'ConfigController@all');
 
     $router->group(['middleware' => 'token'], function () use ($router) {
 
@@ -247,6 +248,8 @@ $router->group([], function () use ($router) {
 
     $router->group(['middleware' => ['token', 'role:whitelist,ADMIN']], function () use ($router) {
 
+        $router->put('config',          'ConfigController@set');
+        $router->delete('config',       'ConfigController@reset');
 
 
         //* Create User Route *//
