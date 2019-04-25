@@ -123,7 +123,8 @@ $app->singleton(
      'role-or-user' => 'App\Http\Middleware\RoleOrUserMiddleware',
      'key' => 'App\Http\Middleware\KeyMiddleware',
      'device' => 'App\Http\Middleware\DeviceMiddleware',
-     'basic-auth' => 'App\Http\Middleware\BasicAuthMiddleware'
+     'basic-auth' => 'App\Http\Middleware\BasicAuthMiddleware',
+     'demo' => 'App\Http\Middleware\DemoMiddleware'
  ]);
 
 /*
