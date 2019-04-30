@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Models\Edge;
 use App\Models\RespondentGeo;
 use App\Services\ReportService;
@@ -69,7 +69,7 @@ class RespondentGeoJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 
