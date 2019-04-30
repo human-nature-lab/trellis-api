@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Models\Action;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\Schema;
@@ -67,7 +67,7 @@ class ActionReportJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 

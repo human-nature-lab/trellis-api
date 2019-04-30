@@ -3,7 +3,7 @@
 namespace App\Classes;
 
 
-class CsvFileStream {
+class CsvFileWriter {
     private $filePath;
     private $headers;
     private $headerIds;

@@ -15,7 +15,7 @@ class ConfigService {
 
     public static function get ($key) {
         $c = Config::find($key);
-        return $c->value;
+        return isset($c) ? $c->value : null;
     }
 
     public static function reset ($key) {

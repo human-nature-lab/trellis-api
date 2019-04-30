@@ -5,7 +5,10 @@ ini_set("auto_detect_line_endings", true);
 require_once __DIR__.'/../vendor/autoload.php';
 
 try {
-    (new Dotenv\Dotenv(__DIR__.'/../'))->load();
+//    (new Dotenv\Dotenv(__DIR__.'/../'))->load();
+  (new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
+    dirname(__DIR__)
+  ))->bootstrap();
 } catch (Dotenv\Exception\InvalidPathException $e) {
     //
 }
@@ -138,9 +141,16 @@ $app->singleton(
 |
 */
 
- $app->register(App\Providers\AppServiceProvider::class);
+$app->register(App\Providers\AppServiceProvider::class);
+$app->register(Illuminate\Mail\MailServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
+
+$app->configure('services');
+$app->configure('mail');
+$app->alias('mailer', Illuminate\Mail\Mailer::class);
+$app->alias('mailer', Illuminate\Contracts\Mail\Mailer::class);
+$app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -159,6 +169,7 @@ $app->router->group([
     require __DIR__.'/../routes/routes.admin.php';
     require __DIR__.'/../routes/routes.survey.php';
     require __DIR__.'/../routes/routes.sync.php';
+    require __DIR__.'/../routes/routes.demo.php';
 });
 
 return $app;
