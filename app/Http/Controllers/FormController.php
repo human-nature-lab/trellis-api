@@ -189,22 +189,28 @@ class FormController extends Controller
         $formType = $request->input('formType');
 
         $hasFormFile = $request->hasFile('formJsonFile');
+        $importedForm = null;
+
         try {
-            $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
-            $studyModel = Study::find($studyId);
-            $returnForm = $studyModel->forms()->find($importedForm->id);
-            $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
-            return response()->json(
-                [ 'importedForm' => $returnForm,
-                  'formObject' => $formObject ],
-                Response::HTTP_OK
-            );
+          DB::beginTransaction();
+          $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
+          DB::commit();
         } catch (Throwable $e) {
-            return response()->json([
-                'msg' => 'Request failed',
-                'err' => 'Provide a JSON file exported from Trellis'
-            ], Response::HTTP_BAD_REQUEST);
+          DB::rollBack();
+          throw $e;
+          return response()->json([
+            'msg' => 'Request failed',
+            'err' => 'Provide a JSON file exported from Trellis'
+          ], Response::HTTP_BAD_REQUEST);
         }
+        $studyModel = Study::find($studyId);
+        $returnForm = $studyModel->forms()->find($importedForm->id);
+        $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
+        return response()->json(
+          [ 'importedForm' => $returnForm,
+            'formObject' => $formObject ],
+          Response::HTTP_OK
+        );
     }
 
     public function importSection(Request $request, $formId, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService)
