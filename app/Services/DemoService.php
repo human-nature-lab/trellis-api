@@ -45,7 +45,7 @@ class DemoService {
 
       // Import demo respondents and assign them to this study
       Log::debug('Adding respondents to demo user study');
-      $numRespondents = RespondentService::importRespondentsFromFile(resource_path('demo/respondents.csv'), $study->id, true);
+      $numRespondents = count(RespondentService::importRespondentsFromFile(resource_path('demo/respondents.csv'), $study->id, true));
       Log::debug("Added $numRespondents respondents to this study");
       // TODO: Import respondent photos as well
       Log::debug('Adding respondent photos to demo user study');
