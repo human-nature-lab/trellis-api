@@ -52,4 +52,11 @@ class TranslationController extends Controller
             'translation' => $newTranslationModel
         ], Response::HTTP_OK);
     }
+
+    public function getTranslationText($translationId) {
+        $translationText = Translation::find($translationId)->translationText()->get();
+        return response()->json([
+            'translation_text' => $translationText
+        ], Response::HTTP_OK);
+    }
 }
