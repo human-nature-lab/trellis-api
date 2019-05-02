@@ -10,31 +10,17 @@ use Illuminate\Queue\SerializesModels;
 class EmailConfirmation extends Mailable {
   use Queueable, SerializesModels;
 
-  /**
-   * The order instance.
-   *
-   * @var Order
-   */
-  public $username;
+  public $name;
   public $link;
 
-  /**
-   * Create a new message instance.
-   *
-   * @return void
-   */
-  public function __construct($key, $username) {
+  public function __construct($key, $name) {
     $this->link = 'https://' . ConfigService::get('webRoot') . '/#/email-confirmation/' . urlencode($key);
-    $this->username = $username;
+    $this->name = $name;
   }
 
-  /**
-   * Build the message.
-   *
-   * @return $this
-   */
   public function build() {
     return $this
+      ->subject('Confirm Email for ' . ConfigService::get('siteName'))
       ->from('do-not-reply@' . ConfigService::get('webRoot'), ConfigService::get('siteName'))
       ->view('emails.confirmation');
   }
