@@ -61,7 +61,7 @@ class DemoController extends Controller {
       $confirmation->is_confirmed = true;
       $confirmation->deleted_at = Carbon::now();
       $confirmation->save();
-      $demoService->makeDemoUser($confirmation->username, $confirmation->email, $confirmation->password, 'supervisor');
+      $demoService->makeDemoUser($confirmation, 'supervisor');
       DB::commit();
     } catch (Throwable $e) {
       DB::rollBack();
@@ -112,6 +112,7 @@ class DemoController extends Controller {
     $confirmation = new UserConfirmation;
     $confirmation->key = Hash::make($request->get('email'));
     $confirmation->email = $request->get('email');
+    $confirmation->name = $request->get('name');
     $confirmation->password = Hash::make($request->get('password'));
     $confirmation->is_confirmed = false;
     $confirmation->username = $request->get('username');
@@ -120,12 +121,20 @@ class DemoController extends Controller {
     Log::info($confirmation->key);
 
     // Actually send the email out for confirmation
-    Mail::to($request->get('email'))->send(new EmailConfirmation($confirmation->key, $request->get('username')));
+    Mail::to($request->get('email'))->send(new EmailConfirmation($confirmation->key, $request->get('name')));
 
     return response()->json([
       'msg' => 'User created. Email sent to ' . $confirmation->email . '.'
     ], Response::HTTP_CREATED);
 
+  }
+
+  /**
+   * Generates a previous for the email confirmation
+   */
+  public function previewConfirmation ($name) {
+    $name = urldecode($name);
+    return (new EmailConfirmation(Hash::make($name), $name))->render();
   }
 
 }

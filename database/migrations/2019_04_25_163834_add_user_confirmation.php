@@ -9,6 +9,7 @@ class AddUserConfirmation extends Migration {
   public function up () {
     Schema::create('user_confirmation', function (Blueprint $table) {
       $table->string('key')->primary();
+      $table->string('name');
       $table->string('email');
       $table->string('username')->nullable();
       $table->string('password')->nullable();

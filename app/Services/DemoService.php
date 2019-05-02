@@ -8,6 +8,7 @@ use App\Models\Locale;
 use App\Models\Study;
 use App\Models\StudyLocale;
 use App\Models\User;
+use App\Models\UserConfirmation;
 use App\Models\UserStudy;
 use App\Services\RespondentService;
 use App\Services\FormService;
@@ -16,12 +17,13 @@ use Ramsey\Uuid\Uuid;
 
 class DemoService {
 
-    public function makeDemoUser ($username, $email, $hash, $role) {
+    public function makeDemoUser (UserConfirmation $confirmation, $role) {
       $user = new User;
       $user->id = Uuid::uuid4();
-      $user->password = $hash;
-      $user->username = $username;
-      $user->email = $email;
+      $user->password = $confirmation->password;
+      $user->username = $confirmation->username;
+      $user->email = $confirmation->email;
+      $user->name = $confirmation->name;
       $user->role = $role;
       $user->save();
 
