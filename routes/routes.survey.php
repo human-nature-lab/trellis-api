@@ -12,6 +12,7 @@ $router->group([
 ], function () use ($router) {
 
     $router->get('user/me',                                         'UserController@getMe');
+    $router->get('role/{role_id}/permissions',                      'PermissionController@rolePermissions');
 
     $router->post('condition-tag',                                  'ConditionTagController@createConditionTag');
     $router->get('condition-tags',                                  'ConditionTagController@getAllConditionTags');
