@@ -12,11 +12,15 @@ $router->group([], function () use ($router) {
 
     $router->group(['middleware' => 'token'], function () use ($router) {
 
+        $router->get('roles',                                     'RoleController@all');
+        $router->post('role',                                     'RoleController@create');
+        $router->put('role/copy',                                 'RoleController@copy');
+        $router->delete('role/{role_id}',                         'RoleController@remove');
+        $router->put('role/{role_id}/permission/{permission_id}', 'PermissionController@updateRolePermission');
+        $router->get('permissions',                               'PermissionController@all');
 
         //* Photo Controller Routes *//
         $router->get('photo/{id}', 'PhotoController@getPhoto');
-
-
 
         //* Census Form Controller Routes *//
         $router->get('form/census/types',   'CensusFormController@getCensusFormTypes');
