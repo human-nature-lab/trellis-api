@@ -16,6 +16,8 @@ class UserConfirmation extends Model  {
 
   protected $fillable = [
     'email',
+    'name',
+    'password',
     'key',
     'is_confirmed',
     'username',
@@ -27,6 +29,8 @@ class UserConfirmation extends Model  {
   protected $hidden = [
     'email',
     'username',
+    'password',
+    'name',
     'key'
   ];
 
