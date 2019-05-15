@@ -28,7 +28,7 @@ class UserMiddleware
             if($tokenModel === null){
                 return null;
             }
-            $user = User::where('id', '=', $tokenModel->user_id)->first();
+            $user = User::with('role')->find($tokenModel->user_id);
             return $user;
         });
 
