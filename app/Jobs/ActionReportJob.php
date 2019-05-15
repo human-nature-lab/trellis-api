@@ -3,14 +3,12 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Models\Action;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\Schema;
 use Log;
 use App\Models\Report;
-use App\Models\Datum;
-use App\Models\Study;
 use Ramsey\Uuid\Uuid;
 
 
@@ -18,23 +16,23 @@ class ActionReportJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     private $file;
 
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $config)
     {
         Log::debug("ActionReportJob - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
+        $this->report->study_id = $studyId;
         $this->report->type = 'action';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
         $this->report->save();
     }
 
-    public function handle()
-    {
+
+    public function handle () {
         set_time_limit(60 * 15);
         $startTime = microtime(true);
         Log::debug("ActionReportJob - handling: $this->studyId, $this->report->id");
@@ -69,7 +67,7 @@ class ActionReportJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 

@@ -14,6 +14,7 @@ class FailedJob extends Model
     protected $fillable = [
 		'id',
 		'connection',
+        'exception',
 		'queue',
 		'payload',
 		'failed_at'

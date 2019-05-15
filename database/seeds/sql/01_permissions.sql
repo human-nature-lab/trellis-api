@@ -1,0 +1,68 @@
+insert ignore into permission (id, type, description) values
+    ('REMOVE_RESPONDENT', 'Respondent', 'Remove respondents from the database'),
+    ('ADD_RESPONDENT', 'Respondent', 'Add respondents to the the database'),
+    ('ADD_OTHER_RESPONDENT', 'Respondent', 'Add "other" respondents to the database'),
+    ('CHANGE_RESPONDENT_GEO_CURRENT', 'Respondent', 'Change the current location of a respondent'),
+    ('IMPORT_RESPONDENTS', 'Respondent', 'Bulk import respondents into the database'),
+    ('ADD_RESPONDENT_NAME', 'Respondent', 'Add names to a respondent'),
+    ('EDIT_RESPONDENT_NAME', 'Respondent', 'Modify existing respondent names'),
+    ('REMOVE_RESPONDENT_NAME', 'Respondent', 'Remove names from a respondent'),
+    ('ADD_RESPONDENT_GEO', 'Respondent', 'Adding locations to a respondent'),
+    ('REMOVE_RESPONDENT_GEO', 'Respondent', 'Remove a location from a respondent'),
+    ('MOVE_RESPONDENT', 'Respondent', 'Moving a respondent from one location to another'),
+    ('ADD_RESPONDENT_CONDITION_TAG', 'Respondent', 'Assign respondent condition tags outside of a form'),
+    ('REMOVE_RESPONDENT_CONDITION_TAG', 'Respondent', 'Remove respondent condition tags'),
+    ('VIEW_RESPONDENTS', 'Respondent', 'View the respondents in a study'),
+    ('ADD_RESPONDENT_PHOTO', 'Respondent', 'Add a photo of a respondent'),
+    ('EDIT_RESPONDENT_PHOTO', 'Respondent', 'Edit the order of photos for a respondent'),
+    ('REMOVE_RESPONDENT_PHOTO', 'Respondent', 'Remove an existing respondent photo'),
+
+
+    ('ADD_USER', 'Study', 'Add a user to the server'),
+    ('REMOVE_USER', 'Study', 'Remove a user from the server'),
+    ('EDIT_USER', 'Study', 'Modify a user\'s properties like name or username.'),
+
+    ('EDIT_GEO', 'Study', 'Change a location\'s properties'),
+    ('ADD_GEO', 'Study', 'Create a new location in the database'),
+    ('REMOVE_GEO', 'Study', 'Delete a location from the database'),
+
+    ('ADD_GEO_PHOTO', 'Study', 'Add a photo of a location'),
+    ('REMOVE_GEO_PHOTO', 'Study', 'Delete existing photos of a location'),
+
+    ('ADD_GEO_TYPE', 'Study', 'Add a type of location'),
+    ('EDIT_GEO_TYPE', 'Study', 'Modify existing location types'),
+    ('REMOVE_GEO_TYPE', 'Study', 'Delete an existing location type'),
+
+    ('ADD_FORM', 'Study', 'Create new forms'),
+    ('EDIT_FORM', 'Study', 'Modify existing forms'),
+    ('REMOVE_FORM', 'Study', 'Delete an existing form'),
+
+
+    ('VIEW_CONFIG', 'General', 'View the server configuration'),
+    ('EDIT_CONFIG', 'General', 'Modify the server configuration'),
+    ('EDIT_TRANSLATION', 'General', 'Modify a translation in the database'),
+    ('REMOVE_TRANSLATION', 'General', 'Delete a translation in the database'),
+    ('VIEW_PERMISSIONS', 'General', 'View permissions and roles'),
+    ('EDIT_PERMISSIONS', 'General', 'Modify permissions and roles'),
+    ('VIEW_STUDIES', 'General', 'View the studies in the server'),
+    ('ADD_STUDY', 'General', 'Create a new study'),
+    ('EDIT_STUDY', 'General', 'Modify an existing study'),
+    ('REMOVE_STUDY', 'General', 'Delete an existing study'),
+    ('VIEW_USERS', 'General', 'View the users in the database'),
+    ('VIEW_DEVICES', 'General', 'View devices in the database'),
+    ('ADD_DEVICE', 'General', 'Add new devices to the database'),
+    ('EDIT_DEVICE', 'General', 'Modify existing devices on the database'),
+    ('REMOVE_DEVICE', 'General', 'Remove devices from the database'),
+    ('EDIT_PASSWORDS', 'General', 'Modify the passwords of users other than yourself'),
+    ('EDIT_LOCALE', 'General', 'Change an existing locale'),
+    ('ADD_LOCALE', 'General', 'Create a new locale'),
+    ('VIEW_LOCALES', 'General', 'View existing locales'),
+    ('REMOVE_LOCALE', 'General', 'Delete an existing locale'),
+    ('VIEW_SYNC', 'General', 'View uploads and snapshots'),
+    ('PROCESS_UPLOADS', 'General', 'Process pending uploads'),
+    ('ADD_SNAPSHOT', 'General', 'Create new snapshots of the database for syncing'),
+    ('CAN_DOWNLOAD', 'General', 'Can download snapshots onto a tablet'),
+    ('CAN_UPLOAD', 'General', 'Can upload data to the server from a device'),
+
+
+    ('VIEW_REPORTS', 'Data', 'Can generate and view reports');

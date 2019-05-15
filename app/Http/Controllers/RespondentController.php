@@ -20,6 +20,7 @@ use \Input;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use PDOException;
+use Throwable;
 use Validator;
 use Ramsey\Uuid\Uuid;
 use League\Flysystem\Filesystem;
@@ -68,8 +69,7 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function importRespondents(Request $request, $studyId, RespondentService $respondentService)
-    {
+    public function importRespondents (Request $request, $studyId, RespondentService $respondentService) {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
         ]), [
@@ -83,38 +83,14 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $hasRespondentFile = $request->hasFile('respondentCsvFile');
+        $hasRespondentFile = $request->hasFile('file');
         if ($hasRespondentFile) {
-            $respondentFile = $request->file('respondentCsvFile');
-            $respondentFileStream = fopen($respondentFile->getRealPath(), 'r');
+            $respondentFile = $request->file('file');
+            $importedRespondentIds = $respondentService->importRespondentsFromFile($respondentFile->getRealPath(), $studyId, $request->get('skip_header') === 'true');
 
-            // Skip past header-row
-            $skipHeader = $request->input('skipHeader');
-            \Log::info('$skipHeader: ' . $skipHeader);
-
-            $row = 0;
-            $nRespondents = 0;
-            $isGoing = true;
-            do {
-                $line = fgetcsv($respondentFileStream);
-                if (!$line) {
-                    $isGoing = false;
-                } else if ($skipHeader === "true" && $row > 0) {
-                    $respondentAssignedId = trim($line[0]);
-                    $respondentName = trim($line[1]);
-                    \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
-                    \Log::info('$respondentName: ' . $respondentName);
-                    $nRespondents++;
-
-                    $respondentService->createRespondent($respondentName, $studyId, $respondentAssignedId);
-                }
-                $row++;
-            } while ($isGoing);
-
-            return response()->json(
-                [ 'importedRespondents' => $nRespondents ],
-                Response::HTTP_OK
-            );
+            return response()->json([
+              'respondents' => Respondent::with('photos', 'respondentConditionTags', 'names')->whereIn('id', $importedRespondentIds)->get()
+            ], Response::HTTP_OK);
         } else {
             return response()->json([
                 'msg' => 'Request failed',
@@ -166,7 +142,7 @@ class RespondentController extends Controller
         );
     }
 
-    public function importRespondentPhotos(Request $request, $studyId, RespondentPhotoService $respondentPhotoService)
+    public function importRespondentPhotos(Request $request, $studyId, RespondentService $respondentService)
     {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
@@ -181,33 +157,20 @@ class RespondentController extends Controller
             ], $validator->statusCode());
         }
 
-        $nRespondentPhotos = 0;
-        $hasRespondentPhotoFile = $request->hasFile('respondentPhotoZipFile');
+        $hasRespondentPhotoFile = $request->hasFile('file');
         if ($hasRespondentPhotoFile) {
-            $respondentPhotoFile = $request->file('respondentPhotoZipFile');
-            $respondentPhotoZip = new ZipArchive;
-            if ($respondentPhotoZip->open($respondentPhotoFile->getRealPath()) === TRUE) {
-                for ($i = 0; $i < $respondentPhotoZip->numFiles; $i++) {
-                    $fileName = $respondentPhotoZip->getNameIndex($i);
-                    $fileInfo = pathinfo($fileName);
-                    // TODO: Consider supporting other image types here
-                    if ($fileInfo['extension'] === 'jpg') {
-                        // TODO
-                        Log::info('JPG: ' . $fileInfo['basename']);
-                    }
-                }
-                $respondentPhotoZip->close();
-                return response()->json(
-                    [ 'importedRespondentPhotos' => $nRespondentPhotos ],
-                    Response::HTTP_OK
-                );
-            } else {
-                return response()->json([
-                    'msg' => 'Request failed',
-                    'err' => 'Unable to open the provided archive.'
-                ], Response::HTTP_BAD_REQUEST);
-            }
-
+          try {
+            $respondentPhotoFile = $request->file('file');
+            $nRespondentPhotos = $respondentService->importRespondentPhotos($respondentPhotoFile->getRealPath(), $studyId);
+            return response()->json([
+              'importedRespondentPhotos' => $nRespondentPhotos
+            ], Response::HTTP_OK);
+          } catch (Throwable $e) {
+            return response()->json([
+              'msg' => 'Request failed',
+              'err' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
+          }
         } else {
             return response()->json([
                 'msg' => 'Request failed',

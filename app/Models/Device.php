@@ -17,9 +17,19 @@ class Device extends Model
         'id',
         'device_id',
         'name',
+        'key',
+        'added_by_user_id',
         'epoch',
         'created_at',
         'updated_at',
         'deleted_at'
     ];
+
+    protected $hidden = [
+        'key'
+    ];
+
+    public function addedByUser () {
+        return $this->hasOne('App\Models\User', 'id', 'added_by_user_id');
+    }
 }

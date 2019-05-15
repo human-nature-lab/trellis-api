@@ -28,7 +28,7 @@ class UserController extends Controller
             ], $validator->statusCode());
         }
 
-        $userModel = User::find($id)->get(['id', 'name', 'username', 'role', 'selected_study_id']);
+        $userModel = User::with('role')->find($id);
 
         if ($userModel === null) {
             return response()->json([
@@ -41,26 +41,51 @@ class UserController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function getAllUsers(Request $request)
+    public function getUsersPage(Request $request)
     {
-        if (!empty($request->input('study'))) {
-            $userModel = User::with('studies')->get(['id', 'name', 'username', 'role', 'selected_study_id']);
-        } else {
-            $userModel = User::get(['id', 'name', 'username', 'role', 'selected_study_id']);
+        $validator = Validator::make($request->all(), [
+            'page' => 'nullable|integer|min:0',
+            'size' => 'nullable|integer|min:5|max:100',
+            'sortBy' => 'nullable|string|in:name,username,role',
+            'descending' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
         }
 
+        $page = $request->get('page') ?: 0;
+        $size = $request->get('size') ?: 20;
+        $sortBy = $request->get('sortBy') ?: 'name';
+        $descending = $request->get('descending') ?: false;
+
+        $q = User::with('role')
+            ->orderBy($sortBy, $descending ? 'desc' : 'asc');
+        if (!empty($request->input('study'))) {
+            $q = $q->with('role', 'studies');
+        }
+
+        $totalUsers = $q->count();
+        $skip = $page * $size;
+        $users = $q->skip($skip)->take($size)->get();
+
         return response()->json([
-            'users' => $userModel,
+            'total' => $totalUsers,
+            'start' => $skip,
+            'count' => $size,
+            'users' => $users,
             ], Response::HTTP_OK);
     }
 
-    public function saveStudy($userId, $studyId)
+    public function addStudy($userId, $studyId)
     {
         $validator = Validator::make([
             'user_id' => $userId,
             'study_id' => $studyId], [
-            'user_id' => 'required|string|min:36',
-            'study_id' => 'required|string|min:36'
+            'user_id' => 'required|string|min:36|exists:user,id',
+            'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -70,17 +95,14 @@ class UserController extends Controller
             ], $validator->statusCode());
         }
 
-        $user = User::findOrFail($userId);
-        $study = Study::findOrFail($studyId);
         $userStudy = new UserStudy;
         $userStudy->id = Uuid::uuid4();
         $userStudy->user_id = $userId;
         $userStudy->study_id = $studyId;
         $userStudy->save();
-        //$user->studies()->save($study);
-        $userModel = $user::with('studies')->get();
+
         return response()->json(
-            ['user' => $userModel],
+            ['user_study' => $userStudy],
             Response::HTTP_OK
         );
     }
@@ -113,8 +135,41 @@ class UserController extends Controller
         );
     }
 
-    public function updateUser(Request $request, $id)
-    {
+    public function updatePassword (Request $request, $userId) {
+
+        $validator = Validator::make(array_merge($request->all()), [
+            'userId' => $userId
+        ], [
+            'userId' => 'string|min:36|exists:user,id',
+            'oldPassword' => 'nullable|string',
+            'newPassword' => 'string|min:8'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $requestUser = $request->user();
+        $user = User::find($userId);
+        if ($requestUser->role !== 'ADMIN' && !Hash::check($request->get('oldPassword'), $user->password)) {
+            return response()->json([
+                'msg' => "Old password doesn't match"
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $newHash = Hash::make($request->get('newPassword'));
+        $user->password = $newHash;
+        $user->save();
+
+        return response()->json([
+            'msg' => 'Successfully updated password'
+        ], Response::HTTP_OK);
+    }
+
+    public function updateUser (Request $request, $id) {
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $id
         ]), [
@@ -122,7 +177,7 @@ class UserController extends Controller
             'name' => 'nullable|string|min:1|max:255',
             'username' => 'nullable|string|min:1|max:63',
             'password' => 'nullable|string|min:1|max:63',
-            'role' => 'nullable|string|min:1|max:64',
+            'role_id' => 'nullable|string|min:1|exists:role,id',
             'selected_study_id' => 'nullable|string|min:36'
         ]);
 
@@ -140,13 +195,18 @@ class UserController extends Controller
                 'msg' => 'URL resource not found'
             ], Response::HTTP_NOT_FOUND);
         }
-        $userPassword = Hash::make($request->input('password'));
-        $userModel->fill($request->input());
-        $userModel->password = $userPassword;
+
+        $all = $request->all();
+        unset($all['password']); // Make sure we don't overwrite the password with gibberish
+        $userModel->fill($all);
+        if ($request->has('password') && !is_null($request->get('password'))) {
+            $userPassword = Hash::make($request->get('password'));
+            $userModel->password = $userPassword;
+        }
         $userModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'user' => User::with('role', 'studies')->find($id)
         ], Response::HTTP_OK);
     }
 
@@ -166,7 +226,7 @@ class UserController extends Controller
 
         $userModel = User::find($id);
 
-        if ($userModel === null) {
+        if ($userModel === null || $userModel->username === 'admin') {
             return response()->json([
                 'msg' => 'URL resource was not found'
             ], Response::HTTP_NOT_FOUND);
@@ -174,9 +234,7 @@ class UserController extends Controller
 
         $userModel->delete();
 
-        return response()->json([
-
-        ]);
+        return response()->json([]);
     }
 
     public function getMe(Request $request){
@@ -207,15 +265,11 @@ class UserController extends Controller
     public function createUser(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|min:1|max:255',
-            'username' => 'required|string|min:1|max:63',
-            'password' => 'required|string|min:1|max:63',
-            'password_confirmation' => 'required|string|min:1|max:63',
-            'role' => 'nullable|string|min:1|max:64',
-            'selected_study_id' => 'nullable|string|min:36'
+            'name' => 'string|min:1|max:255',
+            'username' => 'string|min:1|max:63',
+            'password' => 'nullable|string|min:8',
+            'role_id' => 'string|min:1|exists:role,id'
         ]);
-
-
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -224,32 +278,16 @@ class UserController extends Controller
             ], $validator->statusCode());
         }
 
-        if ($request->input('password') !==  $request->input('password_confirmation')) {
-            return response()->json([
-                'msg' => 'Passwords don\'t match',
-                'err' => array("Passwords don't match")
-            ], Response::HTTP_BAD_REQUEST);
+        $user = new User;
+        $user->fill($request->all());
+        $user->id = Uuid::uuid4();
+        if ($request->has('password')) {
+            $user->password = Hash::make($request->get('password'));
         }
-
-
-        $userId = Uuid::uuid4();
-        $userName = $request->input('name');
-        $userUsername = $request->input('username');
-        $userPassword = Hash::make($request->input('password'));
-        $userRole = $request->input('role');
-        $userSelectedStudyId = $request->input('selected_study_id');
-
-        $newUserModel = new User;
-        $newUserModel->id = $userId;
-        $newUserModel->name = $userName;
-        $newUserModel->username = $userUsername;
-        $newUserModel->password = $userPassword;
-        $newUserModel->role = $userRole;
-        $newUserModel->selected_study_id = $userSelectedStudyId;
-        $newUserModel->save();
+        $user->save();
 
         return response()->json([
-            'user' => $newUserModel
+            'user' => User::with('role', 'studies')->find($user->id)
         ], Response::HTTP_OK);
     }
 }
