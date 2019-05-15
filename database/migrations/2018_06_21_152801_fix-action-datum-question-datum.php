@@ -80,7 +80,7 @@ class FixActionDatumQuestionDatum extends Migration
     public function down()
     {
         Schema::create('action_type', function (Blueprint $table) {
-            $table->string('id', 41);
+            $table->string('id', 41)->primary();
             $table->string('name');
         });
         Schema::table('action', function (Blueprint $table) {

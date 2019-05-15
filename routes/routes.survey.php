@@ -21,6 +21,7 @@ $router->group([
 
     $router->post('translation/{translation_id}/translation-text',  'TranslationTextController@createTranslationText');
     $router->put('translation-text/{translation_text_id}',          'TranslationTextController@updateTranslatedTextById');
+    $router->get('translation/{translation_id}/translation-text',    'TranslationController@getTranslationText');
 
     $router->get('form/{form_id}',                                  'FormController@getForm');
 

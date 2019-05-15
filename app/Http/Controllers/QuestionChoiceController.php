@@ -61,8 +61,13 @@ class QuestionChoiceController extends Controller
         $newChoiceModel->pivot = $newQuestionChoiceModel;
         $newChoiceModel->choice_translation = $newTranslationModel;
 
+        $returnChoice = Question::find($questionId)
+            ->choices()
+            ->where('choice.id', $choiceId)
+            ->first();
+
         return response()->json([
-            'choice' => $newChoiceModel
+            'choice' => $returnChoice
         ], Response::HTTP_OK);
     }
 
