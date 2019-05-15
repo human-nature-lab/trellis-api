@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Classes\CsvFileStream;
 use App\Models\Edge;
+use App\Models\QuestionDatum;
 use App\Services\ReportService;
 use Log;
 use App\Models\Report;
@@ -14,7 +15,7 @@ class EdgeReportJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     private $headers;
     private $file;
 
@@ -24,12 +25,12 @@ class EdgeReportJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $config)
     {
         Log::debug("EdgeReportJob - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'edge';
         $this->report->status = 'queued';
         $this->report->report_id = $this->studyId;
@@ -41,8 +42,9 @@ class EdgeReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
+
+        set_time_limit(10 * 60);
         $startTime = microtime(true);
         Log::debug("EdgeReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -74,12 +76,15 @@ class EdgeReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        Edge::leftJoin('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
-            ->leftJoin('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
-            ->leftJoin('datum', 'datum.edge_id', '=', 'edge.id')
-            ->leftJoin('question_datum', 'datum.question_datum_id', '=', 'question_datum.id')
-            ->leftJoin('question', 'question.id', '=', 'question_datum.question_id')
-            ->leftJoin('survey', 'survey.id', '=', 'question_datum.survey_id')
+        $q = QuestionDatum::whereIn('question_type_id', function ($s) {
+            return $s->select('id')->from('question_type')->where('name', '=', DB::raw('"relationship"'));
+        })
+            ->leftJoin('datum', 'datum.question_datum_id', '=', 'question_datum.id')
+            ->leftJoin('edge', 'datum.edge_id', '=', 'edge.id')
+            ->leftJoin('respondent as sourceR', 'edge.source_respondent_id', '=', 'sourceR.id')
+            ->leftJoin('respondent as targetR', 'edge.target_respondent_id', '=', 'targetR.id')
+            ->join('question', 'question.id', '=', 'question_datum.question_id')
+            ->join('survey', 'survey.id', '=', 'question_datum.survey_id')
             ->where('survey.study_id', '=', $this->studyId)
             ->select(
                 'edge.id',
@@ -88,20 +93,20 @@ class EdgeReportJob extends Job
                 'sourceR.name as sName',
                 'targetR.name as tName',
                 'question.var_name',
-                'survey.updated_at',
+                'question_datum.updated_at',
                 'question_datum.dk_rf',
                 'question_datum.dk_rf_val',
+                'question_datum.no_one',
+                'question.id as qId',
                 'question_datum.survey_id'
-            )->chunk(200, function ($edges) {
-                $e = $edges->map(function ($m) {
-                    $dk = 'dk_rf';
-                    if (!is_null($m[$dk])) {
-                        $m[$dk] = $m[$dk] === 1 ? 'Dont_know': 'Refused';
-                    }
-                    return $m;
-                });
-                $this->file->writeRows($e);
-            });
+            );
+        foreach ($q->cursor() as $edge) {
+            $dk = 'dk_rf';
+            if (!is_null($edge[$dk])) {
+                $edge[$dk] = $edge[$dk] === 1 ? 'Dont_know': 'Refused';
+            }
+            $this->file->writeRow($edge);
+        }
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
@@ -109,16 +114,18 @@ class EdgeReportJob extends Job
 
     private function makeHeaders () {
         $this->headers = [
-            'id' => 'id',
-            'sId' => 'ego',
-            'sName' => 'ego_name',
-            'tId' => 'alter',
-            'tName' => 'alter_name',
             'var_name' => 'question',
-            'updated_at' => 'survey_updated_at',
+            'survey_id' => 'survey_id',
             'dk_rf' => "question_dk_rf",
             'dk_rf_val' => "question_dk_rf_response",
-            'survey_id' => 'survey_id'
+            'no_one' => 'question_no_one',
+            'id' => 'edge_id',
+            'sId' => 'ego_id',
+            'sName' => 'ego_name',
+            'tId' => 'alter_id',
+            'tName' => 'alter_name',
+            'updated_at' => 'survey_updated_at',
+            'qId' => 'question_id',
         ];
     }
 }

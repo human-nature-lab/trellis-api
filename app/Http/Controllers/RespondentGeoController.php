@@ -61,6 +61,39 @@ class RespondentGeoController extends Controller {
     }
 
     /**
+     * Update a single respondent location
+     * @param Request $request
+     * @param $respondentId
+     * @param $respondentGeoId
+     */
+    public function editRespondentGeo (Request $request, $respondentId, $respondentGeoId) {
+        $validator = Validator::make([
+//            'respondent' => $respondentId,
+            'respondent_geo' => $respondentGeoId,
+            'is_current' => $request->get('is_current')
+        ], [
+//            'respondent' => 'string|exists:respondent,id',
+            'is_current' => 'boolean',
+            'respondent_geo' => 'string|exists:respondent_geo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $respondentGeo = RespondentGeo::find($respondentGeoId);
+        $respondentGeo->is_current = $request->get('is_current');
+        $respondentGeo->save();
+
+        return response()->json([
+            'respondent_geo' => $respondentGeo
+        ]);
+
+    }
+
+    /**
      * Move a respondent geo to a new geo keeping the link between the two geos
      * @param Request $request
      * @param string $respondentId

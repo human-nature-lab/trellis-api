@@ -17,6 +17,7 @@ use Validator;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 use Emgag\Flysystem\Hash\HashPlugin;
@@ -124,18 +125,37 @@ class SyncControllerV2 extends Controller
         return response()->download($file, $snapshot->file_name, $headers);
     }
 
-    public function listUploads()
+    public function listUploads(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'nullable|number',
+            'page' => 'nullable|integer',
+            'orderBy' => 'nullable|string',
+            'direction' => 'nullable|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $limit = $request->get('limit', 500);
+        $page = $request->get('page', 0);
+        $orderBy = $request->get('orderBy', 'created_at');
+        $direction = $request->get('direction', 1);
         // This method doesn't work if the case of the device_id varies between tables
         // $uploads = Upload::with('device')->get();
-        $uploads = DB::table('upload')
-          ->select('upload.*', 'device.name as device_name')
-          ->join('device', function ($join) {
-              $join->on('upload.device_id', '=', 'device.device_id');
-          })
-          ->orderBy('created_at', 'desc')
-          ->limit(150)
-          ->get();
+        $uploadQuery = DB::table('upload')
+            ->select('upload.*', DB::raw('(select name from device d where d.device_id like upload.device_id and d.deleted_at is null limit 1) as device_name'))
+            ->orderBy($orderBy, $direction ? 'desc' : 'asc')
+            ->take($limit)
+            ->skip($page * $limit);
+
+        // $currentQuery = $uploadQuery->toSql();
+        // Log::info('$currentQuery: ' . $currentQuery);
+
+        $uploads = $uploadQuery->get();
 
         return response()->json(
             ['uploads' => $uploads],
@@ -274,7 +294,7 @@ class SyncControllerV2 extends Controller
         /* Returns both pending and error uploads to prevent end-users from downloading before their upload has been processed */
         $pendingUploads = Upload::where('deleted_at',null)
             ->where('status', 'PENDING')
-            ->orWhere('status', 'ERROR')
+            ->orWhere('status', 'FAILED')
             ->get();
 
         return response()->json($pendingUploads, Response::HTTP_OK);
