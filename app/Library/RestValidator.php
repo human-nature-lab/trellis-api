@@ -12,4 +12,10 @@ class RestValidator extends Validator
     {
         return Response::HTTP_BAD_REQUEST;
     }
+
+    public function failedResponse ($response) {
+        return $response()->json([
+            'err' => $this->errors()
+        ], $this->statusCode());
+    }
 }

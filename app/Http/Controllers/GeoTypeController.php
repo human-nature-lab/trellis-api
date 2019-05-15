@@ -87,7 +87,7 @@ class GeoTypeController extends Controller
             ->get();
 
         return response()->json(
-            ['geoTypes' => $geoTypeModel],
+            ['geo_types' => $geoTypeModel],
             Response::HTTP_OK
         );
     }
@@ -98,7 +98,7 @@ class GeoTypeController extends Controller
             ->get();
 
         return response()->json(
-            ['geoTypes' => $geoTypeModel],
+            ['geo_types' => $geoTypeModel],
             Response::HTTP_OK
         );
     }
@@ -120,12 +120,12 @@ class GeoTypeController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'id' => $id
         ]), [
-            'id' => 'required|string|min:36',
+            'id' => 'string|min:36|exists:geo_type,id',
             'parent_id' => 'nullable|string|min:36',
             'name' => 'nullable|string|min:1',
-            'can_enumerator_add' => 'required|boolean',
-            'can_contain_respondent' => 'required|boolean'
-            //'can_enumerator_add' => 'integer|min:1|max:1',
+            'can_user_add' => 'boolean',
+            'can_user_add_child' => 'boolean',
+            'can_contain_respondent' => 'boolean'
         ]);
 
         if ($validator->fails() === true) {
@@ -143,16 +143,11 @@ class GeoTypeController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $vals = $request->all();
-        $canEnumeratorAdd = $vals['can_enumerator_add'];
-        unset($vals['can_enumerator_add']);
-        $vals['can_user_add'] = $canEnumeratorAdd;
-
-        $geoTypeModel->fill($vals);
+        $geoTypeModel->fill($request->all());
         $geoTypeModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'geo_type' => $geoTypeModel
         ], Response::HTTP_OK);
     }
 
@@ -160,7 +155,7 @@ class GeoTypeController extends Controller
     {
         $validator = Validator::make(
             ['id' => $geo_type_id],
-            ['id' => 'required|string|min:36']
+            ['id' => 'required|string|min:36|exists:geo_type,id']
         );
 
         if ($validator->fails() === true) {
@@ -185,13 +180,15 @@ class GeoTypeController extends Controller
         ]);
     }
 
-    public function createGeoType(Request $request)
+    public function createGeoType(Request $request, $studyId)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(array_merge(['study_id' => $studyId], $request->all()), [
+            'study_id' => 'string|min:36|exists:study,id',
             'parent_id' => 'nullable|string|min:36',
-            'name' => 'required|string|min:1',
-            'can_enumerator_add' => 'required|boolean',
-            'can_contain_respondent' => 'required|boolean'
+            'name' => 'string|min:1',
+            'can_user_add' => 'boolean',
+            'can_contain_respondent' => 'boolean',
+            'can_user_add_child' => 'boolean'
         ]);
 
         if ($validator->fails() === true) {
@@ -201,26 +198,15 @@ class GeoTypeController extends Controller
             ], $validator->statusCode());
         }
 
-        $geoTypeId = Uuid::uuid4();
-        $parentId = $request->input('parent_id');
-        $studyId = $request->input('study_id');
-        $name = $request->input('name');
-        $canEnumeratorAdd = $request->input('can_enumerator_add');
-        $canContainRespondent = $request->input('can_contain_respondent');
-
         $newGeoTypeModel = new GeoType;
 
-        $newGeoTypeModel->id = $geoTypeId;
-        $newGeoTypeModel->parent_id = $parentId;
+        $newGeoTypeModel->fill($request->all());
+        $newGeoTypeModel->id = Uuid::uuid4();
         $newGeoTypeModel->study_id = $studyId;
-        $newGeoTypeModel->name = $name;
-        $newGeoTypeModel->can_user_add = $canEnumeratorAdd;
-        $newGeoTypeModel->can_contain_respondent = $canContainRespondent;
-
         $newGeoTypeModel->save();
 
         return response()->json([
-            'geoType' => $newGeoTypeModel
+            'geo_type' => $newGeoTypeModel
         ], Response::HTTP_OK);
     }
 }

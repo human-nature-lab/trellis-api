@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\DB;
 use Log;
@@ -17,7 +17,7 @@ class InterviewReportJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     private $file;
     private $headers;
     private $defaultHeaders;
@@ -28,15 +28,15 @@ class InterviewReportJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $config)
     {
         Log::debug("InterviewReportJob - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'interview';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -45,8 +45,7 @@ class InterviewReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
         set_time_limit(300);
         $startTime = microtime(true);
         Log::debug("InterviewReportJob - handling: $this->studyId, $this->report->id");
@@ -76,7 +75,7 @@ class InterviewReportJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 

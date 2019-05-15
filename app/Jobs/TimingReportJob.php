@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Models\QuestionDatum;
 use App\Services\ReportService;
 use Log;
@@ -17,19 +17,19 @@ class TimingReportJob extends Job
 {
 
     protected $studyId;
-    protected $report;
+    public $report;
     protected $headers;
     private $file;
 
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $config)
     {
         Log::debug("TimingReportJob - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'timing';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -75,7 +75,7 @@ class TimingReportJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 

@@ -89,7 +89,7 @@ class StudyController extends Controller
             ], $validator->statusCode());
         }
 
-        $studyModel = Study::find($id);
+        $studyModel = Study::with('defaultLocale', 'locales')->find($id);
 
         if ($studyModel === null) {
             return response()->json([
@@ -101,7 +101,7 @@ class StudyController extends Controller
         $studyModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'study' => $studyModel
         ], Response::HTTP_OK);
     }
 

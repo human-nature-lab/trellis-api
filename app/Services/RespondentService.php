@@ -2,14 +2,20 @@
 
 namespace App\Services;
 
+use App\Classes\CsvFileReader;
+use App\Models\Photo;
 use App\Models\RespondentGeo;
 use App\Models\RespondentName;
+use App\Models\RespondentPhoto;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Ramsey\Uuid\Uuid;
 use App\Models\Respondent;
 use App\Models\StudyRespondent;
+use App\Services\FileService;
+use Throwable;
+use ZipArchive;
 
 class RespondentService
 {
@@ -211,5 +217,109 @@ class RespondentService
             ->update([
                 'is_current' => false
             ]);
+    }
+
+  /**
+   * Import a number of respondents from a csv file.
+   * @param $filePath
+   * @param $studyId
+   * @param bool $skipHeader
+   * @return int
+   */
+    public static function importRespondentsFromFile ($filePath, $studyId, $skipHeader = false) {
+      // Skip past header-row
+      \Log::info('$skipHeader: ' . $skipHeader);
+
+      $row = 0;
+      $importedRespondentIds = [];
+      $isGoing = true;
+      try {
+        $csv = new CsvFileReader($filePath);
+        $csv->open();
+        do {
+          $line = $csv->getNextRowHash();
+          if (!$line) {
+            $isGoing = false;
+          } else {
+            $respondentAssignedId = trim($line['id']);
+            $respondentName = trim($line['name']);
+            \Log::info('$respondentAssignedId: ' . $respondentAssignedId);
+            \Log::info('$respondentName: ' . $respondentName);
+            $newRespondent = RespondentService::createRespondent($respondentName, $studyId, $respondentAssignedId);
+            array_push($importedRespondentIds, $newRespondent->id);
+          }
+          $row++;
+        } while ($isGoing);
+      } finally {
+        $csv->close();
+      }
+
+      return $importedRespondentIds;
+    }
+
+  /**
+   * Import a bunch of respondent photos and assign them to a respondent.
+   * @param $zipPath
+   * @param $studyId
+   * @return int
+   * @throws Exception
+   */
+    public static function importRespondentPhotos ($zipPath, $studyId) {
+      $nRespondentPhotos = 0;
+      $respondentPhotoZip = new ZipArchive;
+      if ($respondentPhotoZip->open($zipPath) === TRUE) {
+        $movedFiles = [];
+        try {
+          for ($i = 0; $i < $respondentPhotoZip->numFiles; $i++) {
+            $nRespondentPhotos++;
+            $fileName = $respondentPhotoZip->getNameIndex($i);
+            $fileInfo = pathinfo($fileName);
+            // TODO: Consider supporting other image types here
+            if ($fileInfo['extension'] === 'jpg') {
+              Log::info('JPG: ' . $fileInfo['basename']);
+              $assignedRespondentId = $fileInfo['filename'];
+
+              $respondent = Respondent::where('assigned_id', $assignedRespondentId)
+                ->whereIn('id', function ($q) use ($studyId) {
+                  return $q->select('respondent_id')
+                    ->from('study_respondent')
+                    ->where('study_id', $studyId);
+                })
+                ->first();
+
+              if (!$respondent) {
+                throw new Exception("Unable to find respondent with assigned id matching file name $assignedRespondentId");
+              }
+
+              $photo = new Photo;
+              $photo->id = Uuid::uuid4();
+              $photo->file_name = Uuid::uuid4() . '.jpg';
+              $photo->save();
+
+              $respondentPhoto = new RespondentPhoto;
+              $respondentPhoto->id = Uuid::uuid4();
+              $respondentPhoto->photo_id = $photo->id;
+              $respondentPhoto->respondent_id = $respondent->id;
+              $respondentPhoto->sort_order = 0;
+              $respondentPhoto->save();
+
+              // Copy the files from the zip archive into the respondent_photos directory
+              $newLocation = storage_path("respondent-photos/$photo->file_name");
+              FileService::copyFromZip($respondentPhotoZip, $fileName, $newLocation);
+              array_push($movedFiles, $newLocation);
+            }
+          }
+          $respondentPhotoZip->close();
+        } catch (Throwable $e) {
+          // Cleanup any files that have already been moved
+          foreach ($movedFiles as $path) {
+            unlink($path);
+          }
+          throw $e;
+        }
+        return $nRespondentPhotos;
+      } else {
+        throw new Exception('Unable to open zip file');
+      }
     }
 }

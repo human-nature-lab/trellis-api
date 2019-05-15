@@ -4,6 +4,7 @@ use App\Models\Edge;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Ramsey\Uuid\Uuid;
 use Validator;
 
@@ -88,7 +89,9 @@ class EdgeController extends Controller {
             array_push($edges, [
                 'id' => Uuid::uuid4(),
                 'source_respondent_id' => $edge['source_respondent_id'],
-                'target_respondent_id' => $edge['target_respondent_id']
+                'target_respondent_id' => $edge['target_respondent_id'],
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now()
             ]);
         }
 
@@ -106,7 +109,7 @@ class EdgeController extends Controller {
 
         // TODO: I guess we should perform this transaction manually and rollback if there is an error
         DB::transaction(function () use ($edges) {
-            DB::table('edge')->insert($edges);
+            Edge::insert($edges);
         }, 2);
 
         $edgeIds = array_reduce($edges, function ($ids, $edge) {

@@ -18,7 +18,7 @@ class User extends Model
         'name',
         'username',
         'password',
-        'role',
+        'role_id',
         'selected_study_id',
         'created_at',
         'updated_at',
@@ -30,12 +30,16 @@ class User extends Model
         'updated_at'
     ];
 
-    public function studies()
-    {
+    public function role () {
+      return $this->belongsTo('App\Models\Role', 'role_id');
+    }
+
+    public function studies () {
         return $this
             ->belongsToMany('App\Models\Study', 'user_study')
             ->whereNull('user_study.deleted_at')
             ->withTimestamps()
             ->with('locales', 'defaultLocale');
     }
+
 }
