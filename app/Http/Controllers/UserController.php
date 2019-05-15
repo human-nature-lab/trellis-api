@@ -28,7 +28,7 @@ class UserController extends Controller
             ], $validator->statusCode());
         }
 
-        $userModel = User::find($id)->get(['id', 'name', 'username', 'role', 'selected_study_id']);
+        $userModel = User::with('role')->find($id);
 
         if ($userModel === null) {
             return response()->json([
@@ -61,10 +61,10 @@ class UserController extends Controller
         $sortBy = $request->get('sortBy') ?: 'name';
         $descending = $request->get('descending') ?: false;
 
-        $q = User::select(['id', 'name', 'username', 'role', 'selected_study_id'])
+        $q = User::with('role')
             ->orderBy($sortBy, $descending ? 'desc' : 'asc');
         if (!empty($request->input('study'))) {
-            $q = $q->with('studies');
+            $q = $q->with('role', 'studies');
         }
 
         $totalUsers = $q->count();
@@ -177,7 +177,7 @@ class UserController extends Controller
             'name' => 'nullable|string|min:1|max:255',
             'username' => 'nullable|string|min:1|max:63',
             'password' => 'nullable|string|min:1|max:63',
-            'role' => 'nullable|string|min:1|max:64',
+            'role_id' => 'nullable|string|min:1|exists:role,id',
             'selected_study_id' => 'nullable|string|min:36'
         ]);
 
@@ -206,7 +206,7 @@ class UserController extends Controller
         $userModel->save();
 
         return response()->json([
-            'user' => $userModel
+            'user' => User::with('role', 'studies')->find($id)
         ], Response::HTTP_OK);
     }
 
@@ -268,7 +268,7 @@ class UserController extends Controller
             'name' => 'string|min:1|max:255',
             'username' => 'string|min:1|max:63',
             'password' => 'nullable|string|min:8',
-            'role' => 'string|min:1|max:64'
+            'role_id' => 'string|min:1|exists:role,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -279,17 +279,15 @@ class UserController extends Controller
         }
 
         $user = new User;
+        $user->fill($request->all());
         $user->id = Uuid::uuid4();
-        $user->name = $request->get('name');
-        $user->username = $request->get('username');
         if ($request->has('password')) {
             $user->password = Hash::make($request->get('password'));
         }
-        $user->role = $request->get('role');
         $user->save();
 
         return response()->json([
-            'user' => $user
+            'user' => User::with('role', 'studies')->find($user->id)
         ], Response::HTTP_OK);
     }
 }

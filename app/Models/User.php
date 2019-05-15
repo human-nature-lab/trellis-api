@@ -18,7 +18,6 @@ class User extends Model
         'name',
         'username',
         'password',
-        'role',
         'role_id',
         'selected_study_id',
         'created_at',
@@ -30,6 +29,10 @@ class User extends Model
         'password',
         'updated_at'
     ];
+
+    public function role () {
+      return $this->belongsTo('App\Models\Role', 'role_id');
+    }
 
     public function studies () {
         return $this

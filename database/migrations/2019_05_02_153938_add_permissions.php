@@ -19,6 +19,7 @@ class AddPermissions extends Migration {
     Schema::create('permission', function (Blueprint $table) {
       $table->string('id')->primary();
       $table->string('type');
+      $table->string('description')->nullable();
     });
     Schema::create('role_permission', function (Blueprint $table) {
       $table->increments('id');

@@ -24,9 +24,9 @@ $router->group([
 
     $router->get('form/{form_id}',                                  'FormController@getForm');
 
-    $router->group([
-        'prefix' => 'interview/{i_id}'
-    ], function () use ($router) {
+
+    //* Interview Routes *//
+    $router->group(['prefix' => 'interview/{i_id}'], function () use ($router) {
         $router->get('actions',                                 'InterviewDataController@getInterviewActionsByInterviewId');
         $router->get('data',                                    'InterviewDataController@getInterviewDataByInterviewId');
         $router->get('preload',                                 'PreloadController@getPreloadDataByInterviewId');
@@ -39,7 +39,6 @@ $router->group([
     $router->get('survey/{s_id}',                               'SurveyController@getSurveyById');
     $router->post('survey/{s_id}/interview',                    'InterviewController@createInterview');
     $router->post('survey/{survey_id}/complete',                'SurveyController@completeSurvey');
-
     $router->get('locale/{id}',                                 'LocaleController@getLocale');
 
     // Study routes
@@ -75,13 +74,6 @@ $router->group([
         $router->delete('condition-tag/{condition_tag_id}',     'ConditionTagController@deleteRespondentConditionTag');
     });
 
-    // Sync Admin
-    $router->get('list-uploads',                                'SyncControllerV2@listUploads');
-    $router->get('list-snapshots',                              'SyncControllerV2@listSnapshots');
-    $router->post('generate-snapshot',                          'SyncControllerV2@generateSnapshot');
-    $router->post('process-uploads',                            'SyncControllerV2@processUploads');
-    $router->get('upload-log/{upload_id}',                      'UploadLogController@getUploadLogs');
-
     $router->post('edges',                                      'EdgeController@createEdges');
     $router->get('edges/{e_ids}',                               'EdgeController@getEdgesById');
 
@@ -95,17 +87,17 @@ $router->group([
     $router->get('geo/search',                                  'GeoController@searchGeos');
     $router->get('geo/{geo_id}/ancestors',                      'GeoController@getAncestorsForGeoId');
     $router->delete('geo/{geo_id}',                             'GeoController@removeGeo');
-    $router->post('geo/{geo_id}',                               'GeoController@updateGeo');
-    $router->post('geo/{geo_id}/move',                          'GeoController@moveGeo');
+    $router->post('geo/{geo_id}',                               ['middleware' => 'requires:EDIT_GEO',               'uses' => 'GeoController@updateGeo']);
+    $router->post('geo/{geo_id}/move',                          ['middleware' => 'requires:EDIT_GEO',               'uses' => 'GeoController@moveGeo']);
     $router->get('geo/{geo_id}/photos',                         'GeoController@getGeoPhotos');
 
-    $router->post('geo-photos',                                 'GeoController@updateGeoPhotos');
-    $router->delete('geo-photo/{geo_photo_id}',                 'GeoController@deleteGeoPhoto');
+    $router->post('geo-photos',                                 ['middleware' => 'requires:EDIT_GEO',               'uses' => 'GeoController@updateGeoPhotos']);
+    $router->delete('geo-photo/{geo_photo_id}',                 ['middleware' => 'requires:REMOVE_GEO_PHOTO',       'uses' => 'GeoController@deleteGeoPhoto']);
     $router->get('geo-types',                                   'GeoTypeController@getGeoTypes');
 
     $router->get('photo/{p_id}',                                'PhotoController@getPhoto');
     $router->get('photos/{p_ids}',                              'PhotoController@getPhotos');
-    $router->post('respondent-photos',                          'RespondentController@updateRespondentPhotos');
+    $router->post('respondent-photos',                          ['middleware' => 'requires:EDIT_RESPONDENT_PHOTO',  'uses' => 'RespondentController@updateRespondentPhotos']);
     $router->delete('respondent-photo/{respondent_photo_id}',   'RespondentController@deleteRespondentPhoto');
 
     $router->get('me/studies',                                  'UserController@getMyStudies');
