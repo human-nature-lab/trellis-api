@@ -294,7 +294,7 @@ class SyncControllerV2 extends Controller
         /* Returns both pending and error uploads to prevent end-users from downloading before their upload has been processed */
         $pendingUploads = Upload::where('deleted_at',null)
             ->where('status', 'PENDING')
-            ->orWhere('status', 'ERROR')
+            ->orWhere('status', 'FAILED')
             ->get();
 
         return response()->json($pendingUploads, Response::HTTP_OK);

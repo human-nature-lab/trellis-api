@@ -208,7 +208,7 @@ class RespondentController extends Controller
      * @return array
      */
     private static function getChildGeos ($geos) {
-        $parentGeos = array_replace([], $geos);
+        $parentGeos = array_merge([], $geos);
         $moreChildren = true;
         $c = 0;
         while ($moreChildren && $c < 10) {
@@ -217,7 +217,7 @@ class RespondentController extends Controller
             $children = Geo::select('geo.id', 'geo_type.can_contain_respondent')->join('geo_type', 'geo.geo_type_id', '=', 'geo_type.id')->whereIn('geo.parent_id', $parentGeos)->get();
             if (count($children) > 0) {
                 $moreChildren = true;
-                $geos = array_replace($geos, $children->filter(function ($c) {return $c->can_contain_respondent;})->reduce(function ($arr, $c) {
+                $geos = array_merge($geos, $children->filter(function ($c) {return $c->can_contain_respondent;})->reduce(function ($arr, $c) {
                     array_push($arr, $c->id);
                     return $arr;
                 }, []));

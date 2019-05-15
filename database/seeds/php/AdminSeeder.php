@@ -8,9 +8,13 @@ class AdminSeeder extends Seeder
     public function run()
     {
         try {
-            $password = 'helloworld';
-            if (getenv('PASSWORD')) {
-                $password = getenv('PASSWORD');
+            $password = $this->command->secret('Enter a password for the admin user');
+            $confirmPassword = $this->command->secret('Confirm the password');
+
+            while ($password !== $confirmPassword) {
+                $this->command->error('Passwords do not match.');
+                $password = $this->command->secret('Enter a password for the admin user');
+                $confirmPassword = $this->command->secret('Confirm the password');
             }
             DB::table('user')->insert([
                 'id' => 'c1f277ab-e181-11e5-84c9-a45e60f0e921',
