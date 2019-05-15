@@ -16,8 +16,7 @@ class CleanReportsJob extends Job
      * than one week.
      * @param $oldestDate
      */
-    public function __construct($oldestDate)
-    {
+    public function __construct ($oldestDate) {
         if($oldestDate) {
             $this->oldestDate = $oldestDate;
         } else {
@@ -28,7 +27,8 @@ class CleanReportsJob extends Job
         }
     }
 
-    public function handle(){
+    public function handle () {
+
         $startTime = microtime(true);
         Log::debug("CleanReportsJob - handling");
         $this->deleteOlderThan($this->oldestDate);

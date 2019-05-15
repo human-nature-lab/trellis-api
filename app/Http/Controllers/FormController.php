@@ -189,22 +189,28 @@ class FormController extends Controller
         $formType = $request->input('formType');
 
         $hasFormFile = $request->hasFile('formJsonFile');
+        $importedForm = null;
+
         try {
-            $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
-            $studyModel = Study::find($studyId);
-            $returnForm = $studyModel->forms()->find($importedForm->id);
-            $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
-            return response()->json(
-                [ 'importedForm' => $returnForm,
-                  'formObject' => $formObject ],
-                Response::HTTP_OK
-            );
+          DB::beginTransaction();
+          $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
+          DB::commit();
         } catch (Throwable $e) {
-            return response()->json([
-                'msg' => 'Request failed',
-                'err' => 'Provide a JSON file exported from Trellis'
-            ], Response::HTTP_BAD_REQUEST);
+          DB::rollBack();
+          throw $e;
+          return response()->json([
+            'msg' => 'Request failed',
+            'err' => 'Provide a JSON file exported from Trellis'
+          ], Response::HTTP_BAD_REQUEST);
         }
+        $studyModel = Study::find($studyId);
+        $returnForm = $studyModel->forms()->find($importedForm->id);
+        $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
+        return response()->json(
+          [ 'importedForm' => $returnForm,
+            'formObject' => $formObject ],
+          Response::HTTP_OK
+        );
     }
 
     public function importSection(Request $request, $formId, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService)
@@ -367,16 +373,7 @@ class FormController extends Controller
         $studyModel = Study::find($studyId);
         $forms = $studyModel->forms()->get();
 
-        //$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
-
-        /*
-        $forms = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
-            ->join('translation_text AS tt', 'tt.translation_id', '=', 'form.name_translation_id')
-            ->join('study_form AS sf', 'sf.form_master_id', '=', 'form.form_master_id')
-            ->where('sf.study_id', $studyId)
-            ->where('tt.locale_id', $localeId)
-            ->get();
-        */
+//        $q = StudyForm::where('study_id', $studyId)->with('form')->get();
 
         return response()->json(
             ['forms' => $forms],
@@ -384,13 +381,14 @@ class FormController extends Controller
         );
     }
 
-    public function updateForm(Request $request, $id)
+    public function updateForm(Request $request, $formId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'formId' => $formId
         ]), [
-            'id' => 'required|string|min:36',
+            'formId' => 'string|min:36|exists:form,id',
             'form_master_id' => 'nullable|string|min:36|exists:form,id',
+            'is_published' => 'boolean',
             'name_translation_id' => 'nullable|string|min:36|exists:translation,id'
         ]);
 
@@ -401,15 +399,16 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        $formModel = Form::find($id);
+        $formModel = Form::find($formId);
 
         $formModel->fill($request->all());
         $formModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'form' => $formModel
         ], Response::HTTP_OK);
     }
+
 
     public function updateStudyForm (Request $request, $studyId, $formId) {
         $validator = Validator::make(array_merge($request->all(), [
@@ -467,36 +466,33 @@ class FormController extends Controller
         ]);
     }
 
-    public function removeForm($id)
+    public function removeForm($studyId, $formId)
     {
-        $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36|exists:form,id']
-        );
+        $validator = Validator::make([
+            'formId' => $formId,
+            'studyId' => $studyId
+        ], [
+            'formId' => 'required|string|min:36|exists:form,id',
+            'studyId' => 'string|min:36|exists:study,id'
+        ]);
 
         if ($validator->fails() === true) {
             return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
+                'msg' => $validator->errors()
             ], $validator->statusCode());
         }
 
-        $formModel = Form::find($id);
-
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource was not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $formModel->delete();
+        DB::transaction(function () use ($formId, $studyId) {
+            StudyForm::where('study_id', $studyId)->where('form_id', $formId)->destroy();
+            Form::destroy($formId);
+        });
 
         return response()->json();
     }
 
-    public function createForm(Request $request, FormService $formService)
+    public function createForm(Request $request, $studyId)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(array_merge($request->all(), ['study_id' => $studyId]), [
             'name' => 'nullable|string',
             'study_id' => 'required|string|min:36|exists:study,id',
             'form_type' => 'integer|min:0|max:255'
@@ -510,12 +506,12 @@ class FormController extends Controller
         }
 
         $formName = ($request->input('name') == null) ? "" : $request->input('name');
-        $studyId = $request->input('study_id');
+        $formType = $request->get('form_type');
 
         $newFormModel = FormService::createFormWithStudyForm(
             $formName,
             $studyId,
-            $request->input('form_type')
+            $formType
         );
 
         if ($newFormModel === null) {
@@ -1055,8 +1051,6 @@ class FormController extends Controller
                    }
                 })
                 ->with('studyForm', 'nameTranslation', 'skips');
-
-        Log::debug($q->toSql());
 
         return response()->json([
             'forms' => $q->get()

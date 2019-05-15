@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Models\Datum;
 use App\Models\Question;
 use App\Models\QuestionDatum;
@@ -21,8 +21,10 @@ class FormReportJob extends Job
 {
 
     protected $formId;
-    protected $report;
-    protected $config;
+    public $report;
+    protected $config = [
+        'useRespondentNames' => false // Adds the respondent name column and makes relationship question types use the name instead of the ID
+    ];
     protected $images = [];
     protected $rows = [];
     protected $headers = [];
@@ -43,16 +45,17 @@ class FormReportJob extends Job
      * @param $reportId - The id of the report we're generating. This is used on the client side to check if the report has finished exporting
      * @param $config - Any configuration options used to generate this report
      */
-    public function __construct($formId, $reportId, $config)
+    public function __construct($studyId, $formId, $config)
     {
         Log::debug("FormReportJob - constructing: $formId");
         $this->config = $config;
         $this->formId = $formId;
         $this->report = new Report();
-        $this->report->id = $reportId;
+        $this->report->id = Uuid::uuid4();
+        $this->report->form_id = $formId;
         $this->report->type = 'form';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->formId;
+        $this->report->study_id = $studyId;
         $this->report->save();
     }
 
@@ -126,7 +129,7 @@ class FormReportJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 
@@ -180,6 +183,10 @@ class FormReportJob extends Job
             'completed_at' => 'completed_at'
         ];
 
+//        if ($this->config['useRespondentNames']) {
+//            $this->defaultColumns['respondent_name'] = 'respondent_name';
+//        }
+
         $headers = [];
 
         $expandRespondentGeo = function ($baseKey, $baseName) use (&$headers) {
@@ -194,6 +201,7 @@ class FormReportJob extends Job
                 $headers[$key] = $baseName . '_' . $choice->val;
             }
         };
+
         $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect, $expandRespondentGeo) {
             switch ($question->questionType->name) {
                 case 'multiple_select':
@@ -206,6 +214,7 @@ class FormReportJob extends Job
                     $headers[$baseKey] = $baseName;
             }
         };
+
         foreach ($questions as $question) {
             $baseKey = $question->id;
             $baseName = $question->var_name;

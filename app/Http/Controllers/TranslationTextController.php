@@ -64,7 +64,7 @@ class TranslationTextController extends Controller
         $translationTextModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'translation_text' => $translationTextModel
         ], Response::HTTP_OK);
     }
 
@@ -148,7 +148,7 @@ class TranslationTextController extends Controller
         $returnTranslationTextModel = TranslationText::with('locale')->find($translationTextId);
 
         return response()->json([
-            'translationText' => $returnTranslationTextModel
+            'translation_text' => $returnTranslationTextModel
         ], Response::HTTP_OK);
     }
 }

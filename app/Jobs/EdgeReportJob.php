@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileStream;
+use App\Classes\CsvFileWriter;
 use App\Models\Edge;
 use App\Models\QuestionDatum;
 use App\Services\ReportService;
@@ -33,7 +33,7 @@ class EdgeReportJob extends Job
         $this->report->id = Uuid::uuid4();
         $this->report->type = 'edge';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -72,7 +72,7 @@ class EdgeReportJob extends Job
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
         $this->file->open();
         $this->file->writeHeader();
 

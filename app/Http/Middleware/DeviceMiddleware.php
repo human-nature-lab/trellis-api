@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Device;
 use Closure;
 use Illuminate\Http\Response;
 use Illuminate\Http\Request;
@@ -16,18 +17,26 @@ class DeviceMiddleware
      * @param  String   $type
      * @return Response
      */
-    public function handle($request, Closure $next)
-    {
+    public function handle ($request, Closure $next) {
         $deviceId =  $request->route()[2]['device_id'];
+        $deviceKey = $request->headers->get('X-Key');
+
         $validator = Validator::make([
-            'deviceId' => $deviceId
+            'deviceId' => $deviceId,
+            'deviceKey' => $deviceKey
         ], [
-            'deviceId' => 'required|string|exists:device,device_id'
+            'deviceId' => 'required|string',
+            'deviceKey' => 'required|string|min:10|max:255'
         ]);
 
-        if ($validator->fails()) {
+        $deviceModel = Device::where('device_id', $deviceId)
+            ->where('key', $deviceKey)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($validator->fails() || !isset($deviceModel)) {
             return response()->json([
-                'msg' => $validator->errors()
+                'msg' => 'Unable to authenticate this device'
             ], Response::HTTP_UNAUTHORIZED);
         }
 
