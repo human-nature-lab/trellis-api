@@ -121,13 +121,14 @@ $app->singleton(
  ]);
 
  $app->routeMiddleware([
-     'token' => 'App\Http\Middleware\TokenMiddleware',
-     'role' => 'App\Http\Middleware\RoleAuthMiddleware',
-     'role-or-user' => 'App\Http\Middleware\RoleOrUserMiddleware',
-     'key' => 'App\Http\Middleware\KeyMiddleware',
-     'device' => 'App\Http\Middleware\DeviceMiddleware',
-     'basic-auth' => 'App\Http\Middleware\BasicAuthMiddleware',
-     'demo' => 'App\Http\Middleware\DemoMiddleware'
+   'token' => 'App\Http\Middleware\TokenMiddleware',
+   'role' => 'App\Http\Middleware\RoleAuthMiddleware',
+   'role-or-user' => 'App\Http\Middleware\RoleOrUserMiddleware',
+   'key' => 'App\Http\Middleware\KeyMiddleware',
+   'device' => 'App\Http\Middleware\DeviceMiddleware',
+   'basic-auth' => 'App\Http\Middleware\BasicAuthMiddleware',
+   'demo' => 'App\Http\Middleware\DemoMiddleware',
+   'requires' => 'App\Http\Middleware\PermissionMiddleware'
  ]);
 
 /*

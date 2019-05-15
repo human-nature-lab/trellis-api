@@ -18,7 +18,7 @@ class PermissionService {
   public function hasPermission (User $user, String $permissionId) {
        $p = RolePermission::where('role_id', $user->role_id)->where('permission_id', $permissionId)->first();
        if (!isset($p)) {
-         return false;
+         return $user->role_id === 'admin';
        } else {
          return !!$p->value;
        }

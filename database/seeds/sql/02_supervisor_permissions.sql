@@ -15,7 +15,15 @@ insert ignore into role_permission (`role_id`, `permission_id`, `value`) values
     ('supervisor', 'EDIT_RESPONDENT_NAME', 1),
     ('supervisor', 'REMOVE_RESPONDENT_NAME', 1),
     ('supervisor', 'ADD_RESPONDENT_GEO', 1),
+    ('supervisor', 'REMOVE_RESPONDENT_GEO', 1),
     ('supervisor', 'MOVE_RESPONDENT', 1),
+    ('supervisor', 'ADD_RESPONDENT_PHOTO', 1),
+    ('supervisor', 'EDIT_RESPONDENT_PHOTO', 1),
+    ('supervisor', 'REMOVE_RESPONDENT_PHOTO', 1),
     ('supervisor', 'ADD_RESPONDENT_CONDITION_TAG', 1),
     ('supervisor', 'REMOVE_RESPONDENT_CONDITION_TAG', 1),
-    ('supervisor', 'VIEW_CONFIG', 1);
+    ('supervisor', 'VIEW_RESPONDENTS', 1),
+    ('supervisor', 'ADD_RESPONDENT_PHOTO', 1),
+    ('supervisor', 'REMOVE_RESPONDENT_PHOTO', 1),
+    ('supervisor', 'VIEW_CONFIG', 1),
+    ('supervisor', 'CAN_UPLOAD', 1);
