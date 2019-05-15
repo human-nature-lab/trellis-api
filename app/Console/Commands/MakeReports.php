@@ -28,7 +28,7 @@ class MakeReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms} {--locale=}';
+    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms} {--locale=} {--form=}';
 
     /**
      * The console command description.
@@ -78,11 +78,15 @@ class MakeReports extends Command
         }
 
         if (!$this->option('skip-forms')) {
-            $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
-                $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-            })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
-                return $item->id;
-            });
+            if ($this->option('form')) {
+                $formIds = [$this->option('form')];
+            } else {
+                $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+                    $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+                })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+                    return $item->id;
+                });
+            }
 
             $config = new \stdClass();
             $config->studyId = $studyId;
