@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\QuestionDatum;
 use App\Models\Survey;
 use App\Models\Translation;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use League\Flysystem\Exception;
 use Log;
@@ -34,6 +35,7 @@ class FormReportJob extends Job
     protected $defaultColumns;
     private $localeId;
     private $file;
+    private $count = 0;
 
     /**
      * FormReportJob constructor.
@@ -54,9 +56,8 @@ class FormReportJob extends Job
         $this->report->save();
     }
 
-    public function handle()
-    {
-        set_time_limit(300);
+    public function handle () {
+        set_time_limit(10 * 60);
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
@@ -72,9 +73,8 @@ class FormReportJob extends Job
                 $this->file->close();
             }
             $duration = microtime(true) - $startTime;
-            Log::debug("FormReportJob - finished: $this->formId in $duration seconds");
+            Log::debug("FormReportJob - finished: $this->formId in $duration seconds. Processed $this->count surveys.");
         }
-
     }
 
     /**
@@ -94,6 +94,7 @@ class FormReportJob extends Job
             'question' => 'question',
             'survey_id' => 'survey_id',
             'respondent_id' => 'respondent_id',
+            'type' => 'type',
             'text' => 'response'
         ];
 
@@ -146,11 +147,20 @@ class FormReportJob extends Job
                 'tt.translated_text as current_location_name'
             );
 
-        $q->chunk(200, function ($surveys) use ($questions, $questionsMap) {
-            $count = $surveys->count();
-            Log::info("Processing $count surveys");
-            $this->processBatch($surveys, $questions, $questionsMap);
-        });
+        $batchSize = 400;
+        $batch = new Collection;
+        foreach ($q->cursor() as $survey) {
+            $batch->push($survey);
+            if ($batch->count() >= $batchSize) {
+                $this->processBatch($batch, $questions, $questionsMap);
+                $batch = new Collection;
+            }
+        }
+
+        if ($batch->count() > 0) {
+            $this->processBatch($batch, $questions, $questionsMap);
+            $batch = null;
+        }
 
         ReportService::saveFileStream($this->report, $fileName);
         ReportService::saveMetaFile($this->report, $this->metaRows);
@@ -246,10 +256,33 @@ class FormReportJob extends Job
     }
 
     private function processBatch ($surveys, $questions, $questionsMap) {
+        $count = count($surveys);
+        $this->count += $count;
+        Log::debug("Processing $count surveys");
+        $surveyIds = $surveys->map(function ($s) { return $s->id; });
+        $batchData = QuestionDatum::whereIn('survey_id', $surveyIds)
+            ->orderBy('survey_id', 'created_at')
+            ->with('fullData')
+            ->get();
+
+        $surveyDataMap = $batchData->reduce(function ($agg, $qd) {
+            if (!isset($agg[$qd->survey_id])) {
+                $agg[$qd->survey_id] = new Collection();
+            }
+            $agg[$qd->survey_id]->push($qd);
+            return $agg;
+        }, []);
 
         $rows = [];
         foreach ($surveys as $survey) {
-            $row = $this->formatSurveyData($survey, $questions, $questionsMap);
+            if (isset($surveyDataMap[$survey->id])) {
+                $formatStart = microtime(true);
+                $row = $this->formatSurveyData($survey, $questions, $questionsMap, $surveyDataMap[$survey->id]);
+                $formatTime = microtime(true) - $formatStart;
+                Log::info("Format time $formatTime");
+            } else {
+                $row = [];
+            }
             foreach($this->defaultColumns as $key => $name){
                 $row[$key] = $survey->$key;
             }
@@ -272,6 +305,150 @@ class FormReportJob extends Job
 
         // Write the batch to file
         $this->file->writeRows($rows);
+    }
+
+    private function formatSurveyData ($survey, $questions, $questionsMap, $questionDatum) {
+//        $questionDatum2 = QuestionDatum::where('survey_id', $survey->id)
+//            ->with('fullData');
+//        $questionDatum2 = $questionDatum2->get();
+        $row = [];
+
+        // Create indexes
+        $questionToQuestionDatumMap = [];
+        $datumMap = [];
+        foreach ($questionDatum as $qd) {
+            if (!isset($questionToQuestionDatumMap[$qd->question_id])) {
+                $questionToQuestionDatumMap[$qd->question_id] = [];
+            }
+            array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
+            $i = 0;
+            foreach ($qd->fullData as $datum) {
+                $datum->repeat_index = $i;
+                $datumMap[$datum->id] = $datum; // For looking up follow up info
+                $i++;
+            }
+        }
+
+        // Filter out questionDatum that are from deleted datum
+        $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
+            $question = $questionsMap[$qd->question_id];
+            $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
+            return $keep;
+        });
+
+        // Index the question order
+        $questionOrderMap = [];
+        foreach ($questions as $index => $question) {
+            $questionOrderMap[$question->id] = $index;
+        }
+
+        $datumSortStart = microtime(true);
+        // Sort question datum
+        foreach ($questionDatum as $qd) {
+            $qd->fullData = $qd->fullData->sortBy('repeat_index');
+        }
+        $datumSortTime = microtime(true) - $datumSortStart;
+//        Log::debug("Datum sort time $datumSortTime");
+
+        // TODO: Make complete form test to use for exporting. Repeated sections with each question type
+
+        $qdSortStart = microtime(true);
+        // Make sure the $questionDatum are all ordered the same way
+        $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap, $datumMap) {
+            if ($a->question_id === $b->question_id) {
+                if (isset($a->follow_up_datum_id) && isset($b->follow_up_datum_id)) {
+                    return $datumMap[$a->follow_up_datum_id]->repeat_index - $datumMap[$b->follow_up_datum_id]->repeat_index;
+                } else {
+                    return $a->section_repetition - $b->section_repetition;
+                }
+            } else {
+                return $questionOrderMap[$a->question_id] - $questionOrderMap[$b->question_id];
+            }
+        });
+        $qdSortTime = microtime(true) - $qdSortStart;
+//        Log::debug("Question datum sort $qdSortTime");
+
+        foreach ($questionDatum as $qd) {
+            $question = $questionsMap[$qd->question_id];
+            $baseKey = $question->id;
+            if ($question->has_follow_up) {
+                $datum = $datumMap[$qd->follow_up_datum_id];
+                $baseKey .= '_r' . $datum->repeat_index;
+            }
+//            $this->addMetadata($baseKey, $question);
+            switch ($question->questionType->name) {
+                case 'multiple_select':
+                    foreach ($qd->fullData as $datum) {
+                        $key = $baseKey . '_' . $datum->choice->id;
+                        if (!isset($this->headers[$key])) {
+                            throw new Exception("Header $key should already be defined");
+                        }
+                        // TODO: Handle showing crosswalk as true or false instead of values
+                        if (isset($qd->dk_rf)) {
+                            $row[$key] = $this->mapDkRf($qd->dk_rf);
+                        } else {
+                            $row[$key] = ReportService::translationToText($datum->choice->choiceTranslation, $this->localeId);
+                        }
+
+                        // This seems like the safest way to check if it's an other response
+                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice->val) {
+                            $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
+                        }
+                    }
+
+                    if (!is_null($qd->dk_rf)) {
+                        $row[$baseKey] = $this->mapDkRf($qd->dk_rf);
+                        $this->addNote($this->headers[$baseKey], $survey, $this->mapDkRf($qd->dk_rf), $qd->dk_rf_val);
+                    }
+
+                    break;
+                case 'respondent_geo':
+                    $idKey = $baseKey . '_ids';
+                    $actionKey = $baseKey . '_actions';
+                    if (!isset($this->headers[$idKey])) {
+                        throw new Exception("Header $idKey should already be defined");
+                    } else if (!isset($this->headers[$actionKey])) {
+                        throw new Exception("Header $actionKey should already be defined");
+                    }
+                    if (!is_null($qd->dk_rf)) {
+                        $row[$idKey] = $this->mapDkRf($qd->dk_rf);
+                        $row[$actionKey] = $this->mapDkRf($qd->dk_rf);
+                        $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                    } else {
+                        $ids = [];
+                        $actions = [];
+                        foreach ($qd->fullData as $datum) {
+                            array_push($ids, $datum->respondent_geo_id);
+                            array_push($actions, $datum->val);
+                        }
+                        $row[$idKey] = $ids;
+                        $row[$actionKey] = $actions;
+                    }
+                    break;
+                case 'relationship':
+                    if (isset($qd->no_one) && $qd->no_one) {
+                        $row[$baseKey] = ['No_One'];
+                        break;
+                    }
+                default:
+                    $key = $baseKey;
+                    if (!isset($this->headers[$key])) {
+                        throw new Exception("Header $key should already be defined");
+                    }
+                    $vals = [];
+                    if (isset($qd->dk_rf)) {
+                        $dkRf = $this->mapDkRf($qd->dk_rf);
+                        array_push($vals, $dkRf);
+                        $this->addNote($this->headers[$key], $survey, $dkRf, $qd->dk_rf_val);
+                    } else {
+                        foreach ($qd->fullData as $datum) {
+                            array_push($vals, $this->getDatumValue($datum, $this->localeId));
+                        }
+                    }
+                    $row[$key] = $vals;
+            }
+        }
+        return $row;
     }
 
     private function addMetadata (String $baseKey, Question $question) {
@@ -329,134 +506,8 @@ class FormReportJob extends Job
         }
     }
 
-    private function formatSurveyData ($survey, $questions, $questionsMap) {
-        $questionDatum = QuestionDatum::where('survey_id', $survey->id)->with('fullData');
-        $questionDatum = $questionDatum->get();
-        $row = [];
-
-        // Create indexes
-        $questionToQuestionDatumMap = [];
-        $datumMap = [];
-        foreach ($questionDatum as $qd) {
-            if (!isset($questionToQuestionDatumMap[$qd->question_id])) {
-                $questionToQuestionDatumMap[$qd->question_id] = [];
-            }
-            array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
-            $i = 0;
-            foreach ($qd->fullData as $datum) {
-                $datum->repeat_index = $i;
-                $datumMap[$datum->id] = $datum; // For looking up follow up info
-                $i++;
-            }
-        }
-
-        // Filter out questionDatum that are from deleted datum
-        $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
-            $question = $questionsMap[$qd->question_id];
-            $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
-            return $keep;
-        });
-
-        // Index the question order
-        $questionOrderMap = [];
-        foreach ($questions as $index => $question) {
-            $questionOrderMap[$question->id] = $index;
-        }
-
-        // Sort question datum
-        foreach ($questionDatum as $qd) {
-            $qd->fullData = $qd->fullData->sortBy('repeat_index');
-        }
-
-        // TODO: Make complete form test to use for exporting. Repeated sections with each question type
-
-        // Make sure the $questionDatum are all ordered the same way
-        $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap, $datumMap) {
-            if ($a->question_id === $b->question_id) {
-                if (isset($a->follow_up_datum_id) && isset($b->follow_up_datum_id)) {
-                    return $datumMap[$a->follow_up_datum_id]->repeat_index - $datumMap[$b->follow_up_datum_id]->repeat_index;
-                } else {
-                    return $a->section_repetition - $b->section_repetition;
-                }
-            } else {
-                return $questionOrderMap[$a->question_id] - $questionOrderMap[$b->question_id];
-            }
-        });
-
-        foreach ($questionDatum as $qd) {
-            $question = $questionsMap[$qd->question_id];
-            $baseKey = $question->id;
-            if ($question->has_follow_up) {
-                $datum = $datumMap[$qd->follow_up_datum_id];
-                $baseKey .= '_r' . $datum->repeat_index;
-            }
-//            $this->addMetadata($baseKey, $question);
-            switch ($question->questionType->name) {
-                case 'multiple_select':
-                    foreach ($qd->fullData as $datum) {
-                        $key = $baseKey . '_' . $datum->choice->id;
-                        if (!isset($this->headers[$key])) {
-                            throw new Exception("Header $key should already be defined");
-                        }
-                        // TODO: Handle showing crosswalk as true or false instead of values
-                        if (isset($qd->dk_rf)) {
-                            $row[$key] = $qd->dk_rf ? 'DK' : 'RF';
-                        } else {
-                            $row[$key] = ReportService::translationToText($datum->choice->choiceTranslation, $this->localeId);
-                        }
-
-                        // This seems like the safest way to check if it's an other response
-                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice->val) {
-                            $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
-                        }
-                    }
-
-                    if (!is_null($qd->dk_rf)) {
-                        $this->addNote($this->headers[$baseKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
-                    }
-
-                    break;
-                case 'respondent_geo':
-                    $idKey = $baseKey . '_ids';
-                    $actionKey = $baseKey . '_actions';
-                    if (!isset($this->headers[$idKey])) {
-                        throw new Exception("Header $idKey should already be defined");
-                    } else if (!isset($this->headers[$actionKey])) {
-                        throw new Exception("Header $actionKey should already be defined");
-                    }
-                    if (!is_null($qd->dk_rf)) {
-                        $row[$idKey] = $qd->dk_rf ? 'DK' : 'RF';
-                        $row[$actionKey] = $qd->dk_rf ? 'DK' : 'RF';
-                        $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
-                    } else {
-                        $ids = [];
-                        $actions = [];
-                        foreach ($qd->fullData as $datum) {
-                            array_push($ids, $datum->respondent_geo_id);
-                            array_push($actions, $datum->val);
-                        }
-                        $row[$idKey] = $ids;
-                        $row[$actionKey] = $actions;
-                    }
-                    break;
-                default:
-                    $key = $baseKey;
-                    if (!isset($this->headers[$key])) {
-                        throw new Exception("Header $key should already be defined");
-                    }
-                    $vals = [];
-                    if (isset($qd->dk_rf)) {
-                        array_push($vals, $qd->dk_rf ? 'DK' : 'RF');
-                        $this->addNote($this->headers[$key], $survey, $qd->dk_rf, $qd->dk_rf_val);
-                    } else {
-                        foreach ($qd->fullData as $datum) {
-                            array_push($vals, $this->getDatumValue($datum, $this->localeId));
-                        }
-                    }
-                    $row[$key] = $vals;
-            }
-        }
-        return $row;
+    private function mapDkRf ($dkRf) {
+        return $dkRf ? 'DK' : 'RF';
     }
 
     private function makeMultiSelectMeta (Question $question, String $baseKey) {
@@ -464,7 +515,7 @@ class FormReportJob extends Job
 
     }
 
-    private function addNote($questionName, $survey, $type, $text){
+    private function addNote ($questionName, $survey, $type, $text){
         array_push($this->notesRows, [
             'question' => $questionName,
             'survey_id' => $survey->id,

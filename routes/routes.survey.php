@@ -27,6 +27,7 @@ $router->group([
     $router->get('condition-tags/respondent',                   'ConditionController@getAllRespondentConditionTags');
 
     $router->post('translation-text/{translation_text_id}',     'TranslationTextController@updateTranslatedTextById');
+    $router->get('translation/{translation_id}/translation-text',     'TranslationController@getTranslationText');
 
     $router->get('form/{form_id}',                              'FormController@getForm');
 
@@ -76,6 +77,7 @@ $router->group([
         $router->post('geo',                                    'RespondentGeoController@createRespondentGeo');
         $router->post('geo/{respondent_geo_id}/move',           'RespondentGeoController@moveRespondentGeo');
         $router->delete('geo/{respondent_geo_id}',              'RespondentGeoController@deleteRespondentGeo');
+        $router->put('geo/{respondent_geo_id}',                 'RespondentGeoController@editRespondentGeo');
         $router->post('condition-tag/{c_id}',                   'ConditionTagController@createRespondentConditionTag');
         $router->delete('condition-tag/{condition_tag_id}',     'ConditionTagController@deleteRespondentConditionTag');
     });

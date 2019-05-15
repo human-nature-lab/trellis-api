@@ -6,6 +6,7 @@ use App\Models\Form;
 use App\Models\Report;
 use App\Models\Study;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
@@ -38,8 +39,7 @@ class BundleLatestReports extends Command
      *
      * @return mixed
      */
-    public function handle()
-    {
+    public function handle () {
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
@@ -48,19 +48,32 @@ class BundleLatestReports extends Command
         })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
             return $item->id;
         });
-        $reports = Report::whereIn("report.type", $types)
-            ->where("report.report_id", '=', $studyId)
-            ->orderBy('report.updated_at', 'desc')
-            ->limit(count($types))
-            ->with("files")
-            ->distinct()
-            ->get();
-        $formReports = Report::whereIn("report.report_id", $formIds)
-            ->where("report.type", "=", "form")
-            ->orderBy('report.updated_at', 'desc')
-            ->limit(count($formIds))
-            ->with("files")
-            ->get();
+
+        $reports = new Collection();
+        $formReports = new Collection();
+
+        foreach ($types as $type) {
+            $report = Report::where('type', '=', $type)
+                ->where('report_id', '=', $studyId)
+                ->where('status', '=', "saved")
+                ->with('files')
+                ->orderBy('updated_at', 'desc')
+                ->first();
+            if (isset($report)) {
+                $reports->push($report);
+            }
+        }
+
+        foreach ($formIds as $formId) {
+            $report = Report::where('type', '=', 'form')
+                ->where('report_id', '=', $formId)
+                ->with('files')
+                ->orderBy('updated_at', 'desc')
+                ->first();
+            if (isset($report)) {
+                $formReports->push($report);
+            }
+        }
 
 
         // Save the files in a zip archive
