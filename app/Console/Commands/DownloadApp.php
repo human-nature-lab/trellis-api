@@ -57,8 +57,9 @@ class DownloadApp extends Command
         $chosenVersion = array_values(array_filter($versions, function($v) use ($chosenVersionName) { return $v["name"] == $chosenVersionName; }));
 
         $this->info($chosenVersion[0]["url"]);
+        $chosenVersionUrl = $chosenVersion[0]["url"];
         $this->info("Downloading...");
-        curl_setopt($ch, CURLOPT_URL, $chosenVersion[0]["url"]);
+        curl_setopt($ch, CURLOPT_URL, $chosenVersionUrl);
         curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 
@@ -94,6 +95,17 @@ class DownloadApp extends Command
         }
 
         unlink($zipPath);
+
+        $this->info("");
+        $apiEndpoint = $this->ask("What is the URL of your server's API endpoint? (e.g. https://api.yourdomainname.com)");
+        $this->info("Writing APP config file...");
+
+        $configFile = "window.config = {
+  appEnv: 'WEB',
+  apiRoot: '$apiEndpoint'
+}\n";
+
+        file_put_contents($trellisAppDir . '/config.js', $configFile);
 
         curl_close($ch);
         $this->info("");
