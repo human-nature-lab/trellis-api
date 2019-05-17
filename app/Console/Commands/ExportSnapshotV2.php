@@ -142,7 +142,7 @@ class ExportSnapshotV2 extends Command
 
 
             $this->info("Starting trellis:export:sqlite process...");
-            $process = new Process(<<<EOT
+            $process = Process::fromShellCommandline(<<<EOT
 php artisan trellis:export:sqlite $excludeTablesString > $sqliteDumpPath
 EOT
                 , base_path());
@@ -157,7 +157,7 @@ EOT
             }
 
             $this->info("Zipping sqlite export...");
-            $process = new Process(<<<EOT
+            $process = Process::fromShellCommandline(<<<EOT
 zip -j $zipPath $sqliteDumpPath
 EOT
                 , base_path());

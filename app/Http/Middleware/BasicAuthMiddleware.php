@@ -30,6 +30,10 @@ class BasicAuthMiddleware
                     $password = $credsParts[1];
                     $user = User::where('username', $username)->first();
 
+                    $request->setUserResolver(function () use ($user) {
+                      return $user;
+                    });
+
                     if (isset($user) && Hash::check($password, $user->password)) {
                         return $next($request);
                     }
