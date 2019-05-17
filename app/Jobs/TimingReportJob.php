@@ -93,6 +93,7 @@ class TimingReportJob extends Job
                 "question_datum.survey_id",
                 'question_datum.question_id',
                 "survey.form_id",
+                "survey.study_id",
                 "survey.respondent_id",
                 "interview.user_id",
                 "user.name",
