@@ -34,8 +34,6 @@ class PermissionMiddleware {
 
     foreach ($permissions as $permission) {
       $res = $this->permissionService->hasPermission($user, $permission);
-      Log::info("Permission $permission. Result $res");
-      Log::info($res);
       if (!$res) {
         return response()->json([
           'msg' => 'Unauthorized'

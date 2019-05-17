@@ -9,7 +9,7 @@ class ConfigSeeder extends Seeder {
 
       $defaults = [
         'serverMode' => 'PROD',
-        'debug' => 0,
+        'debug' => false,
         'appMode' => 'PROD',
         'siteName' => 'Trellis Demo',
         'apiRoot' => 'https://api.trellisandroid.net',
