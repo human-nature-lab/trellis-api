@@ -188,28 +188,6 @@ has additional firewall software, such as `ufw`, that needs to be configured.*
 ### Configuring Nginx
 
 
-
-
-
-## Setup
-
-### Create storage directories
-The following directories must be created before starting.
-- storage/app
-- storage/exports
-- storage/logs
-- storage/framework/cache
-- storage/framework/sessions
-- storage/framework/views
-- storage/respondent-photos
-- storage/snapshot
-- storage/temp
-- storage/uploads
-- storage/uploads-failed
-- storage/uploads-pending
-- storage/uploads-running
-- storage/uploads-success
-
 ## Development
 
 ### Debugging
