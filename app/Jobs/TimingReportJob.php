@@ -87,13 +87,14 @@ class TimingReportJob extends Job
             ->join('question', 'question.id', '=', 'question_datum.question_id')
             ->join('question_type', 'question.question_type_id', '=', 'question_type.id')
             ->where('survey.study_id', '=', $study->id)
-            ->orderBy('survey.respondent_id')
+            // ->orderBy('survey.respondent_id')
             ->select(
                 "interview.id as interview_id",
                 "question_datum.survey_id",
                 'question_datum.question_id',
                 "survey.form_id",
                 "survey.respondent_id",
+                "survey.study_id",
                 "interview.user_id",
                 "user.name",
                 "user.username",
@@ -103,8 +104,8 @@ class TimingReportJob extends Job
                 'question_datum.updated_at',
                 'question_datum.deleted_at');
 
-        Log::debug($q->toSql());
-
+        //Log::debug($q->toSql());
+      
         foreach ($q->cursor() as $datum) {
             $datum = $datum->toArray();
             $this->file->writeRow($datum);
