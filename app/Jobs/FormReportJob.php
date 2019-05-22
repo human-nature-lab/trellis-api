@@ -338,8 +338,11 @@ class FormReportJob extends Job
             }
         }
 
-        // Filter out questionDatum that are from deleted datum
+        // Filter out questionDatum that are from deleted datum or deleted questions
         $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
+	    if (!isset($questionsMap[$qd->question_id])) {
+		return false;
+	    }
             $question = $questionsMap[$qd->question_id];
             $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
             return $keep;
