@@ -24,7 +24,7 @@ class DemoService {
       $user->username = $confirmation->username;
       $user->email = $confirmation->email;
       $user->name = $confirmation->name;
-      $user->role = $role;
+      $user->role_id = $role;
       $user->save();
 
       $study = new Study;
