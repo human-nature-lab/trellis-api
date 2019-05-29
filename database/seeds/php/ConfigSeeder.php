@@ -12,7 +12,6 @@ class ConfigSeeder extends Seeder {
         'debug' => 0,
         'appMode' => 'PROD',
         'siteName' => 'Trellis Demo',
-        'apiRoot' => 'https://api.trellisandroid.net',
         'webRoot' => 'trellisdemo.net',
         'formBuilderUrl' => '/form-builder/#/form/{form_id}/builder?token={token}&study={study}&locale={locale}',                     // The url template to use for the form builder iframe
         'mapTileLayer.url' => 'https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token={accessToken}', // The url template to use for the mapbox layer
