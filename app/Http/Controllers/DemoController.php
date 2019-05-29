@@ -26,7 +26,7 @@ class DemoController extends Controller {
     $validator = Validator::make([
       'key' => $key
     ], [
-      'key' => 'required|string|min:50|max:255'
+      'key' => 'required|string|max:255'
     ]);
 
     if ($validator->fails()) {
@@ -109,8 +109,14 @@ class DemoController extends Controller {
       ], Response::HTTP_BAD_REQUEST);
     }
 
+    // From these two questions https://stackoverflow.com/a/10515786/5551941  https://stackoverflow.com/a/17649993/5551941
+    function base64_random ($n) {
+      $data = random_bytes($n);
+      return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
     $confirmation = new UserConfirmation;
-    $confirmation->key = Hash::make($request->get('email'));
+    $confirmation->key = base64_random(50);
     $confirmation->email = $request->get('email');
     $confirmation->name = $request->get('name');
     $confirmation->password = Hash::make($request->get('password'));
