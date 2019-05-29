@@ -186,7 +186,100 @@ Now if you navigate to `yourdomainname.com` you should see a **Welcome to nginx!
 has additional firewall software, such as `ufw`, that needs to be configured.*
 
 ### Configuring Nginx
+Trellis uses two server blocks to configure REST API server and the web server.
 
+Create an nginx configuration file for each server and copy the contents of the each into these files. Replace the `{yourdomainname.com}` with your domain name in the code below.
+- `sudo touch /etc/nginx/sites-available/trellis-app.conf`
+- `sudo touch /etc/nginx/sites-available/trellis-api.conf`
+- `sudo touch /etc/nginx/sites-available/http-to-https.conf`
+
+Web Server - trellis-app.conf
+```
+# Redirect all www requests to www-less
+server {
+  listen 443 ssl http2;
+  server_name {yourdomainname.com};
+
+  root        /var/www/trellis-app;
+  access_log  /var/log/nginx/app-access.log;
+  error_log   /var/log/nginx/app-error.log;
+
+  charset        utf-8;
+  source_charset utf-8;
+
+  # Block requests for all . directories/files in general (including .htaccess, etc)
+  location ~ /\. {
+    deny all;
+  }
+}
+```
+
+API Server - trellis-api.conf
+```
+server {
+  listen 443 ssl http2;
+  server_name api.{yourdomainname.com};
+
+  root        /var/www/trellis-api/public;
+  access_log  /var/log/nginx/api-access.log;
+  error_log   /var/log/nginx/api-error.log;
+
+  charset        utf-8;
+  source_charset utf-8;
+
+  location / {
+    index     index.html index.htm index.php;
+    try_files $uri $uri/ /index.php$is_args$args;
+  }
+  location ~ \.php$ {
+      fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+      rewrite ^(?!/index\.php)(.*)\.php(.*)$ $1$2 permanent;
+      fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+      fastcgi_index index.php;
+      include fastcgi_params;
+      fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    }
+
+  # Block requests for all . directories/files in general (including .htaccess, etc)
+  location ~ /\. {
+    deny all;
+  }
+}
+```
+
+Http to Https - http-to-https.conf
+```
+server {
+
+  listen 80 default_server;
+  return 301 https://$host$request_uri;
+  server_name _;
+  root /var/www/html;
+  access_log /var/log/nginx/http_to_https-access.log;
+  error_log /var/log/nginx/http_to_https-error.log debug;
+  ancient_browser Links Lynx netscape4;
+  if ($ancient_browser) { rewrite ^ /unsupported.html break; }
+  modern_browser_value "modern.";
+  modern_browser msie 8.0;
+  modern_browser gecko 1.0.0;
+  modern_browser opera 9.0;
+  modern_browser safari 413;
+  modern_browser konqueror 3.0;
+  large_client_header_buffers 4 32k;
+
+}
+```
+
+Enable the servers that were just created using the following commands. After running these commands you will no longer see a response from your server.
+- `sudo rm /etc/nginx/sites-enabled/default`
+- `sudo ln -s /etc/nginx/sites-available/trellis-app.conf /etc/nginx/sites-enabled`
+- `sudo ln -s /etc/nginx/sites-available/trellis-api.conf /etc/nginx/sites-enabled`
+- `sudo ln -s /etc/nginx/sites-available/http-to-https.conf /etc/nginx/sites-enabled`
+- To reload the nginx configuration use `sudo nginx -s reload`
+
+## LetsEncrypt
+LetsEncrypt is an free, easy and automated tool for configuring and renewing a TLS Certificate for your server. We recommend using [certbot](https://certbot.eff.org/) to configure your TLS certificates.
+Follow along with the nginx documentation for your OS. LetsEncrypt can automatically make changes to your nginx configuration so it is recommended to configure nginx first. Be sure to select the option to redirect to HTTPS.
 
 ## Development
 
