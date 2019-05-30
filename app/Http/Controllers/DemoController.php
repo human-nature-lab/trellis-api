@@ -35,12 +35,18 @@ class DemoController extends Controller {
       ], $validator->statusCode());
     }
 
-    $confirmation = UserConfirmation::find($key);
+    $confirmation = UserConfirmation::withTrashed()->where('key', $key)->first();
 
     if (!isset($confirmation)) {
       return response()->json([
         'msg' => 'This confirmation is invalid.'
       ], Response::HTTP_I_AM_A_TEAPOT);
+    }
+
+    if ($confirmation->deleted_at !== null) {
+      return response()->json([
+        'msg' => 'This email has already been confirmed'
+      ], Response::HTTP_OK);
     }
 
     $existingUser = User::where('username', $confirmation->username)->first();
@@ -61,7 +67,7 @@ class DemoController extends Controller {
       $confirmation->is_confirmed = true;
       $confirmation->deleted_at = Carbon::now();
       $confirmation->save();
-      $demoService->makeDemoUser($confirmation, 'supervisor');
+      $demoService->makeDemoUser($confirmation, ConfigService::get('demo.defaultRole'));
       DB::commit();
     } catch (Throwable $e) {
       DB::rollBack();
