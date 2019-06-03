@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileWriter;
+use App\Library\CsvFileWriter;
 use App\Models\Action;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\Schema;
