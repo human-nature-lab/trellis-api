@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileWriter;
-use App\Classes\Memoization;
+use App\Library\CsvFileWriter;
+use App\Library\Memoization;
 use App\Models\Study;
 use App\Services\ReportService;
 use Log;

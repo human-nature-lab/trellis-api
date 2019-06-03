@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileWriter;
+use App\Library\CsvFileWriter;
 use App\Models\ConditionTag;
 use App\Models\Respondent;
 use App\Models\RespondentConditionTag;
