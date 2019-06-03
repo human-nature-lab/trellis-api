@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserConfirmation;
 use App\Models\UserStudy;
 use App\Services\RespondentService;
+use App\Services\GeoService;
 use App\Services\FormService;
 use Log;
 use Ramsey\Uuid\Uuid;
@@ -54,6 +55,10 @@ class DemoService {
       $numPhotos = RespondentService::importRespondentPhotos(resource_path('demo/respondent_photos.zip'), $study->id);
       Log::debug("Added $numPhotos photos to this study");
       // TODO: Import demo locations and assign them to this study
+
+      $numGeos = count(GeoService::importGeosFromFile(resource_path('demo/states.csv'), $study->id));
+      $numGeos += count(GeoService::importGeosFromFile(resource_path('demo/cities.csv'), $study->id));
+      Log::debug("Added $numGeos geos to this study");
 
       // Load all of the forms
       $importedForm = FormService::importFormAndAddToStudy(resource_path('demo/forms/example-question-types.json'), 'Example Question Types', $study->id, 0);
