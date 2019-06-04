@@ -50,10 +50,8 @@ class ConfigController extends Controller {
             ], $validator->statusCode());
         }
 
-        ConfigService::set($request->get('key'), $request->get('value'));
-        return response()->json([
-            'msg' => 'ok'
-        ], Response::HTTP_ACCEPTED);
+        $c = ConfigService::set($request->get('key'), $request->get('value'));
+        return response()->json($c, Response::HTTP_ACCEPTED);
     }
 
     public function reset (Request $request) {
