@@ -1,0 +1,52 @@
+id,name,geo_type,latitude,longitude
+alabama,Alabama,State,32.806671,-86.79113
+alaska,Alaska,State,61.370716,-152.404419
+arizona,Arizona,State,33.729759,-111.431221
+arkansas,Arkansas,State,34.969704,-92.373123
+california,California,State,36.116203,-119.681564
+colorado,Colorado,State,39.059811,-105.311104
+connecticut,Connecticut,State,41.597782,-72.755371
+delaware,Delaware,State,39.318523,-75.507141
+district of columbia,District of Columbia,State,38.897438,-77.026817
+florida,Florida,State,27.766279,-81.686783
+georgia,Georgia,State,33.040619,-83.643074
+hawaii,Hawaii,State,21.094318,-157.498337
+idaho,Idaho,State,44.240459,-114.478828
+illinois,Illinois,State,40.349457,-88.986137
+indiana,Indiana,State,39.849426,-86.258278
+iowa,Iowa,State,42.011539,-93.210526
+kansas,Kansas,State,38.5266,-96.726486
+kentucky,Kentucky,State,37.66814,-84.670067
+louisiana,Louisiana,State,31.169546,-91.867805
+maine,Maine,State,44.693947,-69.381927
+maryland,Maryland,State,39.063946,-76.802101
+massachusetts,Massachusetts,State,42.230171,-71.530106
+michigan,Michigan,State,43.326618,-84.536095
+minnesota,Minnesota,State,45.694454,-93.900192
+mississippi,Mississippi,State,32.741646,-89.678696
+missouri,Missouri,State,38.456085,-92.288368
+montana,Montana,State,46.921925,-110.454353
+nebraska,Nebraska,State,41.12537,-98.268082
+nevada,Nevada,State,38.313515,-117.055374
+new hampshire,New Hampshire,State,43.452492,-71.563896
+new jersey,New Jersey,State,40.298904,-74.521011
+new mexico,New Mexico,State,34.840515,-106.248482
+new york,New York,State,42.165726,-74.948051
+north carolina,North Carolina,State,35.630066,-79.806419
+north dakota,North Dakota,State,47.528912,-99.784012
+ohio,Ohio,State,40.388783,-82.764915
+oklahoma,Oklahoma,State,35.565342,-96.928917
+oregon,Oregon,State,44.572021,-122.070938
+pennsylvania,Pennsylvania,State,40.590752,-77.209755
+rhode island,Rhode Island,State,41.680893,-71.51178
+south carolina,South Carolina,State,33.856892,-80.945007
+south dakota,South Dakota,State,44.299782,-99.438828
+tennessee,Tennessee,State,35.747845,-86.692345
+texas,Texas,State,31.054487,-97.563461
+utah,Utah,State,40.150032,-111.862434
+vermont,Vermont,State,44.045876,-72.710686
+virginia,Virginia,State,37.769337,-78.169968
+washington,Washington,State,47.400902,-121.490494
+west virginia,West Virginia,State,38.491226,-80.954453
+wisconsin,Wisconsin,State,44.268543,-89.616508
+wyoming,Wyoming,State,42.755966,-107.30249

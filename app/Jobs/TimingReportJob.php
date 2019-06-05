@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileWriter;
+use App\Library\CsvFileWriter;
 use App\Models\QuestionDatum;
 use App\Services\ReportService;
 use Log;

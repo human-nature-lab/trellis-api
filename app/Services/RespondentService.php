@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Classes\CsvFileReader;
+use App\Library\CsvFileReader;
 use App\Models\Photo;
 use App\Models\RespondentGeo;
 use App\Models\RespondentName;
