@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 
 class CorsMiddleware
 {
@@ -12,7 +13,8 @@ class CorsMiddleware
         'Content-Length',
         'X-Key',
         'X-Token',
-        'X-Powered-By'
+        'X-Powered-By',
+        'Authorization'
     ];
 
     protected $methods = [
@@ -24,7 +26,12 @@ class CorsMiddleware
         'PATCH'
     ];
 
-    public function handle($request, Closure $next)
+    /**
+     * @param  Request  $request
+     * @param  Closure  $next
+     * @return Response
+     */
+    public function handle(Request $request, Closure $next)
     {
         $allowedMethods = implode(', ', $this->methods);
         $allowedHeaders = implode(', ', $this->headers);
@@ -34,6 +41,7 @@ class CorsMiddleware
             $response->headers->set('Access-Control-Allow-Methods', $allowedMethods);
             $response->headers->set('Access-Control-Allow-Headers', $allowedHeaders);
             $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Access-Control-Max-Age', 600);
             $response->headers->set('Vary', 'Origin');
             return $response;
         }

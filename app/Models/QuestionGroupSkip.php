@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class QuestionGroupSkip extends Model
+class QuestionGroupSkip extends Pivot
 {
     use SoftDeletes;
 

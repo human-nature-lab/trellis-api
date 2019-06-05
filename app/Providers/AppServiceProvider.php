@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 use App\Library\RestValidator;
+use Validator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,18 +18,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        if ($this->app->environment() !== 'production') {
-            $this->app->register(\Way\Generators\GeneratorsServiceProvider::class);
-            $this->app->register(\Xethron\MigrationsGenerator\MigrationsGeneratorServiceProvider::class);
-            $this->app->register('Mojopollo\Schema\MakeMigrationJsonServiceProvider');
-            $this->app->register('Laracasts\Generators\GeneratorsServiceProvider');
-        }
+        //
     }
 
-    public function boot()
-    {
-        \Validator::resolver(function ($translator, $data, $rules, $messages) {
+    public function boot() {
+        Validator::resolver(function ($translator, $data, $rules, $messages) {
             return new RestValidator($translator, $data, $rules, $messages);
+        });
+        DB::listen(function ($query) {
+            Log::debug(json_encode([
+                $query->sql,
+                $query->bindings,
+                $query->time
+            ]));
+        });
+        Queue::looping(function () {
+            while (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
         });
     }
 }

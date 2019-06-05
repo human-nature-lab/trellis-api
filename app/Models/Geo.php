@@ -14,16 +14,17 @@ class Geo extends Model
     protected $table = 'geo';
 
     protected $fillable = [
-        'id',
-        'geo_type_id',
-        'parent_id',
-        'latitude',
-        'longitude',
-        'altitude',
-        'name_translation_id',
-        'created_at',
-        'updated_at',
-        'deleted_at'
+      'id',
+      'assigned_id',
+      'geo_type_id',
+      'parent_id',
+      'latitude',
+      'longitude',
+      'altitude',
+      'name_translation_id',
+      'created_at',
+      'updated_at',
+      'deleted_at'
     ];
 
     public function nameTranslation()
@@ -37,6 +38,14 @@ class Geo extends Model
     {
         return $this
             ->belongsTo('App\Models\GeoType', 'geo_type_id');
+    }
+
+    public function photos() {
+        return $this
+            ->belongsToMany('App\Models\Photo', 'geo_photo', 'geo_id', 'photo_id')
+            ->whereNull('geo_photo.deleted_at')
+            ->where('geo_photo.sort_order', '=', '0')
+            ->withTimestamps();
     }
 
     public function parent()

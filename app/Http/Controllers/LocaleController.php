@@ -54,9 +54,9 @@ class LocaleController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'language_name' => 'string|min:1|max:255',
-            'language_native' => 'string|min:1|max:255',
-            'language_tag' => 'string|min:2|max:3'
+            'language_name' => 'nullable|string|min:1|max:255',
+            'language_native' => 'nullable|string|min:1|max:255',
+            'language_tag' => 'nullable|string|min:2|max:3'
         ]);
 
         if ($validator->fails() === true) {
@@ -114,9 +114,9 @@ class LocaleController extends Controller
     public function createLocale(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'language_name' => 'string|min:1|max:255',
-            'language_native' => 'string|min:1|max:255',
-            'language_tag' => 'string|min:2|max:3'
+            'language_name' => 'required|string|min:1|max:255',
+            'language_native' => 'required|string|min:1|max:255',
+            'language_tag' => 'required|string|min:2|max:3'
         ]);
 
         if ($validator->fails() === true) {

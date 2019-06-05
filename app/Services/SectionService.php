@@ -13,22 +13,14 @@ use DB;
 
 class SectionService
 {
-    public function createTranslatedSection($formId, $nameTranslationId, $sortOrder)
+    public static function createTranslatedSection($formId, $nameTranslationId, $sortOrder, $followUpQuestionId = null, $isRepeatable = false, $maxRepetitions = 0)
     {
-        $studyModel = Study::select('study.*')
-            ->join('study_form AS sf', 'sf.study_id', '=', 'study.id')
-            ->join('form AS f', 'f.id', '=', 'sf.form_master_id')
-            ->where('f.id', $formId)
-            ->first();
-
-        $studyLocaleId = $studyModel->default_locale_id;
-
         $newSectionModel = new Section;
 
         $sectionId = Uuid::uuid4();
         $formSectionId = Uuid::uuid4();
 
-        DB::transaction(function () use ($formId, $nameTranslationId, $sortOrder, $studyLocaleId, $newSectionModel, $sectionId, $formSectionId) {
+        DB::transaction(function () use ($formId, $nameTranslationId, $sortOrder, $newSectionModel, $sectionId, $formSectionId, $isRepeatable, $followUpQuestionId, $maxRepetitions) {
             $newSectionModel->id = $sectionId;
             $newSectionModel->name_translation_id = $nameTranslationId;
             $newSectionModel->save();
@@ -38,6 +30,9 @@ class SectionService
             $newFormSectionModel->form_id = $formId;
             $newFormSectionModel->section_id = $sectionId;
             $newFormSectionModel->sort_order = $sortOrder;
+            $newFormSectionModel->is_repeatable = $isRepeatable;
+            $newFormSectionModel->follow_up_question_id = $followUpQuestionId;
+            $newFormSectionModel->max_repetitions = $maxRepetitions;
             $newFormSectionModel->save();
         });
 

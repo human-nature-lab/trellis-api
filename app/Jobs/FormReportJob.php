@@ -2,36 +2,42 @@
 
 namespace App\Jobs;
 
+use App\Library\CsvFileWriter;
+use App\Models\Datum;
+use App\Models\Question;
+use App\Models\QuestionDatum;
+use App\Models\Survey;
+use App\Models\Translation;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use League\Flysystem\Exception;
 use Log;
 use App\Models\Report;
-use App\Models\ReportFile;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Bus\SelfHandling;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Services\ReportService;
-use App\Services\FileService;
 use Ramsey\Uuid\Uuid;
+use Throwable;
 
 class FormReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $formId;
-    protected $report;
-    protected $config;
-    protected $images=[];
-    protected $rows=[];
-    protected $headers=[];
-    protected $metaHeaders=[];
-    protected $metaRows=[];
+    public $report;
+    protected $config = [
+        'useRespondentNames' => false // Adds the respondent name column and makes relationship question types use the name instead of the ID
+    ];
+    protected $images = [];
+    protected $rows = [];
+    protected $headers = [];
+    protected $metaHeaders = [];
+    protected $metaRows = [];
     protected $otherRows = [];
     protected $otherHeaders = [];
     protected $notesRows = [];
     protected $notesHeaders = [];
     protected $defaultColumns;
+    private $localeId;
+    private $file;
+    private $count = 0;
 
     /**
      * FormReportJob constructor.
@@ -39,36 +45,39 @@ class FormReportJob extends Job
      * @param $reportId - The id of the report we're generating. This is used on the client side to check if the report has finished exporting
      * @param $config - Any configuration options used to generate this report
      */
-    public function __construct($formId, $reportId, $config)
+    public function __construct($studyId, $formId, $config)
     {
         Log::debug("FormReportJob - constructing: $formId");
         $this->config = $config;
         $this->formId = $formId;
         $this->report = new Report();
-        $this->report->id = $reportId;
+        $this->report->id = Uuid::uuid4();
+        $this->report->form_id = $formId;
         $this->report->type = 'form';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->formId;
+        $this->report->study_id = $studyId;
         $this->report->save();
     }
 
-    public function handle()
-    {
-        set_time_limit(0);
+    public function handle () {
+        set_time_limit(10 * 60);
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
             $this->create();
             $this->report->status = 'saved';
-        } catch(Exception $e){
+        } catch(Throwable $e){
             $this->report->status = 'failed';
             Log::debug("Form export $this->formId failed");
+            Log::error($e);
         } finally{
             $this->report->save();
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $duration = microtime(true) - $startTime;
-            Log::debug("FormReportJob - finished: $this->formId in $duration seconds");
+            Log::debug("FormReportJob - finished: $this->formId in $duration seconds. Processed $this->count surveys.");
         }
-
     }
 
     /**
@@ -76,20 +85,7 @@ class FormReportJob extends Job
      */
     private function create(){
 
-        $questions = ReportService::getFormQuestions($this->formId, $this->config->locale);
-
-        $questionsMap = array_reduce($questions, function($agg, &$q){
-            $agg[$q->id] = $q;
-            return $agg;
-        }, []);
-
-        $this->defaultColumns = [
-            'id' => 'survey_id',
-            'respondent_id' => 'respondent_id',
-            'created_at' => 'created_at',
-            'completed_at' => 'completed_at'
-        ];
-
+        $this->localeId = ReportService::extractLocaleId($this->config, null);
         $this->otherHeaders = [
             'question' => 'question',
             'survey_id' => "survey_id",
@@ -101,28 +97,77 @@ class FormReportJob extends Job
             'question' => 'question',
             'survey_id' => 'survey_id',
             'respondent_id' => 'respondent_id',
+            'type' => 'type',
             'text' => 'response'
         ];
 
-        // 1. Create tree with follow up questions nested or if roster type then have the rows nested an follow up questions nested for each row
-        // 2. Add any questions without follow ups
-        // 3. Flatten the tree into a single
+        $questions = Question::join('section_question_group', 'question.question_group_id', '=', 'section_question_group.question_group_id')
+            ->join('question_group', 'question.question_group_id', '=', 'question_group.id')
+            ->join('form_section', 'section_question_group.section_id', '=', 'form_section.section_id')
+            ->join('section', 'section_question_group.section_id', '=', 'section.id')
+            ->whereNull('section.deleted_at')
+            ->whereNull('question.deleted_at')
+            ->whereNull('section_question_group.deleted_at')
+            ->whereNull('form_section.deleted_at')
+            ->whereNull('question_group.deleted_at')
+            ->where('form_section.form_id', '=', $this->formId)
+            ->orderBy('form_section.sort_order')
+            ->orderBy('section_question_group.question_group_order')
+            ->orderBy('question.sort_order')
+            ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable', 'form_section.randomize_follow_up')
+            ->with('choices');
 
-        list($tree, $treeMap) = ReportService::buildFormTree($questions);
+        $questions = $questions->get();
 
-        $surveys = ReportService::getFormSurveys($this->formId);
-
-        foreach($surveys as $survey){
-
-            $this->formatSurveyData($survey, $tree, $treeMap, $questionsMap);
-
+        $questionsMap = [];
+        foreach ($questions as $question) {
+            $question->has_follow_up = isset($question->follow_up_question_id);
+            $questionsMap[$question->id] = $question;
         }
 
-        // Sort non default columns first then add default columns
-        asort($this->headers);
-        $this->headers = $this->defaultColumns + $this->headers; // add at the beginning of the array
+        $this->makeHeaders($questions);
+        $this->makeBaseFormMetadata($questions);
 
-        ReportService::saveDataFile($this->report, $this->headers, $this->rows);
+        $id = Uuid::uuid4();
+        $fileName = $id . '.csv';
+        $filePath = storage_path('app/' . $fileName);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
+        $this->file->open();
+        $this->file->writeHeader();
+
+        $q = Survey::where('form_id', '=', $this->formId)
+            ->leftJoin('respondent_geo as rg', function ($join) {
+                $join->on('rg.respondent_id', '=', 'survey.respondent_id');
+                $join->on('rg.is_current', '=', DB::raw('1'));
+            })
+            ->leftJoin('geo', 'geo.id', '=', 'rg.geo_id')
+            ->leftJoin('translation_text as tt', function ($join) {
+                $join->on('tt.translation_id', '=', 'geo.name_translation_id');
+                $join->on('tt.locale_id', '=', DB::raw('"'.$this->localeId.'"'));
+            })
+            ->select(
+                'survey.*',
+                'rg.id as rg_id',
+                'rg.geo_id as current_location_id',
+                'tt.translated_text as current_location_name'
+            );
+
+        $batchSize = 400;
+        $batch = new Collection;
+        foreach ($q->cursor() as $survey) {
+            $batch->push($survey);
+            if ($batch->count() >= $batchSize) {
+                $this->processBatch($batch, $questions, $questionsMap);
+                $batch = new Collection;
+            }
+        }
+
+        if ($batch->count() > 0) {
+            $this->processBatch($batch, $questions, $questionsMap);
+            $batch = null;
+        }
+
+        ReportService::saveFileStream($this->report, $fileName);
         ReportService::saveMetaFile($this->report, $this->metaRows);
         ReportService::saveDataFile($this->report, $this->otherHeaders, $this->otherRows, 'other');
         ReportService::saveDataFile($this->report, $this->notesHeaders, $this->notesRows, 'notes');
@@ -130,109 +175,366 @@ class FormReportJob extends Job
 
     }
 
+    private function makeHeaders (&$questions) {
+        $this->defaultColumns = [
+            'id' => 'survey_id',
+            'respondent_id' => 'respondent_master_id',
+            'current_location_id' => 'current_location_id',
+            'current_location_name' => 'current_location_name',
+            'created_at' => 'created_at',
+            'completed_at' => 'completed_at'
+        ];
 
-    private function formatSurveyData($survey, $tree, $treeMap, $questionsMap){
+//        if ($this->config['useRespondentNames']) {
+//            $this->defaultColumns['respondent_name'] = 'respondent_name';
+//        }
 
-        $row = [];
-        $alreadyHandledQuestions = [];
+        $headers = [];
 
-        foreach($treeMap as $qId => $children){
+        $expandRespondentGeo = function ($baseKey, $baseName) use (&$headers) {
+            $headers[$baseKey . '_ids'] = $baseName . '_ids';
+            $headers[$baseKey . '_actions'] = $baseName . '_actions';
+        };
 
-            if(array_key_exists($qId, $alreadyHandledQuestions))
-                continue;
+        $expandMultiSelect = function ($baseKey, $baseName, $choices) use (&$headers) {
+            $headers[$baseKey] = $baseName;
+            foreach ($choices as $choice) {
+                $key = $baseKey . '_' . $choice->id;
+                $headers[$key] = $baseName . '_' . $choice->val;
+            }
+        };
 
-            $question = $questionsMap[$qId];
-            if($question->qtype === 'roster'){
-                $rosterRows = ReportService::getRosterRows($survey->id, $qId);
+        $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect, $expandRespondentGeo) {
+            switch ($question->questionType->name) {
+                case 'multiple_select':
+                    $expandMultiSelect($baseKey, $baseName, $question->choices);
+                    break;
+                case 'respondent_geo':
+                    $expandRespondentGeo($baseKey, $baseName);
+                    break;
+                default:
+                    $headers[$baseKey] = $baseName;
+            }
+        };
 
-                // Add each roster row
-                foreach($rosterRows as $index=>$rosterRow){
-                    $key = $qId . '___' . $index;
-                    $this->headers[$key] = $question->var_name . '_r' . ReportService::zeroPad($index);
-                    $this->metaRows[$this->headers[$key]] = [
-                        'header' => $this->headers[$key],
-                        'variable_name' => $question->var_name,
-                        'question_type' => $question->qtype,
-                    ];
-                    $row[$key] = $rosterRow->val;
+        foreach ($questions as $question) {
+            $baseKey = $question->id;
+            $baseName = $question->var_name;
+            if (isset($question->follow_up_question_id)) {
+                $q = Datum::whereIn('question_datum_id', function ($q) use ($question) {
+                    $q->select('id')
+                        ->from('question_datum')
+                        ->where('question_datum.question_id', '=', $question->follow_up_question_id);
+                })->select('sort_order')
+                ->distinct();
+                $repetitions = $q->get();
+                $repetitions = $repetitions->count();
+                $repetitions = $repetitions === 0 ? 1 : $repetitions;
+                for ($i = 0; $i < $repetitions; $i++) {
+                    $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
                 }
+            } else {
+                $assignQuestionHeaders($baseKey, $baseName, $question);
+            }
+        }
 
-                foreach($children as $cId => $cChildren){
-                    $alreadyHandledQuestions[$cId] = true;
-                    foreach($rosterRows as $index => $rosterRowDatum){
-                        $repeatString = '_r' . ReportService::zeroPad($index);
-                        $childQuestion = $questionsMap[$cId];
-                        list($headers, $vals, $metaRows) = $this->handleQuestion($survey, $childQuestion, $repeatString, $rosterRowDatum->id);
-                        $this->headers = array_replace($this->headers, $headers);
-                        $this->metaRows = array_merge($this->metaRows, $metaRows);
-                        $row = array_replace($row, $vals);
+        // Sort non default columns first then add default columns
+        asort($headers);
+        $this->headers = $this->defaultColumns + $headers; // add at the beginning of the array
+        $headersCount = count($headers);
+        Log::info("$headersCount headers found");
+    }
+
+    private function getDatumValue (Datum $datum, String $localeId = null) {
+        if (isset($datum->roster)) {
+            return $datum->roster->val;
+        } else if (isset($datum->choice)) {
+            return ReportService::translationToText($datum->choice->choiceTranslation, $localeId);
+        } else if (isset($datum->geo)) {
+            return ReportService::translationToText($datum->geo->nameTranslation, $localeId);
+        } else if (isset($datum->edge)) {
+            return $datum->edge->target_respondent_id;
+        } else if (isset($datum->photo)) {
+            // TODO: Store photos meta data here
+            return $datum->photo->file_name;
+        } else if (isset($datum->respondentGeo)) {
+            return ReportService::translationToText($datum->respondentGeo->geo->nameTranslation, $localeId);
+        } else if (isset($datum->respondentName)) {
+            return $datum->respondentName->name;
+        } else {
+            return $datum->val;
+        }
+    }
+
+    private function processBatch ($surveys, $questions, $questionsMap) {
+        $count = count($surveys);
+        $this->count += $count;
+        Log::debug("Processing $count surveys");
+        $surveyIds = $surveys->map(function ($s) { return $s->id; });
+        $batchData = QuestionDatum::whereIn('survey_id', $surveyIds)
+            ->orderBy('survey_id', 'created_at')
+            ->with('fullData')
+            ->get();
+
+        $surveyDataMap = $batchData->reduce(function ($agg, $qd) {
+            if (!isset($agg[$qd->survey_id])) {
+                $agg[$qd->survey_id] = new Collection();
+            }
+            $agg[$qd->survey_id]->push($qd);
+            return $agg;
+        }, []);
+
+        $rows = [];
+        foreach ($surveys as $survey) {
+            if (isset($surveyDataMap[$survey->id])) {
+                $formatStart = microtime(true);
+                $row = $this->formatSurveyData($survey, $questions, $questionsMap, $surveyDataMap[$survey->id]);
+                $formatTime = microtime(true) - $formatStart;
+            } else {
+                $row = [];
+            }
+            foreach($this->defaultColumns as $key => $name){
+                $row[$key] = $survey->$key;
+            }
+            // Show a different value for the Unknown location besides null
+            if (!is_null($survey['rg_id']) && is_null($survey['current_location_id'])) {
+                $row['current_location_name'] = 'UNKNOWN LOCATION';
+                $row['current_location_id'] = 'UNKNOWN LOCATION';
+            }
+            array_push($rows, $row);
+        }
+
+        // Implode any cells that are represented as an array
+        foreach ($rows as &$row) {
+            foreach ($row as $key => $cell) {
+                if (is_array($cell)) {
+                    $row[$key] = implode(';', $cell);
+                }
+            }
+        }
+
+        // Write the batch to file
+        $this->file->writeRows($rows);
+    }
+
+    private function formatSurveyData ($survey, $questions, $questionsMap, $questionDatum) {
+//        $questionDatum2 = QuestionDatum::where('survey_id', $survey->id)
+//            ->with('fullData');
+//        $questionDatum2 = $questionDatum2->get();
+        $row = [];
+
+        // Create indexes
+        $questionToQuestionDatumMap = [];
+        $datumMap = [];
+        foreach ($questionDatum as $qd) {
+            if (!isset($questionToQuestionDatumMap[$qd->question_id])) {
+                $questionToQuestionDatumMap[$qd->question_id] = [];
+            }
+            array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
+            $i = 0;
+            foreach ($qd->fullData as $datum) {
+                $datum->repeat_index = $i;
+                $datumMap[$datum->id] = $datum; // For looking up follow up info
+                $i++;
+            }
+        }
+
+        // Filter out questionDatum that are from deleted datum or deleted questions
+        $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
+	    if (!isset($questionsMap[$qd->question_id])) {
+		return false;
+	    }
+            $question = $questionsMap[$qd->question_id];
+            $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
+            return $keep;
+        });
+
+        // Index the question order
+        $questionOrderMap = [];
+        foreach ($questions as $index => $question) {
+            $questionOrderMap[$question->id] = $index;
+        }
+
+        $datumSortStart = microtime(true);
+        // Sort question datum
+        foreach ($questionDatum as $qd) {
+            $qd->fullData = $qd->fullData->sortBy('repeat_index');
+        }
+        $datumSortTime = microtime(true) - $datumSortStart;
+//        Log::debug("Datum sort time $datumSortTime");
+
+        // TODO: Make complete form test to use for exporting. Repeated sections with each question type
+
+        $qdSortStart = microtime(true);
+        // Make sure the $questionDatum are all ordered the same way
+        $questionDatum = $questionDatum->sort(function (QuestionDatum $a,  QuestionDatum $b) use ($questionOrderMap, $datumMap) {
+            if ($a->question_id === $b->question_id) {
+                if (isset($a->follow_up_datum_id) && isset($b->follow_up_datum_id)) {
+                    return $datumMap[$a->follow_up_datum_id]->repeat_index - $datumMap[$b->follow_up_datum_id]->repeat_index;
+                } else {
+                    return $a->section_repetition - $b->section_repetition;
+                }
+            } else {
+                return $questionOrderMap[$a->question_id] - $questionOrderMap[$b->question_id];
+            }
+        });
+        $qdSortTime = microtime(true) - $qdSortStart;
+//        Log::debug("Question datum sort $qdSortTime");
+
+        foreach ($questionDatum as $qd) {
+            $question = $questionsMap[$qd->question_id];
+            $baseKey = $question->id;
+            if ($question->has_follow_up) {
+                $datum = $datumMap[$qd->follow_up_datum_id];
+                $baseKey .= '_r' . $datum->repeat_index;
+            }
+//            $this->addMetadata($baseKey, $question);
+            switch ($question->questionType->name) {
+                case 'multiple_select':
+                    foreach ($qd->fullData as $datum) {
+                        $key = $baseKey . '_' . $datum->choice->id;
+                        if (!isset($this->headers[$key])) {
+                            throw new Exception("Header $key should already be defined");
+                        }
+                        // TODO: Handle showing crosswalk as true or false instead of values
+                        if (isset($qd->dk_rf)) {
+                            $row[$key] = $this->mapDkRf($qd->dk_rf);
+                        } else {
+                            $row[$key] = ReportService::translationToText($datum->choice->choiceTranslation, $this->localeId);
+                        }
+
+                        // This seems like the safest way to check if it's an other response
+                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice->val) {
+                            $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
+                        }
+                    }
+
+                    if (!is_null($qd->dk_rf)) {
+                        $row[$baseKey] = $this->mapDkRf($qd->dk_rf);
+                        $this->addNote($this->headers[$baseKey], $survey, $this->mapDkRf($qd->dk_rf), $qd->dk_rf_val);
+                    }
+
+                    break;
+                case 'respondent_geo':
+                    $idKey = $baseKey . '_ids';
+                    $actionKey = $baseKey . '_actions';
+                    if (!isset($this->headers[$idKey])) {
+                        throw new Exception("Header $idKey should already be defined");
+                    } else if (!isset($this->headers[$actionKey])) {
+                        throw new Exception("Header $actionKey should already be defined");
+                    }
+                    if (!is_null($qd->dk_rf)) {
+                        $row[$idKey] = $this->mapDkRf($qd->dk_rf);
+                        $row[$actionKey] = $this->mapDkRf($qd->dk_rf);
+                        $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                    } else {
+                        $ids = [];
+                        $actions = [];
+                        foreach ($qd->fullData as $datum) {
+                            array_push($ids, $datum->respondent_geo_id);
+                            array_push($actions, $datum->val);
+                        }
+                        $row[$idKey] = $ids;
+                        $row[$actionKey] = $actions;
+                    }
+                    break;
+                case 'relationship':
+                    if (isset($qd->no_one) && $qd->no_one) {
+                        $row[$baseKey] = ['No_One'];
+                        break;
+                    }
+                default:
+                    $key = $baseKey;
+                    if (!isset($this->headers[$key])) {
+                        throw new Exception("Header $key should already be defined");
+                    }
+                    $vals = [];
+                    if (isset($qd->dk_rf)) {
+                        $dkRf = $this->mapDkRf($qd->dk_rf);
+                        array_push($vals, $dkRf);
+                        $this->addNote($this->headers[$key], $survey, $dkRf, $qd->dk_rf_val);
+                    } else {
+                        foreach ($qd->fullData as $datum) {
+                            array_push($vals, $this->getDatumValue($datum, $this->localeId));
+                        }
+                    }
+                    $row[$key] = $vals;
+            }
+        }
+        return $row;
+    }
+
+    private function addMetadata (String $baseKey, Question $question) {
+        $keys = [$baseKey];
+        switch ($question->questionType->name) {
+            case 'multiple_select':
+                foreach ($keys as $bKey) {
+                    foreach ($question->choices as $choice) {
+                        $key = $bKey . '_' . $choice->id;
+                        if (!isset($this->headers[$key])) {
+                            throw new Exception("Header $key should already be defined");
+                        }
+                        $this->metaRows[$this->headers[$key]] = [
+                            'header' => $this->headers[$key],
+                            'question_type' => $question->questionType->name,
+                            'variable_name' => $question->var_name,
+                            'option_code' => $choice->val,
+                            'option_id' => $choice->id
+                        ];
+                        foreach ($choice->choiceTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$this->headers[$key]]["option_$lang"] = $tt->translated_text;
+                        }
+                        foreach ($question->questionTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$this->headers[$key]]["question_$lang"] = $tt->translated_text;
+                        }
                     }
                 }
-
-            } else {
-                list($headers, $vals, $metaRows) = $this->handleQuestion($survey, $question);
-                $this->headers = array_replace($this->headers, $headers);
-                $this->metaRows = array_replace($this->metaRows, $metaRows);
-                $row = array_replace($row, $vals);
-            }
-
-        }
-
-
-        // Add survey default values
-        foreach($this->defaultColumns as $key=>$name){
-            $row[$key] = $survey->$key;
-        }
-
-        array_push($this->rows, $row);
-
-    }
-
-
-    private function handleQuestion($survey, $question, $repeatString='', $rowDatumId=null){
-        $images = [];
-        switch($question->qtype){
-            case 'multiple_select':
-                list($headers, $vals, $metaData) = self::handleMultiSelect($survey, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
                 break;
-            case 'geo':
-                list($headers, $vals, $metaData) = self::handleGeo($survey, $question, $repeatString, $this->config->locale, $rowDatumId);
-                break;
-            case 'image':
-                list($headers, $vals, $images, $metaData) = self::handleImage($survey, $question, $repeatString, $rowDatumId);
-                break;
-            case 'multiple_choice':
-                list($headers, $vals, $metaData) = self::handleMultiChoice($survey, $question, $repeatString, $this->config->useChoiceNames, $this->config->locale, $rowDatumId);
-                break;
+            case 'respondent_geo':
+                $keys = [$baseKey . '_ids', $baseKey . '_actions'];
             default:
-                list($headers, $vals, $metaData) = self::handleDefault($survey, $question, $repeatString, $rowDatumId);
-                break;
+                foreach ($keys as $key) {
+                    $this->metaRows[$this->headers[$key]] = [
+                        'header' => $this->headers[$key],
+                        'question_type' => $question->questionType->name,
+                        'variable_name' => $question->var_name
+                    ];
+                    foreach ($question->questionTranslation->translationText as $t) {
+                        $lang = $t->locale->language_name;
+                        $this->metaRows[$this->headers[$key]]["question_$lang"] = $t->translated_text;
+                    }
+                }
         }
+    }
 
-        $this->images = array_merge($this->images, $images);
+    private function makeBaseFormMetadata (&$questions) {
+        foreach ($questions as $q) {
+            if (!$q->has_follow_up) {
+                $this->addMetadata($q->id, $q);
+            } else {
+                $this->addMetadata($q->id . '_r0', $q);
+            }
+        }
+    }
 
-        return [$headers, $vals, $metaData];
+    private function mapDkRf ($dkRf) {
+        return $dkRf ? 'DK' : 'RF';
+    }
+
+    private function makeMultiSelectMeta (Question $question, String $baseKey) {
+        // Make all of the choices their own column
 
     }
 
-    private static function firstDatum($surveyId, $questionId, $parentDatumId=null){
-        $query = DB::table('datum')
-            ->where('datum.survey_id', '=', $surveyId)
-            ->where('datum.question_id', '=', $questionId)
-            ->whereNull('datum.deleted_at');
-        if($parentDatumId){
-            $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
-        }
-        return $query->first();
-    }
-
-    private function addNote($questionName, $survey, $datum){
+    private function addNote ($questionName, $survey, $type, $text){
         array_push($this->notesRows, [
             'question' => $questionName,
             'survey_id' => $survey->id,
             'respondent_id' => $survey->respondent_id,
-            'type' => $datum->opt_out,
-            'text' => $datum->opt_out_val
+            'type' => $type,
+            'text' => $text
         ]);
     }
 
@@ -243,269 +545,6 @@ class FormReportJob extends Job
             'respondent_id' => $respondentId,
             'text' => $response
         ]);
-    }
-
-    public function handleImage($survey, $question, $repeatString, $parentDatumId){
-        $headers = [];
-        $data = [];
-        $images = [];
-        $metaData = [];
-        $surveyId = $survey->id;
-
-        // This is flawed because it will use the same datum for 2 rows in a roster. The imageDatum needs to reference the
-        // parent datum that is the roster row as well. This is likely flawed in all of these exports and will need to be
-        // changed.
-        $imageDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
-        if($imageDatum !== null){
-            $imageData = DB::table('datum_photo')
-                ->join('photo', 'datum_photo.photo_id', '=', 'photo.id')
-                ->where('datum_photo.datum_id', '=', $imageDatum->id)
-                ->whereNull('datum_photo.deleted_at')
-                ->select('photo.file_name', 'photo.id')
-                ->get();
-            // TODO: Check if you can omit the $imageDatum and maybe consider doing a semi-colon delimited lsit instead
-            $imageList = [];
-            foreach($imageData as $index => $datum){
-                array_push($imageList, $datum->file_name);
-                array_push($images, $datum);
-            }
-            $key = $question->id.$repeatString;
-            $headers[$key] = $question->var_name.$repeatString;
-            $data[$key] = implode(';', $imageList);
-            $metaData[$headers[$key]] = [
-                'header' => $headers[$key],
-                'question_type' => $question->qtype,
-                'variable_name' => $question->var_name
-            ];
-            foreach ($question->translations as $t) {
-                $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
-            }
-        }
-
-        // handle opted out questions
-        if($imageDatum !== null && $imageDatum->opt_out !== null){
-            $key = $question->id.$repeatString;
-            $data[$key] = $imageDatum->opt_out;
-            $this->addNote($headers[$key], $survey, $imageDatum);
-        }
-
-        return [$headers, $data, $images, $metaData];
-    }
-
-    public function handleGeo($survey, $question, $repeatString, $locale, $parentDatumId, $useAnyLocale=true){
-
-        $headers = [];
-        $data = [];
-        $metaData = [];
-        $surveyId = $survey->id;
-        $geoDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
-
-        if($geoDatum) {
-            $geoData = DB::table('datum_geo')
-                ->join('geo', 'datum_geo.geo_id', '=', 'geo.id')
-                ->leftJoin('translation_text', function ($join) use ($locale) {
-                    $join->on('translation_text.translation_id', '=', 'geo.name_translation_id')
-                        ->whereNull('translation_text.deleted_at')
-                        ->on('translation_text.locale_id', '=', DB::raw("'" . $locale . "'"));
-                })->where('datum_geo.datum_id', '=', $geoDatum->id)
-                ->whereNull('datum_geo.deleted_at')
-                ->select('translation_text.translated_text as name', 'geo.id', 'geo.name_translation_id as tId');
-
-            foreach ($geoData->get() as $index => $geo) {
-                // Get the next geo
-                if($geo->name === null && $useAnyLocale){
-                    $geoTranslation = DB::table('translation_text')
-                        ->where('translation_text.translation_id', '=', $geo->tId)
-                        ->first();
-                    if (is_null($geoTranslation)) {
-                        $geo->name = '[NO TRANSLATION TEXT]';
-                    } else {
-                        $geo->name = $geoTranslation->translated_text;
-                    }
-                }
-                foreach (['name', 'id'] as $name) {
-                    $key = $question->id . $repeatString . '_g' . $index . '_' . $name;
-                    $headers[$key] = $question->var_name . $repeatString . '_g' . ReportService::zeroPad($index) . '_' . $name;
-                    $metaData[$headers[$key]] = [
-                        'header' => $headers[$key],
-                        'question_type' => $question->qtype,
-                        'variable_name' => $question->var_name
-                    ];
-                    foreach ($question->translations as $t) {
-                        $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
-                    }
-                    $data[$key] = $geo->$name;
-                }
-            }
-        }
-
-        return [$headers, $data, $metaData];
-
-    }
-
-    public function handleDefault($survey, $question, $repeatString, $parentDatumId){
-
-        $surveyId = $survey->id;
-        $datum = self::firstDatum($surveyId, $question->id, $parentDatumId);
-        $key = $question->id . $repeatString;
-        $name = $question->var_name . $repeatString;
-
-        $headers = [$key=>$name];
-        $data = [];
-        if($datum !== null && $datum->opt_out !== null) {
-            $data[$key] = $datum->opt_out;
-            $this->addNote($headers[$key], $survey, $datum);
-        } else if($datum !== null){
-            $data[$key] = $datum->val;
-        }
-
-        $metaData = [$headers[$key] => [
-            'header' => $headers[$key],
-            'question_type' => $question->qtype,
-            'variable_name' => $question->var_name
-        ]];
-        foreach ($question->translations as $t) {
-            $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
-        }
-
-        return array($headers, $data, $metaData);
-
-    }
-
-    public function handleMultiChoice($survey, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId=null){
-        $surveyId = $survey->id;
-        $query = DB::table('datum')
-            ->leftJoin('datum_choice', function($join){
-                $join->on('datum_choice.datum_id', '=', 'datum.id');
-                $join->whereNull('datum_choice.deleted_at');
-            })
-            ->leftJoin('choice', 'choice.id', '=', 'datum_choice.choice_id')
-            ->leftJoin('translation_text', function($join) use ($locale) {
-                $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id');
-                $join->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
-            })
-            ->where('datum.survey_id', '=', $surveyId)
-            ->where('datum.question_id', '=', $question->id)
-            ->whereNull('datum.deleted_at')
-            ->select('datum.val', 'datum.name', 'translation_text.translated_text as translated_val', 'datum.opt_out', 'datum_choice.override_val', 'datum.opt_out_val');
-
-        if($parentDatumId){
-            $query = $query->where('datum.parent_datum_id', '=', $parentDatumId);
-        }
-
-        $datum = $query->first();
-        $key = $question->id . $repeatString;
-        $name = $question->var_name . $repeatString;
-        $headers = [$key=>$name];
-        $data = [];
-
-        $possibleChoices = ReportService::getQuestionChoices($question, $locale);
-        foreach ($possibleChoices as $choice){
-            $choiceKey = $question->var_name . $repeatString . '_' . $choice->val;
-            $metaData[$choiceKey] = [
-                'header' => $choiceKey,
-                'variable_name' => $question->var_name,
-                'question_type' => $question->qtype,
-                'option_code' => $choice->val,
-                'option_id' => $choice->id
-            ];
-            foreach ($question->translations as $t) {
-                $metaData[$choiceKey]["question_$t->language_name"] = $t->translated_text;
-            }
-            foreach ($choice->translations as $t) {
-                $metaData[$choiceKey]["option_$t->language_name"] = $t->translated_text;
-            }
-        }
-        if($datum !== null){
-            if($datum->opt_out !== null){
-                $data[$key] = $datum->opt_out;
-                $this->addNote($headers[$key], $survey, $datum);
-            } else if($useChoiceNames){
-                $data[$key] = $datum->translated_val;
-            } else {
-                $data[$key] = $datum->val;
-            }
-            if($datum->override_val){
-                $this->addOther($headers[$key], $surveyId, $survey->respondent_id, $datum->override_val);
-            }
-        }
-
-        return [$headers, $data, $metaData];
-
-    }
-
-    public function handleMultiSelect($survey, $question, $repeatString, $useChoiceNames=false, $locale, $parentDatumId){
-
-        $surveyId = $survey->id;
-        $headers = [];
-        $data = [];
-        $metaData = [];
-
-        $parentDatum = self::firstDatum($surveyId, $question->id, $parentDatumId);
-        $possibleChoices = ReportService::getQuestionChoices($question, $locale);
-
-        // Add headers for all possible choices
-        foreach ($possibleChoices as $choice){
-            $key = $question->id . '___' . $repeatString . $choice->val;
-            $headers[$key] = $question->var_name . $repeatString . '_' . $choice->val;
-            $metaData[$headers[$key]] = [
-                'header' => $headers[$key],
-                'variable_name' => $question->var_name,
-                'question_type' => $question->qtype,
-                'option_code' => $choice->val,
-                'option_id' => $choice->id
-            ];
-            foreach ($question->translations as $t) {
-                $metaData[$headers[$key]]["question_$t->language_name"] = $t->translated_text;
-            }
-            foreach ($choice->translations as $t) {
-                $metaData[$headers[$key]]["option_$t->language_name"] = $t->translated_text;
-            }
-        }
-
-        // Add selected choices if there is a parent datum
-        if($parentDatum !== null){
-            $selectedChoices = DB::table('datum_choice')
-                ->join('choice', 'datum_choice.choice_id', '=', 'choice.id')
-                ->join('question_choice', 'choice.id', '=', 'question_choice.choice_id')
-                ->leftJoin('translation_text', function($join) use ($locale)
-                {
-                    $join->on('translation_text.translation_id', '=', 'choice.choice_translation_id')
-                        ->on('translation_text.locale_id', '=', DB::raw("'".$locale."'"));
-                })
-                ->where('datum_choice.datum_id', '=', $parentDatum->id)
-                ->whereNull('datum_choice.deleted_at')
-                ->select('choice.val', 'choice.id', 'translation_text.translated_text as name', 'datum_choice.override_val')
-                ->get();
-
-            // Add data for all selected choices
-            foreach ($selectedChoices as $choice) {
-                $key = $question->id . '___' . $repeatString . $choice->val;
-                if($useChoiceNames){
-                    $data[$key] = $choice->name;
-                } else{
-                    $data[$key] = true;
-                }
-                if($choice->override_val){
-                    $this->addOther($headers[$key], $surveyId, $survey->respondent_id, $choice->override_val);
-                }
-            }
-        }
-
-        // Handle opted_out questions
-        if($parentDatum !== null) {
-            if ($parentDatum->opt_out !== null){
-                $key = $question->id . '___' . $repeatString;
-                $headers[$key] = $question->var_name . $repeatString;
-                $data[$key] = $parentDatum->opt_out;
-                $this->addNote($headers[$key], $survey, $parentDatum);
-            }
-        }
-
-
-
-        return [$headers, $data, $metaData];
-
     }
 
 }

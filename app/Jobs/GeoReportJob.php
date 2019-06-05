@@ -2,21 +2,27 @@
 
 namespace App\Jobs;
 
-use App\Classes\Memoization;
+use App\Library\CsvFileWriter;
+use App\Library\Memoization;
+use App\Models\Study;
 use App\Services\ReportService;
 use Log;
 use App\Models\Report;
 use App\Models\Geo;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Uuid;
 
 class GeoReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
-    protected $report;
+    public $report;
+    protected $localeId;
+    protected $maxDepth = 5;
+    private $file = null;
+    private $traverseGeoTree;
+    private $headers;
+    private $config;
+    protected $numParentsKey = 'numParents';
 
     /**
      * Create a new job instance.
@@ -24,15 +30,15 @@ class GeoReportJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId)
-    {
+    public function __construct ($studyId, $config) {
         Log::debug("GeoReportJob - constructing: $studyId");
+        $this->config = $config;
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'geo';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -41,8 +47,8 @@ class GeoReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
+        set_time_limit(60 * 10);
         $startTime = microtime(true);
         Log::debug("GeoReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -53,6 +59,9 @@ class GeoReportJob extends Job
             $duration = microtime(true) - $startTime;
             Log::debug("GeoReportJob - failed: $this->studyId after $duration seconds");
         } finally{
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $this->report->save();
             $duration = microtime(true) - $startTime;
             Log::debug("GeoReportJob - finished: $this->studyId in $duration seconds");
@@ -60,92 +69,101 @@ class GeoReportJob extends Job
     }
 
 
-    public function create(){
+    public function create () {
 
-        $geosTranslations = Geo::whereNull('geo.deleted_at')
-            ->join('translation_text', function($join){
-                $join->on('translation_text.translation_id', '=', 'geo.name_translation_id');
-                $join->whereNull('translation_text.deleted_at');
-            })
-            ->join('locale', 'locale.id', '=', 'translation_text.locale_id')
-            ->select('geo.*', 'locale.language_name', 'translation_text.translated_text as name')
-            ->get();
-
-        $headers =[
-            'id' => 'geo_id',
-            'latitude' => 'latitude',
-            'longitude' => 'longitude',
-            'altitude' => 'altitude'
-        ];
-
-        $geoQuery = DB::table('geo')
-            ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
-            ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
-            ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id');
-
-        $geoHash = [];
-        foreach($geoQuery->get() as $geo){
-            $geoHash[$geo->id] = $geo;
-        }
-
-        $getGeoParent = Memoization::memoize(function($id){
-            return DB::table('geo')
-                ->join('geo_type', 'geo_type.id', '=', 'geo.geo_type_id')
-                ->join('translation_text', 'translation_text.translation_id', '=', 'geo.name_translation_id')
-                ->where('geo.id', '=', $id)
-                ->select('geo.id', 'translation_text.translated_text as name', 'geo_type.name as type', 'geo.latitude', 'geo.longitude', 'geo.altitude', 'geo.parent_id')
-                ->first();
-        });
-
-        $traverseGeoTree = Memoization::memoize(function ($startingId, $maxDepth=10) use ($geoHash){
-            $tree = array();
-            $id = $startingId;
-            while(count($tree) < $maxDepth && $id !== null){
-                $parent = $geoHash[$id];
-                if($parent !== null) {
-                    array_push($tree, $parent);
-                    $id = $parent->parent_id;
-                } else {
-                    break;
+        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
+        $this->traverseGeoTree = Memoization::memoizeMax(function ($id, $maxDepth = 10, $depth = 0) {
+            $tree = [];
+            if ($depth > $maxDepth) return $tree;
+            $geo = Geo::where('id', '=', $id)->with('nameTranslation')->first();
+            if (isset($geo)) {
+                array_push($tree, $geo);
+                if (isset($geo->parent_id)) {
+                    $tree = array_merge($tree, ($this->traverseGeoTree)($geo->parent_id, $maxDepth, $depth + 1));
                 }
             }
             return $tree;
+        }, 1000, function ($id) {
+            return isset($id) ? $id : false;
         });
 
-        $geos = [];
-        $numParentsKey = 'numParents';
-        foreach($geosTranslations as $geo){
-            $geo = $geo->toArray();
-            if(!array_key_exists($geo['id'], $geos)){
-                $geos[$geo['id']] = [];
-            }
-            foreach($geo as $key=>$val) {
-                $geos[$geo['id']][$key] = $val;
-            }
-            $geos[$geo['id']][$geo['language_name']] = $geo['name'];
-            $headers[$geo['language_name']] = $geo['language_name'];
-            $parents = $traverseGeoTree($geo['parent_id']);
-            foreach($parents as $index=>$parent){
-                $key = "parent$index";
-                $headers[$key."_id"] = $key."_id";
-                $geos[$geo['id']][$key."_id"] = $parent->id;
-                $headers[$key."_name"] = $key."_name";
-                $geos[$geo['id']][$key."_name"] = $parent->name;
-            }
-            $headers[$numParentsKey] = $numParentsKey;
-            $geos[$geo['id']][$numParentsKey] = count($parents);
+        $this->makeHeaders();
+
+        $id = Uuid::uuid4();
+        $fileName = $id . '.csv';
+        $filePath = storage_path('app/' . $fileName);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
+        $this->file->open();
+        $this->file->writeHeader();
+
+        // Run this until we've grabbed all of the existing geos
+        $q = Geo::whereNull('geo.deleted_at')->with('nameTranslation', 'geoType');
+
+        foreach ($q->cursor() as $geo) {
+            $geos = [$geo];
+            $this->processBatch($geos);
         }
 
-        $startTime = microtime(true);
-        // Sort by num parents from low to high
-        uasort($geos, function($a, $b) use($numParentsKey){
-            return $a[$numParentsKey] - $b[$numParentsKey];
-        });
-        $duration = microtime(true) - $startTime;
-        Log::debug("Sort took: $duration");
-
-        ReportService::saveDataFile($this->report, $headers, $geos);
+        ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
+    }
+
+    private function makeHeaders () {
+        $study = Study::with('locales', 'geoTypes')->find($this->studyId);
+        $headers = [
+            'id' => 'geo_id',
+            'latitude' => 'latitude',
+            'longitude' => 'longitude',
+            'altitude' => 'altitude',
+            'type' => 'type',
+            $this->numParentsKey => $this->numParentsKey
+        ];
+
+        foreach ($study->locales as $locale) {
+            $headers[$locale->language_name] = $locale->language_name;
+        }
+
+        // TODO: this could be a separate query to only get used geo types so we don't have empty columns
+        foreach ($study->geoTypes as $geoType) {
+            $headers[$geoType->id . '_id'] = ReportService::makeTextSafe($geoType->name) . '_id';
+            $headers[$geoType->id . '_name'] = ReportService::makeTextSafe($geoType->name) . '_name';
+        }
+        $this->headers = $headers;
+    }
+
+    public function processBatch (&$geos) {
+
+        $rows = [];
+        foreach ($geos as $geo) {
+            $row = [];
+            foreach (['latitude', 'id', 'longitude', 'altitude'] as $key) {
+                $row[$key] = $geo->$key;
+            }
+            $row['type'] = $geo->geoType->name;
+            foreach ($geo->nameTranslation->translationText as $tt) {
+                $row[$tt->locale->language_name] = $tt->translated_text;
+            }
+            $parents = ($this->traverseGeoTree)($geo->parent_id, 5);
+            foreach ($parents as $index => $parent) {
+                $key = $parent->geo_type_id;
+                $row[$key . "_id"] = $parent->id;
+                foreach ($parent->nameTranslation->translationText as $tt) {
+                    if ($tt->locale_id === $this->localeId) {
+                        $row[$key . "_name"] = $tt->translated_text;
+                        break;
+                    }
+                }
+            }
+            $row[$this->numParentsKey] = count($parents);
+            $rows[$geo->id] = $row;
+        }
+
+        // Write to disk
+        $this->file->writeRows($rows);
+    }
+
+    public function failed (Exception $exception) {
+        // Send user notification of failure, etc...
     }
 }

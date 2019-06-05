@@ -33,7 +33,7 @@ class CreatePreloadTable extends Migration
             $table->foreign('last_question_id')
                 ->references('id')->on('question')
                 ->onUpdate('no action')
-                ->onDelete('cascade');  // when referenced row is deleted, cascade delete dependent rows
+                ->onDelete('set null');  // when referenced row is deleted, set last_question_id null
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
             // $table->timestamps();

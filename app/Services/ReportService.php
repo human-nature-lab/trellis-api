@@ -1,16 +1,56 @@
 <?php
 namespace App\Services;
 
+use App\Models\Report;
+use App\Models\Study;
+use App\Models\Translation;
+use Exception;
 use Log;
 use App\Models\ReportFile;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
-use App\Models\Datum;
-use App\Services\FileService;
-use App\Classes\Memoization;
 
-class ReportService
-{
+class ReportService {
+
+
+    public static function saveFileStream (Report $report, $fileName, $type = 'data') {
+        $csvReportFile = new ReportFile();
+        $csvReportFile->id = Uuid::uuid4();
+        $csvReportFile->report_id = $report->id;
+        $csvReportFile->file_type = $type;
+        $csvReportFile->file_name = $fileName;
+        $csvReportFile->save();
+        return $csvReportFile;
+    }
+
+    /**
+     * Get the correct localeId to use for a report
+     * @param $config
+     * @param String $studyId
+     * @return mixed
+     */
+    public static function extractLocaleId ($config, $studyId) {
+        if (isset($config) && (isset($config->localeId) || isset($config->locale))) {
+            return isset($config->localeId) ? $config->localeId : $config->locale;
+        } else if (isset($studyId)) {
+            $study = Study::find($studyId);
+            return $study->default_locale_id;
+        } else {
+            Log::error('Could not find valid localeId');
+            return null;
+        }
+    }
+
+    /**
+     * Convert the text into a safe version of the string. For headers.
+     * @param String $text
+     * @return mixed|String
+     */
+    public static function makeTextSafe (String $text) {
+        $text = str_replace(' ', '', $text);
+        $text = strtolower($text);
+        return preg_replace('/[^a-z0-9_]/im', '_', $text);
+    }
 
     public static function saveImagesFile(&$report, &$images){
         // Make sure that each image id is unique
@@ -40,7 +80,7 @@ class ReportService
      * @param string $type - The type of the report_file entry
      * @return bool - Whether or not the file was created. The file won't be created if there aren't any headers or rows.
      */
-    public static function saveDataFile($report, $headers, $rows, $type='data'){
+    public static function saveDataFile($report, $headers, &$rows, $type='data'){
         if(count($headers) === 0 || count($rows) === 0)
             return false;
         $csvReportFile = new ReportFile();
@@ -59,7 +99,7 @@ class ReportService
     /**
      * Save the meta file. This interperates the file headers based on unique values in each row.
      */
-    public static function saveMetaFile($report, $rows){
+    public static function saveMetaFile($report, &$rows){
 
         $headers = ['header'=>'header'];
         $newRows = [];
@@ -162,6 +202,35 @@ class ReportService
              $q->translations = $questionTranslations[$q->id];
         }
         return $questions;
+    }
+
+    /**
+     * Get the correct text for a translation.
+     * @param Translation $translation
+     * @param String $localeId
+     * @return null
+     */
+    public static function translationToText (Translation $translation, String $localeId = null) {
+        if (!isset($translation->translationText) || $translation->translationText->count() === 0) {
+            return '[No text for this translation]';
+        }
+        $text = null;
+        if ($localeId) {
+            foreach ($translation->translationText as $tt) {
+                if ($tt->locale_id === $localeId) {
+                    $text = $tt->translated_text;
+                }
+            }
+        }
+
+        if (is_null($text) || strlen($text) === 0) {
+            $tt = $translation->translationText[0];
+            $locale = $tt->locale;
+            $languageTag = $locale->language_tag;
+            $text = $tt->translated_text . " ($languageTag)";
+        }
+
+        return $text;
     }
 
     public static function getFormSurveys($formId){

@@ -47,8 +47,9 @@ class QuestionGroup extends Model
     {
         return $this
             ->belongsToMany('App\Models\Skip', 'question_group_skip')
-            ->whereNull('question_group_skip.deleted_at')
+            ->using('App\Models\QuestionGroupSkip')
             ->withPivot('question_group_id')
+            ->whereNull('question_group_skip.deleted_at')
             ->withTimestamps()
             ->with('conditions');
     }

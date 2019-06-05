@@ -24,4 +24,10 @@ class SectionConditionTag extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public $dates = [
+        'created_at',
+        'updated_at',
+        'deleted_at'
+    ];
 }

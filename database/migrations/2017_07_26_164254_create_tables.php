@@ -288,7 +288,7 @@ class CreateTables extends Migration
         Schema::create('interview', function (Blueprint $table) {
             $table->string('id', 41)->primary();
             $table->string('survey_id', 41)->index('fk__survey_session__survey_idx');
-            $table->string('user_id', 41)->index('fk__survey_session__user_idx');
+            $table->string('user_id', 41)->index('fk__survey_session__user_idx')->nullable();
             $table->dateTime('start_time');
             $table->dateTime('end_time')->nullable();
             $table->string('latitude', 45)->nullable();
@@ -696,207 +696,260 @@ class CreateTables extends Migration
         });
 
         Schema::table('assign_condition_tag', function (Blueprint $table) {
-            $table->foreign('condition_tag_id', 'fk__assign_condition_tag__condition')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // If a condition tag is deleted, also delete the assign_condition tag row
+            $table->foreign('condition_tag_id', 'fk__assign_condition_tag__condition')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('choice', function (Blueprint $table) {
-            $table->foreign('choice_translation_id', 'fk__choice__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Translations are specific to elements and should be deleted when the parent elements are deleted.
+            $table->foreign('choice_translation_id', 'fk__choice__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('datum_choice', function (Blueprint $table) {
-            $table->foreign('choice_id', 'FK__datum_choice__choice')->references('id')->on('choice')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('datum_id', 'FK__datum_choice__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete a datum_choice row when the referenced choice or datum are deleted
+            $table->foreign('choice_id', 'FK__datum_choice__choice')->references('id')->on('choice')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('datum_id', 'FK__datum_choice__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('datum_geo', function (Blueprint $table) {
-            $table->foreign('datum_id', 'FK__datum_geo__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('geo_id', 'FK__datum_geo__geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the datum_geo row when the referenced datum or geo are deleted
+            $table->foreign('datum_id', 'FK__datum_geo__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('geo_id', 'FK__datum_geo__geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('datum_group_tag', function (Blueprint $table) {
-            $table->foreign('datum_id', 'FK__datum_group_tag__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('group_tag_id', 'FK__datum_group_tag__group_tag')->references('id')->on('group_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the datum_group_tag row when the referenced datum or group_tag are deleted
+            $table->foreign('datum_id', 'FK__datum_group_tag__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('group_tag_id', 'FK__datum_group_tag__group_tag')->references('id')->on('group_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('datum_photo', function (Blueprint $table) {
-            $table->foreign('datum_id', 'fk__datum_photo__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('photo_id', 'fk__datum_photo__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the datum_photo row when the referenced datum or photo are deleted
+            $table->foreign('datum_id', 'fk__datum_photo__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('photo_id', 'fk__datum_photo__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('datum', function (Blueprint $table) {
-            $table->foreign('choice_id', 'fk__datum__choice')->references('id')->on('choice')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('datum_type_id', 'fk__datum__datum_type')->references('id')->on('datum_type')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_id', 'fk__datum__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('survey_id', 'fk__datum__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('parent_datum_id', 'fk__parent_datum_id__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // When the referenced choice, survey or question is deleted, set it to null
+            $table->foreign('choice_id', 'fk__datum__choice')->references('id')->on('choice')->onUpdate('NO ACTION')->onDelete('SET NULL');
+            $table->foreign('question_id', 'fk__datum__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('SET NULL');
+            $table->foreign('parent_datum_id', 'fk__parent_datum_id__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('SET NULL');
+
+            // When the survey is deleted, delete corresponding datum
+            $table->foreign('survey_id', 'fk__datum__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('CASCADE');
+
+            // Datum type is not null, so cascade the delete to datum
+            $table->foreign('datum_type_id', 'fk__datum__datum_type')->references('id')->on('datum_type')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('edge_datum', function (Blueprint $table) {
-            $table->foreign('edge_id', 'fk__connection_datum__connection')->references('id')->on('edge')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('datum_id', 'fk__connection_datum__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the edge_datum row when the referenced datum or edge are deleted
+            $table->foreign('edge_id', 'fk__connection_datum__connection')->references('id')->on('edge')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('datum_id', 'fk__connection_datum__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('edge', function (Blueprint $table) {
-            $table->foreign('source_respondent_id', 'fk__edge_list_source__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('target_respondent_id', 'fk__edge_list_target__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the edge row when the referenced source or target respondent are deleted
+            $table->foreign('source_respondent_id', 'fk__edge_list_source__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('target_respondent_id', 'fk__edge_list_target__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('form_section', function (Blueprint $table) {
-            $table->foreign('form_id', 'fk__form_section__form')->references('id')->on('form')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('section_id', 'fk__form_section__section')->references('id')->on('section')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('repeat_prompt_translation_id', 'fk__form_section_repeat_prompt__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the form_section row when the referenced form or section are deleted
+            $table->foreign('form_id', 'fk__form_section__form')->references('id')->on('form')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('section_id', 'fk__form_section__section')->references('id')->on('section')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            // form_section_repeat_prompt can be null, so set it to null if the translation is deleted
+            $table->foreign('repeat_prompt_translation_id', 'fk__form_section_repeat_prompt__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
 
         Schema::table('form_skip', function (Blueprint $table) {
-            $table->foreign('form_id', 'fk__form_skip__form')->references('id')->on('form')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('skip_id', 'fk__form_skip__skip')->references('id')->on('skip')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the form_skip row when the referenced form or skip are deleted
+            $table->foreign('form_id', 'fk__form_skip__form')->references('id')->on('form')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('skip_id', 'fk__form_skip__skip')->references('id')->on('skip')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('form', function (Blueprint $table) {
-            $table->foreign('name_translation_id', 'fk__form_name__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Let's not allow the name of forms to be deleted if the parent form is not deleted
+            $table->foreign('name_translation_id', 'fk__form_name__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('RESTRICT');
         });
 
         Schema::table('geo_photo', function (Blueprint $table) {
-            $table->foreign('geo_id', 'fk__geo_photo__geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('photo_id', 'fk__geo_photo__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the geo_photo row when the referenced geo or photo are deleted
+            $table->foreign('geo_id', 'fk__geo_photo__geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('photo_id', 'fk__geo_photo__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('geo', function (Blueprint $table) {
-            $table->foreign('geo_type_id', 'fk__geo__geo_type')->references('id')->on('geo_type')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('parent_id', 'fk__geo__parent_geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('name_translation_id', 'fk__geo_name__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the geo when the geo type is deleted
+            $table->foreign('geo_type_id', 'fk__geo__geo_type')->references('id')->on('geo_type')->onUpdate('NO ACTION')->onDelete('CASCADE');
+
+            // Delete child geos when the parent is deleted
+            $table->foreign('parent_id', 'fk__geo__parent_geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('CASCADE');
+
+            // Restrict deleting the name translation while the geo still exists
+            $table->foreign('name_translation_id', 'fk__geo_name__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('RESTRICT');
         });
 
         Schema::table('geo_type', function (Blueprint $table) {
-            $table->foreign('study_id', 'FK__geo_type__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Deleting a study deletes associated geo types which deletes all geo elements
+            $table->foreign('study_id', 'FK__geo_type__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('group_tag', function (Blueprint $table) {
-            $table->foreign('group_tag_type_id', 'fk__group_tag__group_tag_type')->references('id')->on('group_tag_type')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Deleting group tag types deletes all group tags of that type
+            $table->foreign('group_tag_type_id', 'fk__group_tag__group_tag_type')->references('id')->on('group_tag_type')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('interview_question', function (Blueprint $table) {
-            $table->foreign('interview_id', 'fk__interview_question__interview')->references('id')->on('interview')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_id', 'fk__interview_question__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the interview_question row when the referenced interview or question are deleted
+            $table->foreign('interview_id', 'fk__interview_question__interview')->references('id')->on('interview')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('question_id', 'fk__interview_question__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('interview', function (Blueprint $table) {
-            $table->foreign('survey_id', 'fk__survey_session__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('user_id', 'fk__survey_session__user')->references('id')->on('user')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            $table->foreign('survey_id', 'fk__survey_session__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            // user_id is nullable, set user_id to null if the user is deleted
+            $table->foreign('user_id', 'fk__survey_session__user')->references('id')->on('user')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
 
         Schema::table('photo_tag', function (Blueprint $table) {
-            $table->foreign('photo_id', 'fk__photo_tag__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('tag_id', 'fk__photo_tag__tag')->references('id')->on('tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the photo_tag row if the corresponding photo or tag are deleted
+            $table->foreign('photo_id', 'fk__photo_tag__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('tag_id', 'fk__photo_tag__tag')->references('id')->on('tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('question_assign_condition_tag', function (Blueprint $table) {
-            $table->foreign('assign_condition_tag_id', 'fk__question_assign_condition_tag__assign_condition_tag')->references('id')->on('assign_condition_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_id', 'fk__question_assign_condition_tag__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the question_assign_condition_tag row if the corresponding question or assign_condition_tag are deleted
+            $table->foreign('assign_condition_tag_id', 'fk__question_assign_condition_tag__assign_condition_tag')->references('id')->on('assign_condition_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('question_id', 'fk__question_assign_condition_tag__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('question_choice', function (Blueprint $table) {
-            $table->foreign('choice_id', 'fk__question_choice__choice')->references('id')->on('choice')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_id', 'fk__question_choice__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the question_choice row if the corresponding question or choice are deleted
+            $table->foreign('choice_id', 'fk__question_choice__choice')->references('id')->on('choice')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('question_id', 'fk__question_choice__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('question_group_skip', function (Blueprint $table) {
-            $table->foreign('question_group_id', 'fk__question_group_skip__question_group')->references('id')->on('question_group')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('skip_id', 'fk__question_group_skip__skip')->references('id')->on('skip')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the question_group_skip row if the corresponding question_group or skip are deleted
+            $table->foreign('question_group_id', 'fk__question_group_skip__question_group')->references('id')->on('question_group')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('skip_id', 'fk__question_group_skip__skip')->references('id')->on('skip')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('question_parameter', function (Blueprint $table) {
-            $table->foreign('parameter_id', 'fk__question_parameter__parameter')->references('id')->on('parameter')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_id', 'fk__question_parameter__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the question_parameter row if the corresponding question or parameter are deleted
+            $table->foreign('parameter_id', 'fk__question_parameter__parameter')->references('id')->on('parameter')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('question_id', 'fk__question_parameter__question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('question', function (Blueprint $table) {
-            $table->foreign('question_group_id', 'fk__question__question_group')->references('id')->on('question_group')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_type_id', 'fk__question__question_type')->references('id')->on('question_type')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('question_translation_id', 'fk__question__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the question if the question_type or containing question group are deleted
+            $table->foreign('question_group_id', 'fk__question__question_group')->references('id')->on('question_group')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('question_type_id', 'fk__question__question_type')->references('id')->on('question_type')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            // Restrict deleting the question translation while the question is not deleted
+            $table->foreign('question_translation_id', 'fk__question__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('RESTRICT');
         });
 
         Schema::table('respondent_condition_tag', function (Blueprint $table) {
-            $table->foreign('condition_id', 'fk__respondent_condition_tag__condition')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('respondent_id', 'fk__respondent_condition_tag__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the respondent_condition_tag row if the corresponding respondent or condition_tag are deleted
+            $table->foreign('condition_id', 'fk__respondent_condition_tag__condition')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('respondent_id', 'fk__respondent_condition_tag__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('respondent_group_tag', function (Blueprint $table) {
-            $table->foreign('group_tag_id', 'fk__respondent_group_tag__group_tag')->references('id')->on('group_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('respondent_id', 'fk__respondent_group_tag__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the respondent_group_tag row if the corresponding respondent or group_tag are deleted
+            $table->foreign('group_tag_id', 'fk__respondent_group_tag__group_tag')->references('id')->on('group_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('respondent_id', 'fk__respondent_group_tag__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('respondent_photo', function (Blueprint $table) {
-            $table->foreign('photo_id', 'fk__respondent_photo__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('respondent_id', 'fk__respondent_photo__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the respondent_photo row if the corresponding respondent or photo are deleted
+            $table->foreign('photo_id', 'fk__respondent_photo__photo')->references('id')->on('photo')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('respondent_id', 'fk__respondent_photo__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('respondent', function (Blueprint $table) {
-            $table->foreign('geo_id', 'fk__respondent__geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Set the geo_id to null if the geo is deleted
+            $table->foreign('geo_id', 'fk__respondent__geo')->references('id')->on('geo')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
 
         Schema::table('section_condition_tag', function (Blueprint $table) {
-            $table->foreign('condition_id', 'fk__section_condition_tag__condition_tag')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('id', 'fk__section_condition_tag__section')->references('id')->on('section')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('id', 'fk__section_condition_tag__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the section_condition_tag row if the corresponding condition, section, or survey are deleted.
+            $table->foreign('condition_id', 'fk__section_condition_tag__condition_tag')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('section_id', 'fk__section_condition_tag__section')->references('id')->on('section')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('survey_id', 'fk__section_condition_tag__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('section_question_group', function (Blueprint $table) {
-            $table->foreign('question_group_id', 'fk__section_question_group__question_group')->references('id')->on('question_group')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('section_id', 'fk__section_question_group__section')->references('id')->on('section')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the section_question_group row if the corresponding section, or question_group are deleted.
+            $table->foreign('question_group_id', 'fk__section_question_group__question_group')->references('id')->on('question_group')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('section_id', 'fk__section_question_group__section')->references('id')->on('section')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('section', function (Blueprint $table) {
-            $table->foreign('name_translation_id', 'fk__section_name__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Restrict deleting the translation until the section is deleted
+            $table->foreign('name_translation_id', 'fk__section_name__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('RESTRICT');
         });
 
         Schema::table('skip_condition_tag', function (Blueprint $table) {
-            $table->foreign('skip_id', 'fk__skip_condition_tag__skip')->references('id')->on('skip')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the skip_condition_tag row if the referenced skip is deleted
+            $table->foreign('skip_id', 'fk__skip_condition_tag__skip')->references('id')->on('skip')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('study_form', function (Blueprint $table) {
-            $table->foreign('form_master_id', 'fk__study_form__form')->references('form_master_id')->on('form')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('study_id', 'fk__study_form__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the study_form row if the referenced study or form are deleted
+            $table->foreign('form_master_id', 'fk__study_form__form')->references('form_master_id')->on('form')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('study_id', 'fk__study_form__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('study_locale', function (Blueprint $table) {
-            $table->foreign('locale_id', 'fk__study_locale__locale')->references('id')->on('locale')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('study_id', 'fk__study_locale__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the study_locale row if the referenced study or locale are deleted
+            $table->foreign('locale_id', 'fk__study_locale__locale')->references('id')->on('locale')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('study_id', 'fk__study_locale__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('study_respondent', function (Blueprint $table) {
-            $table->foreign('respondent_id', 'fk__study_respondent__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('study_id', 'fk__study_respondent__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the study_respondent row if the referenced study or respondent are deleted
+            $table->foreign('respondent_id', 'fk__study_respondent__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('study_id', 'fk__study_respondent__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('study', function (Blueprint $table) {
-            $table->foreign('default_locale_id', 'fk__study__default_locale')->references('id')->on('locale')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Restrict deleting the name of the study while it is undeleted
+            $table->foreign('default_locale_id', 'fk__study__default_locale')->references('id')->on('locale')->onUpdate('NO ACTION')->onDelete('RESTRICT');
         });
 
         Schema::table('survey_condition_tag', function (Blueprint $table) {
-            $table->foreign('condition_id', 'fk__survey_condition_tag__condition_tag')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('survey_id', 'fk__survey_condition_tag__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete the survey_condition_tag row if the referenced survey or condition_tag are deleted
+            $table->foreign('condition_id', 'fk__survey_condition_tag__condition_tag')->references('id')->on('condition_tag')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('survey_id', 'fk__survey_condition_tag__survey')->references('id')->on('survey')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('survey', function (Blueprint $table) {
-            $table->foreign('form_id', 'fk__survey__form')->references('id')->on('form')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('last_question_id', 'fk__survey__last_question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('respondent_id', 'fk__survey__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('study_id', 'fk__survey__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Form, respondent, and study are not null, so delete the survey if any of these parent elements are deleted
+            $table->foreign('form_id', 'fk__survey__form')->references('id')->on('form')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('respondent_id', 'fk__survey__respondent')->references('id')->on('respondent')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('study_id', 'fk__survey__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('CASCADE');
+
+            // Last question ID can be null, so set it to null if the question is deleted
+            $table->foreign('last_question_id', 'fk__survey__last_question')->references('id')->on('question')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
 
         Schema::table('translation_text', function (Blueprint $table) {
-            $table->foreign('locale_id', 'fk__translation_text__locale')->references('id')->on('locale')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('translation_id', 'fk__translation_text__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete translation_text if the locale or translation are deleted
+            $table->foreign('locale_id', 'fk__translation_text__locale')->references('id')->on('locale')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('translation_id', 'fk__translation_text__translation')->references('id')->on('translation')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('user_study', function (Blueprint $table) {
-            $table->foreign('study_id', 'fk__user_study__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
-            $table->foreign('user_id', 'fk__user_study__user')->references('id')->on('user')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Delete user_study if the user or study are deleted
+            $table->foreign('study_id', 'fk__user_study__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('CASCADE');
+            $table->foreign('user_id', 'fk__user_study__user')->references('id')->on('user')->onUpdate('NO ACTION')->onDelete('CASCADE');
         });
 
         Schema::table('user', function (Blueprint $table) {
-            $table->foreign('selected_study_id', 'fk__user_selected_study__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // If the selected study is deleted, set it to null
+            $table->foreign('selected_study_id', 'fk__user_selected_study__study')->references('id')->on('study')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
     }
 

@@ -37,13 +37,13 @@ class QuestionChoiceController extends Controller
         $choiceId = Uuid::uuid4();
         $translationId = Uuid::uuid4();
         $newQuestionChoiceModel = new QuestionChoice;
+        $newChoiceModel = new Choice;
+        $newTranslationModel = new Translation;
 
-        DB::transaction(function () use ($questionChoiceId, $choiceId, $translationId, $questionId, $newQuestionChoiceModel) {
-            $newTranslationModel = new Translation;
+        DB::transaction(function () use ($questionChoiceId, $choiceId, $translationId, $questionId, &$newQuestionChoiceModel, &$newChoiceModel, &$newTranslationModel) {
             $newTranslationModel->id = $translationId;
             $newTranslationModel->save();
 
-            $newChoiceModel = new Choice;
             $newChoiceModel->id = $choiceId;
             $newChoiceModel->choice_translation_id = $translationId;
             $newChoiceModel->val = "";
@@ -58,27 +58,31 @@ class QuestionChoiceController extends Controller
             $newQuestionChoiceModel->save();
         });
 
-        $returnQuestionChoice = Question::find($questionId)
+        $newChoiceModel->pivot = $newQuestionChoiceModel;
+        $newChoiceModel->choice_translation = $newTranslationModel;
+
+        $returnChoice = Question::find($questionId)
             ->choices()
-            ->find($choiceId);
+            ->where('choice.id', $choiceId)
+            ->first();
 
         return response()->json([
-            'choice' => $returnQuestionChoice
+            'choice' => $returnChoice
         ], Response::HTTP_OK);
     }
 
     public function createQuestionChoice(Request $request, $questionId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-                'question_id' => $questionId]), [
-                'question_id' => 'required|string|min:36|exists:question,id',
-                'locale_id' => 'required|string|min:36|exists:locale,id'
+            'question_id' => $questionId]), [
+            'question_id' => 'required|string|min:36|exists:question,id',
+            'locale_id' => 'required|string|min:36|exists:locale,id'
         ]);
 
         if ($validator->fails() === true) {
             return response()->json([
-                    'msg' => 'Validation failed',
-                    'err' => $validator->errors()
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
             ], $validator->statusCode());
         }
 
@@ -131,7 +135,7 @@ class QuestionChoiceController extends Controller
         */
 
         return response()->json([
-                'questionChoice' => $newQuestionChoiceModel
+            'questionChoice' => $newQuestionChoiceModel
         ], Response::HTTP_OK);
     }
 
@@ -168,14 +172,14 @@ class QuestionChoiceController extends Controller
     public function removeQuestionChoice(Request $request, $id)
     {
         $validator = Validator::make(
-                ['id' => $id],
-                ['id' => 'required|string|min:36|exists:question_choice,id']
+            ['id' => $id],
+            ['id' => 'required|string|min:36|exists:question_choice,id']
         );
 
         if ($validator->fails() === true) {
             return response()->json([
-                    'msg' => 'Validation failed',
-                    'err' => $validator->errors()
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
             ], $validator->statusCode());
         };
 
@@ -183,7 +187,7 @@ class QuestionChoiceController extends Controller
 
         if ($questionChoiceModel === null) {
             return response()->json([
-                    'msg' => 'URL resource was not found'
+                'msg' => 'URL resource was not found'
             ], Response::HTTP_NOT_FOUND);
         };
 
@@ -233,29 +237,29 @@ class QuestionChoiceController extends Controller
     public function getAllQuestionChoices(Request $request, $formId, $localeId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-                'formId' => $formId,
-                'localeId' => $localeId
+            'formId' => $formId,
+            'localeId' => $localeId
         ]), [
-                'formId' => 'required|string|min:36|exists:form,id',
-                'localeId' => 'required|string|min:36|exists:locale,id'
+            'formId' => 'required|string|min:36|exists:form,id',
+            'localeId' => 'required|string|min:36|exists:locale,id'
         ]);
 
         if ($validator->fails() === true) {
             return response()->json([
-                    'msg' => 'Validation failed',
-                    'err' => $validator->errors()
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
             ], $validator->statusCode());
         }
 
         $questionChoiceModel = QuestionChoice::select('question_choice.id', 'question_choice.sort_order', 'question_choice.question_id', 'tt.translated_text AS text', 'c.val')
-                ->join('choice AS c', 'c.id', '=', 'question_choice.choice_id')
-                ->join('translation_text AS tt', 'tt.translation_id', '=', 'c.choice_translation_id')
-                ->join('question AS q', 'q.id', '=', 'question_choice.question_id')
-                ->join('section_question_group AS sqg', 'sqg.question_group_id', '=', 'q.question_group_id')
-                ->join('form_section AS fs', 'fs.section_id', '=', 'sqg.section_id')
-                ->where('fs.form_id', $formId)
-                ->where('tt.locale_id', $localeId)
-                ->get();
+            ->join('choice AS c', 'c.id', '=', 'question_choice.choice_id')
+            ->join('translation_text AS tt', 'tt.translation_id', '=', 'c.choice_translation_id')
+            ->join('question AS q', 'q.id', '=', 'question_choice.question_id')
+            ->join('section_question_group AS sqg', 'sqg.question_group_id', '=', 'q.question_group_id')
+            ->join('form_section AS fs', 'fs.section_id', '=', 'sqg.section_id')
+            ->where('fs.form_id', $formId)
+            ->where('tt.locale_id', $localeId)
+            ->get();
 
         return response()->json(
             ['questionChoices' => $questionChoiceModel],
@@ -386,23 +390,23 @@ class QuestionChoiceController extends Controller
     public function updateQuestionChoice(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-                'id' => $id
+            'id' => $id
         ]), [
-                'id' => 'required|string|min:36|exists:question_choice,id'
+            'id' => 'required|string|min:36|exists:question_choice,id'
         ]);
 
         if ($validator->fails() === true) {
             return response()->json([
-                    'msg' => 'Validation failed',
-                    'err' => $validator->errors()
-            ], $validator->statusCode());
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $questionChoiceModel = QuestionChoice::find($id);
 
         if ($questionChoiceModel === null) {
             return response()->json([
-                    'msg' => 'URL resource not found'
+                'msg' => 'URL resource not found'
             ], Response::HTTP_NOT_FOUND);
         }
 
@@ -427,7 +431,7 @@ class QuestionChoiceController extends Controller
         }
 
         return response()->json([
-                'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'msg' => Response::$statusTexts[Response::HTTP_OK]
         ], Response::HTTP_OK);
     }
 }

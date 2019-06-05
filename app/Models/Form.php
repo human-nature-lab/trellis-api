@@ -33,12 +33,19 @@ class Form extends Model
             ->with('translationText');
     }
 
+    public function studyForm() {
+        return $this->hasMany('App\Models\StudyForm', 'form_master_id')
+            ->whereNull('study_form.deleted_at')
+            ->with('type');
+    }
+
     public function sections()
     {
         return $this
             ->belongsToMany('App\Models\Section', 'form_section')
-            ->whereNull('form_section.deleted_at')
+            ->using('App\Models\FormSection')
             ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id')
+            ->whereNull('form_section.deleted_at')
             ->withTimestamps()
             ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
     }
@@ -47,32 +54,11 @@ class Form extends Model
     {
         return $this
             ->belongsToMany('App\Models\Skip', 'form_skip')
-            ->whereNull('form_skip.deleted_at')
+            ->using('App\Models\FormSkip')
             ->withPivot('form_id')
+            ->whereNull('form_skip.deleted_at')
             ->withTimestamps()
             ->with('conditions');
     }
 
-    /*
-    public function delete()
-    {
-        //\Log::info("Form->delete()");
-        $childFormSections = FormSection::where('form_id', '=', $this->id)->get();
-        foreach ($childFormSections as $childFormSection) {
-            $childFormSection->delete();
-        }
-
-        $childSurveys = Survey::where('form_id', '=', $this->id)->get();
-        foreach ($childSurveys as $childSurvey) {
-            $childSurvey->delete();
-        }
-
-        $studyForms = StudyForm::where('form_master_id', '=', $this->form_master_id)->get();
-        foreach ($studyForms as $studyForm) {
-            $studyForm->delete();
-        }
-
-        return parent::delete();
-    }
-    */
 }
