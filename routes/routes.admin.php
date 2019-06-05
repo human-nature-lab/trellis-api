@@ -1,8 +1,7 @@
 <?php
 
-$router->post('token',          'TokenController@createToken');     // Login
-$router->post('device',         'DeviceController@createDevice');   // This route gets authenticated in the controller. Should probably refactor to use Basic Auth w/ middleware
-$router->get('config',          'ConfigController@all');            // View server configuration
+$router->post('token',                                                                       'TokenController@createToken');     // Login
+$router->get('config',                                                                       'ConfigController@all');            // View server configuration
 
 $router->group(['middleware' => 'token'], function () use ($router) {
 

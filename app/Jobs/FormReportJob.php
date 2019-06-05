@@ -111,7 +111,9 @@ class FormReportJob extends Job
             ->whereNull('form_section.deleted_at')
             ->whereNull('question_group.deleted_at')
             ->where('form_section.form_id', '=', $this->formId)
-            ->orderBy('form_section.sort_order', 'section_question_group.question_group_order', 'question.sort_order')
+            ->orderBy('form_section.sort_order')
+            ->orderBy('section_question_group.question_group_order')
+            ->orderBy('question.sort_order')
             ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable', 'form_section.randomize_follow_up')
             ->with('choices');
 
