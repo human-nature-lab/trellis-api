@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileWriter;
+use App\Library\CsvFileWriter;
 use App\Models\Datum;
 use App\Models\Question;
 use App\Models\QuestionDatum;
