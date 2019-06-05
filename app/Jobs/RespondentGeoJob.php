@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Classes\CsvFileWriter;
+use App\Library\CsvFileWriter;
 use App\Models\Edge;
 use App\Models\RespondentGeo;
 use App\Services\ReportService;
