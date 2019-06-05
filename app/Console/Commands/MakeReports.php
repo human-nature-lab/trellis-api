@@ -51,7 +51,6 @@ class MakeReports extends Command
      * @return mixed
      */
     public function handle () {
-
         Queue::after(function ($connection, $job, $data) {
             Log::debug("Finished job: ", $job->id, $data);
         });
