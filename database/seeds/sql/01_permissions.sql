@@ -20,8 +20,9 @@ insert ignore into permission (id, type, description) values
 
     ('ADD_USER', 'Study', 'Add a user to the server'),
     ('REMOVE_USER', 'Study', 'Remove a user from the server'),
-    ('EDIT_USER', 'Study', 'Modify a user\'s properties like name or username.'),
+    ('EDIT_USER', 'Study', 'Modify a user\'s properties like name or username'),
 
+    ('IMPORT_GEOS', 'Study', 'Import multiple locations at the same time'),
     ('EDIT_GEO', 'Study', 'Change a location\'s properties'),
     ('ADD_GEO', 'Study', 'Create a new location in the database'),
     ('REMOVE_GEO', 'Study', 'Delete a location from the database'),
