@@ -6,7 +6,9 @@ use App\Library\DatabaseHelper;
 use DB;
 use Faker;
 use Illuminate\Console\Command;
+use Illuminate\Database\Events\StatementPrepared;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use PDO;
 
 class FillMySQL extends Command
@@ -61,7 +63,10 @@ class FillMySQL extends Command
             return 1;
         }
 
-        DB::setFetchMode(PDO::FETCH_ASSOC);
+        // Must listen for event to change the fetch mode now
+        Event::listen(StatementPrepared::class, function ($event) {
+            $event->statement->setFetchMode(PDO::FETCH_ASSOC);
+        });
 
         $tables = DatabaseHelper::tables();
         $foreignKeys = DatabaseHelper::foreignKeys();

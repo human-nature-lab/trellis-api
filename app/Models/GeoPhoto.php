@@ -23,4 +23,8 @@ class GeoPhoto extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public function photo () {
+        return $this->belongsTo('App\Models\Photo');
+    }
 }

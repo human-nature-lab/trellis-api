@@ -6,6 +6,8 @@ use App\Models\Form;
 use App\Models\Report;
 use App\Models\Study;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
 class BundleLatestReports extends Command
@@ -15,7 +17,7 @@ class BundleLatestReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:bundle:reports {--location=exports : The location to save the export at} {--name=reports.zip : The filename to use}';
+    protected $signature = 'trellis:bundle:reports {study} {--location=exports : The location to save the export at} {--name=reports.zip : The filename to use}';
 
     /**
      * The console command description.
@@ -37,37 +39,41 @@ class BundleLatestReports extends Command
      *
      * @return mixed
      */
-    public function handle()
-    {
-        $studyId = 'ad9a9086-8f15-4830-941d-416b59639c41';
+    public function handle () {
+        $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $types = ['geo', 'respondent', 'timing', 'interview', 'edge'];
+        $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
+        $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+        })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+            return $item->id;
+        });
 
-        $forms = Form::join('study_form', 'study_form.form_master_id', '=', 'form.id')
-            ->where('study_form.study_id', '=', $studyId)
-            ->where('form.is_published', '=', 1)
-            ->whereNull('form.deleted_at')
-            ->whereNull('study_form.deleted_at')
-            ->select('form.id', 'form.is_published')
-            ->get();
+        $reports = new Collection();
+        $formReports = new Collection();
 
-        $formIds = array_map(function ($form) {
-            return $form['id'];
-        }, $forms->toArray());
+        foreach ($types as $type) {
+            $report = Report::where('type', '=', $type)
+                ->where('report_id', '=', $studyId)
+                ->where('status', '=', "saved")
+                ->with('files')
+                ->orderBy('updated_at', 'desc')
+                ->first();
+            if (isset($report)) {
+                $reports->push($report);
+            }
+        }
 
-        $reports = Report::whereIn("report.type", $types)
-            ->where("report.report_id", '=', $study->id)
-            ->orderBy('report.updated_at', 'desc')
-            ->limit(count($types))
-            ->with("files")
-            ->distinct()
-            ->get();
-        $formReports = Report::whereIn("report.report_id", $formIds)
-            ->where("report.type", "=", "form")
-            ->orderBy('report.updated_at', 'desc')
-            ->limit(count($formIds))
-            ->with("files")
-            ->get();
+        foreach ($formIds as $formId) {
+            $report = Report::where('type', '=', 'form')
+                ->where('report_id', '=', $formId)
+                ->with('files')
+                ->orderBy('updated_at', 'desc')
+                ->first();
+            if (isset($report)) {
+                $formReports->push($report);
+            }
+        }
 
 
         // Save the files in a zip archive
@@ -76,12 +82,13 @@ class BundleLatestReports extends Command
         $fullPath = $saveDir . "/" . $filename;
 
         // Remove the existing reports if it's the default
-        if($filename == "reports.zip" && file_exists($fullPath)) {
-            unlink($fullPath);
+        if(file_exists(storage_path($fullPath))) {
+            $this->info("removing existing reports at $fullPath");
+            unlink(storage_path($fullPath));
         }
 
-        $zip  = new \ZipArchive();
-        $zip->open(storage_path($fullPath), ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
+        $zip  = new ZipArchive();
+        $zip->open(storage_path($fullPath), ZipArchive::CREATE|ZipArchive::OVERWRITE);
         foreach($reports as $report){
             foreach($report->files as $file) {
                 $zipName = $study->name . '_' . $report->type . '_export.csv';
@@ -101,7 +108,6 @@ class BundleLatestReports extends Command
                 $zip->addFile(storage_path("app/".$file->file_name), $zipName);
             }
         }
-
 
         $zip->close();
         $this->info("Finished writing all reports to the archive");

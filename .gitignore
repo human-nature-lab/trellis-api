@@ -9,7 +9,6 @@ app/storage/
 
 # Laravel 5 & Lumen specific
 bootstrap/cache/
-storage/
 .env.*.php
 .env.php
 .env
@@ -50,3 +49,6 @@ Temporary Items
 
 laravel-queue-worker.conf
 laravel-worker.conf
+
+# Image processing scripts
+scripts/

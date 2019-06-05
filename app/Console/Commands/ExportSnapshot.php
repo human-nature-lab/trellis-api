@@ -7,13 +7,13 @@ use App\Library\FileHelper;
 use App\Models\Epoch;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
-use Illuminated\Console\WithoutOverlapping;
+//use Illuminated\Console\WithoutOverlapping;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class ExportSnapshot extends Command
 {
-    use WithoutOverlapping;
+//    use WithoutOverlapping;
 
     protected $mutexStrategy = 'mysql';
 

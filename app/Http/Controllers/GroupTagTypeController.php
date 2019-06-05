@@ -54,7 +54,7 @@ class GroupTagTypeController extends Controller
     public function createGroupTagType(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'string|min:1|max:255'
+            'name' => 'required|string|min:1|max:255'
         ]);
 
         if ($validator->fails() === true) {

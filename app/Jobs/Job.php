@@ -5,10 +5,10 @@ namespace App\Jobs;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Bus\SelfHandling;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Log;
 
-abstract class Job implements SelfHandling, ShouldQueue
+abstract class Job implements ShouldQueue
 {
     /*
     |--------------------------------------------------------------------------

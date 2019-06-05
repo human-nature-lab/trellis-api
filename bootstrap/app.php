@@ -1,8 +1,17 @@
 <?php
 
+ini_set("auto_detect_line_endings", true);
+
 require_once __DIR__.'/../vendor/autoload.php';
 
-Dotenv::load(__DIR__.'/../');
+try {
+//    (new Dotenv\Dotenv(__DIR__.'/../'))->load();
+  (new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
+    dirname(__DIR__)
+  ))->bootstrap();
+} catch (Dotenv\Exception\InvalidPathException $e) {
+    //
+}
 
 if (env('MAX_EXECUTION_TIME')) {
     ini_set('max_execution_time', env('MAX_EXECUTION_TIME'));
@@ -61,11 +70,12 @@ if (!function_exists('app_path')) {
     }
 }
 
+
 if (!class_exists('Config')) {
     class_alias('Illuminate\Support\Facades\Config', 'Config');
 }
 
-$app = new Application(
+$app = new Laravel\Lumen\Application(
     realpath(__DIR__.'/../')
 );
 
@@ -104,18 +114,21 @@ $app->singleton(
 |
 */
 
-
  $app->middleware([
         App\Http\Middleware\CorsMiddleware::class,
-        Illuminate\Session\Middleware\StartSession::class,
-//	    Barryvdh\Cors\HandleCors::class,
-        App\Http\Middleware\KeyMiddleware::class,
+        // Illuminate\Session\Middleware\StartSession::class,
         App\Http\Middleware\UserMiddleware::class
  ]);
 
  $app->routeMiddleware([
-     'token' => 'App\Http\Middleware\TokenMiddleware',
-     'role' => 'App\Http\Middleware\RoleAuthMiddleware'
+   'token' => 'App\Http\Middleware\TokenMiddleware',
+   'role' => 'App\Http\Middleware\RoleAuthMiddleware',
+   'role-or-user' => 'App\Http\Middleware\RoleOrUserMiddleware',
+   'key' => 'App\Http\Middleware\KeyMiddleware',
+   'device' => 'App\Http\Middleware\DeviceMiddleware',
+   'basic-auth' => 'App\Http\Middleware\BasicAuthMiddleware',
+   'demo' => 'App\Http\Middleware\DemoMiddleware',
+   'requires' => 'App\Http\Middleware\PermissionMiddleware'
  ]);
 
 /*
@@ -129,10 +142,16 @@ $app->singleton(
 |
 */
 
- $app->register(App\Providers\AppServiceProvider::class);
-// $app->register(Barryvdh\Cors\LumenServiceProvider::class);
-$app->register(App\Providers\EventServiceProvider::class);
-$app->register(\App\Providers\LogServiceProvider::class);
+$app->register(App\Providers\AppServiceProvider::class);
+$app->register(Illuminate\Mail\MailServiceProvider::class);
+// $app->register(App\Providers\AuthServiceProvider::class);
+// $app->register(App\Providers\EventServiceProvider::class);
+
+$app->configure('services');
+$app->configure('mail');
+$app->alias('mailer', Illuminate\Mail\Mailer::class);
+$app->alias('mailer', Illuminate\Contracts\Mail\Mailer::class);
+$app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -145,11 +164,13 @@ $app->register(\App\Providers\LogServiceProvider::class);
 |
 */
 
-$app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
-    require __DIR__.'/../app/Http/routes.php';
+$app->router->group([
+    'namespace' => 'App\Http\Controllers',
+], function ($router) {
+    require __DIR__.'/../routes/routes.admin.php';
+    require __DIR__.'/../routes/routes.survey.php';
+    require __DIR__.'/../routes/routes.sync.php';
+    require __DIR__.'/../routes/routes.demo.php';
 });
-
-//$app->configure('cors');
-
 
 return $app;

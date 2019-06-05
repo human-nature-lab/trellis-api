@@ -12,30 +12,116 @@ use App\Models\Skip;
 use App\Models\SkipConditionTag;
 use App\Models\SkipTag;
 use App\Models\QuestionAssignSkipTag;
+use Illuminate\Support\Facades\DB;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
-use DB;
 
 class SkipController extends Controller
 {
 
+    private function createSkip (Request $request) {
+        $skip = new Skip();
+        $skip->id = Uuid::uuid4();
+        $skip->precedence = $request->get('precedence');
+        $skip->show_hide = $request->get('show_hide');
+        $skip->any_all = $request->get('any_all');
+
+        $skip->save();
+
+        $conditions = [];
+        foreach ($request->get('condition_tags') as $condition) {
+            $newSkipConditionTag = new SkipConditionTag;
+            $newSkipConditionTag->id = Uuid::uuid4();
+            $newSkipConditionTag->skip_id = $skip->id;
+            $newSkipConditionTag->condition_tag_name = $condition['condition_tag_name'];
+            $newSkipConditionTag->save();
+            array_push($conditions, $newSkipConditionTag);
+        }
+
+        $skip->conditions = $conditions;
+        return $skip;
+
+    }
+
+    private function skipValidator (Request $request, $data = [], $rules = []) {
+        return Validator::make(array_merge($request->all(), $data), array_merge([
+            'show_hide' => 'required|boolean',
+            'any_all' => 'required|boolean',
+            'precedence' => 'required|integer',
+            'condition_tags.*.condition_tag_name' => 'nullable|string|min:1'
+        ], $rules));
+    }
+
+    public function deleteFormSkip (Request $request, $formId, $skipId) {
+        $validator = Validator::make([
+            'formId' => $formId,
+            'skipid' => $skipId
+        ],[
+            'formId' => 'string|min:36|exists:form,id',
+            'skipId' => 'string|min:36|exists:skip,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return $validator->failedResponse(response);
+        };
+
+        DB::transaction(function () use ($formId, $skipId) {
+            $formSkip = FormSkip::where('form_id', $formId)->where('skip_id', $skipId)->first();
+            $formSkip->delete();
+            Skip::destroy($skipId);
+        });
+
+        return response()->json([
+            'msg' => 'success'
+        ], Response::HTTP_OK);
+
+    }
+
+    public function createFormSkip (Request $request, $formId) {
+
+        $skipValidator = $this->skipValidator($request, [
+            'formId' => $formId
+        ], [
+            'formId' => 'string|min:36|exists:form,id'
+        ]);
+
+        if ($skipValidator->fails()) {
+            return response()->json([
+                'err' => $skipValidator->errors()
+            ], $skipValidator->statusCode());
+        }
+
+        $formSkip = new FormSkip();
+        $formSkip->id = Uuid::uuid4();
+        $formSkip->form_id = $formId;
+
+        DB::transaction(function () use (&$formSkip, $request) {
+            $skip = $this->createSkip($request);
+            $formSkip->skip_id = $skip->id;
+            $formSkip->save();
+            $formSkip->skip = $skip;
+        });
+
+        return response()->json([
+            'form_skip' => $formSkip
+        ], Response::HTTP_OK);
+
+    }
+
     public function deleteSkipGeneralized(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'skipId' => $id
         ]), [
-            'id' => 'required|string|min:36|exists:skip'
+            'skipId' => 'required|string|min:36|exists:skip,id'
         ]);
 
 
         if ($validator->fails() === true) {
-            return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
-            ], $validator->statusCode());
+            return $validator->failedResponse(response);
         };
 
 
@@ -72,9 +158,9 @@ class SkipController extends Controller
     public function deleteQuestionGroupSkip(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'skipId' => $id
         ]), [
-            'id' => 'required|string|min:36|exists:skip'
+            'skipId' => 'required|string|min:36|exists:skip,id'
         ]);
 
 
@@ -101,16 +187,16 @@ class SkipController extends Controller
         ]);
     }
 
-    public function updateQuestionGroupSkip(Request $request, $skipId)
+    public function updateSkip (Request $request, $skipId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $skipId
+            'skipId' => $skipId
         ]), [
-            'id' => 'required|string|min:36|exists:skip',
+            'skipId' => 'required|string|min:36|exists:skip,id',
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'precedence' => 'required|integer',
-            'conditions.*.condition_tag_name' => 'string|min:1'
+            'condition_tags.*.condition_tag_name' => 'nullable|string|min:1'
         ]);
 
 
@@ -130,7 +216,7 @@ class SkipController extends Controller
             $skipModel->precedence = $request->input('precedence');
             $skipModel->save();
 
-            $conditions = $request->input('conditions');
+            $conditions = $request->input('condition_tags');
             foreach ($conditions as $newCondition) {
                 $exists = false;
                 foreach ($skipModel->conditions as $existingCondition) {
@@ -180,7 +266,7 @@ class SkipController extends Controller
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'parent_id' => 'required|string|min:36',
-            'conditions.*.condition_tag_name' => 'string|min:1',
+            'conditions.*.condition_tag_name' => 'nullable|string|min:1',
             'precedence' => 'required|integer',
             'skip_type' => 'required|integer'
         ]);
@@ -259,6 +345,8 @@ class SkipController extends Controller
         ], Response::HTTP_OK);
     }
 
+
+
     public function createQuestionGroupSkip(Request $request)
     {
         $validator = Validator::make(array_merge($request->all(), [
@@ -266,7 +354,7 @@ class SkipController extends Controller
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
             'question_group_id' => 'required|string|min:36|exists:question_group,id',
-            'conditions.*.condition_tag_name' => 'string|min:1'
+            'conditions.*.condition_tag_name' => 'nullable|string|min:1'
         ]);
 
 

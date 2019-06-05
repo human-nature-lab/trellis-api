@@ -42,7 +42,19 @@ return [
             'report' => [
                 '*' => null,
             ],
+            'snapshot' => [
+                '*' => null,
+            ],
+            'sync' => [
+                '*' => null,
+            ],
             'token' => [
+                '*' => null,
+            ],
+            'upload' => [
+                '*' => null,
+            ],
+            'upload_log' => [
                 '*' => null,
             ],
             'user' => [
@@ -50,10 +62,9 @@ return [
             ],
         ],
         'download' => [
-            //TODO
-            // 'device' => [
-            //     'device_id' => null,
-            // ],
+            'device' => [
+                '*' => null,
+            ],
             'failed_jobs' => [
                 '*' => null,
             ],
@@ -63,22 +74,36 @@ return [
             'key' => [
                 '*' => null,
             ],
-            'migrations' => [
+            'log' => [
                 '*' => null,
             ],
-            'report_file' => [
+            'migrations' => [
                 '*' => null,
             ],
             'report' => [
                 '*' => null,
             ],
+            'report_file' => [
+                '*' => null,
+            ],
+            'snapshot' => [
+                '*' => null,
+            ],
+            'sync' => [
+                '*' => null,
+            ],
             'token' => [
                 '*' => null,
             ],
-            //TODO
-            // 'user' => [
-            //     'password' => '',
-            // ],
+            'upload' => [
+                '*' => null,
+            ],
+            'upload_log' => [
+                '*' => null,
+            ],
+            'client_log' => [
+                '*' => null
+            ]
         ],
     ],
 ];

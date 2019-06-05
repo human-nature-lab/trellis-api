@@ -2,27 +2,27 @@
 
 namespace App\Jobs;
 
+use App\Library\CsvFileWriter;
+use App\Models\ConditionTag;
+use App\Models\Respondent;
+use App\Models\RespondentConditionTag;
 use App\Services\ReportService;
 use Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\Report;
-use App\Models\ReportFile;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Bus\SelfHandling;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use App\Services\FileService;
-use App\Classes\Memoization;
 use Ramsey\Uuid\Uuid;
 
 class RespondentReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
-    protected $report;
+    public $report;
     protected $config;
     protected $maxGeoDepth=4;
+    private $file;
+    private $headers;
+    private $defaultHeaders;
+    private $localeId;
 
     /**
      * Create a new job instance.
@@ -30,16 +30,16 @@ class RespondentReportJob extends Job
      * @param  $formId
      * @return void
      */
-    public function __construct($studyId, $fileId, $config)
+    public function __construct($studyId, $config)
     {
         Log::debug("RespondentReportJob - constructing: $studyId");
         $this->config = $config;
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'respondent';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -48,9 +48,12 @@ class RespondentReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
+
+        set_time_limit(600);
         $startTime = microtime(true);
+//        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
+        $this->localeId = "48984fbe-84d4-11e5-ba05-0800279114ca";
         Log::debug("RespondentReportJob - handling: $this->studyId, $this->report->id");
         try{
 //            ReportService::createRespondentReport($this->studyId, $this->report->id);
@@ -58,9 +61,13 @@ class RespondentReportJob extends Job
             $this->report->status = 'saved';
         } catch(Exception $e){
             $this->report->status = 'failed';
+            Log::error($e);
             Log::debug("RespondentReportJob:  $this->studyId failed");
         } finally{
             $this->report->save();
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $duration = microtime(true) - $startTime;
             Log::debug("RespondentReportJob - finished: $this->studyId in $duration seconds");
         }
@@ -69,102 +76,121 @@ class RespondentReportJob extends Job
 
     public function create(){
 
-//        $respondents = DB::table('respondent')
-//            ->join('study_respondent', 'study_respondent.respondent_id', '=', 'respondent.id')
-//            ->where('study_respondent.study_id', '=', $this->studyId)
-//            ->whereNull('respondent.deleted_at')
-//            ->select('respondent.id',
-//                'respondent.name as rname',
-//                'respondent.created_at',
-//                'respondent.updated_at')
-//            ->get();
+        $this->makeHeaders();
 
-        $defaultHeaders = array(
+        $id = Uuid::uuid4();
+        $fileName = $id . '.csv';
+        $filePath = storage_path('app/' . $fileName);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
+        $this->file->open();
+        $this->file->writeHeader();
+
+        $batchSize = 3000;
+        $skip = 0;
+
+        // Streaming loop
+        do {
+            $respondents = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType')
+                ->whereNull('deleted_at')
+                ->take($batchSize)
+                ->skip($skip)
+                ->get();
+            $this->processBatch($respondents);
+            $skip += $batchSize;
+            $mightHaveMore = count($respondents) > 0;
+        } while ($mightHaveMore);
+
+        ReportService::saveFileStream($this->report, $fileName);
+        // TODO: Save respondent photos as zip file
+
+    }
+
+    private function makeHeaders () {
+        $this->defaultHeaders = [
             'id' => "respondent_id",
-            'rname' => "respondent_name",
+            'name' => "respondent_name",
+            "associated_respondent_id" => "associated_respondent_id",
             'created_at' => "created_at",
-            'updated_at' => "updated_at",
-            "household_name" => "household_name",
-            "household_id" => "household_id",
-            "village_name" => "village_name",
-            "village_id" => "village_id",
-            "building_name" => "building_name",
-            "building_id" => "building_id"
-        );
+            'updated_at' => "updated_at"
+        ];
 
+        $geoHeaders = [
+            "current_geo_id" => "current_geo_id",
+            "current_geo_name" => "current_geo_name",
+            "current_geo_type" => "current_geo_type"
+        ];
 
-        $respondents = DB::select("select r.id, r.name as rname, r.created_at, r.updated_at,   
-              (select translated_text from translation_text where translation_id in 
-                (select household.name_translation_id from geo household where household.id = r.geo_id) 
-                limit 1
-              ) as household_name,
-            
-              (select h1.id from geo h1 where h1.id = r.geo_id) as household_id,
-            
-              (select translated_text from translation_text where translation_id in 
-                (select building.name_translation_id from geo building where building.id in 
-                  (select household.parent_id from geo household where household.id = r.geo_id
-                  )
-                )   
-                limit 1
-              ) as building_name,
-            
-              (select household.parent_id from geo household where household.id = r.geo_id) as building_id,
-            
-              (select translated_text from translation_text where translation_id in 
-                (select village.name_translation_id from geo village where village.id in 
-                  (select building.parent_id from geo building where building.id in 
-                    (select household.parent_id from geo household where household.id = r.geo_id)
-                  )
-                ) 
-                limit 1
-              ) as village_name,
-            
-              (select building.parent_id from geo building where building.id in 
-                (select household.parent_id from geo household where household.id = r.geo_id)
-              ) as village_id
-            
-            from respondent r;");
+        $uniqueRCTQuery = ConditionTag::select('condition_tag.name')
+            ->join('respondent_condition_tag', 'respondent_condition_tag.condition_tag_id', '=', 'condition_tag.id')
+            ->distinct();
 
+        Log::info($uniqueRCTQuery->toSql());
 
-        $headers = array();
-        $headers = array_replace($headers, $defaultHeaders);
+        $uniqueConditionTags = $uniqueRCTQuery->get();
 
-        $conditions = DB::table("respondent_condition_tag")
-            ->join('respondent', 'respondent.id', '=', 'respondent_condition_tag.respondent_id')
-            ->join('condition_tag', 'condition_tag.id', '=', 'respondent_condition_tag.condition_tag_id')
-            ->select("respondent.id", "condition_tag.name")
-            ->get();
-
-        $respondentConditions = [];
-        foreach($conditions as $c){
-            if(!isset($respondentConditions[$c->id])){
-                $respondentConditions[$c->id] = [];
-            }
-            array_push($respondentConditions[$c->id], $c->name);
+        $headers = [];
+        foreach ($uniqueConditionTags as $ct) {
+            $headers[$ct->name] = $ct->name;
         }
 
-        // map each respondent to a single row of the csv
-        $rows = array_map(function ($respondent) use (&$defaultHeaders, &$headers, &$respondentConditions) {
-            $newRow = array();
-            foreach ($defaultHeaders as $key => $name){
-                $newRow[$key] = $respondent->$key;
+        asort($headers);
+        $this->headers = $this->defaultHeaders + $headers + $geoHeaders;
+    }
+
+    private function processBatch ($respondents) {
+        $rows = [];
+        $respondentIds = [];
+        foreach ($respondents as $r) {
+            array_push($respondentIds, $r->id);
+        }
+
+        $rcts = RespondentConditionTag::whereIn('respondent_id', $respondentIds)
+            ->with('conditionTag')
+            ->get();
+
+        $rctMap = [];
+        foreach($rcts as $rct){
+            if(!isset($rctMap[$rct->respondent_id])){
+                $rctMap[$rct->respondent_id] = [];
+            }
+            if (isset($rct->conditionTag)) {
+                array_push($rctMap[$rct->respondent_id], $rct->conditionTag->name);
+            }
+        }
+
+        foreach ($respondents as $respondent) {
+            $row = [];
+
+            // Apply default headers
+            foreach ($this->defaultHeaders as $key => $name) {
+                $row[$key] = $respondent->$key;
             }
 
-            // Add conditions if there are any for this respondent
-            if(isset($respondentConditions[$respondent->id])) {
-                $rConditions = $respondentConditions[$respondent->id];
-                foreach ($rConditions as $condition) {
-                    $headers[$condition] = $condition;
-                    $newRow[$condition] = true;
+            // Apply geo headers
+            if (isset($respondent->currentGeo)) {
+                $row['current_geo_id'] = $respondent->currentGeo->geo_id;
+                if (isset($respondent->currentGeo->geo)) {
+                    $row['current_geo_name'] = ReportService::translationToText($respondent->currentGeo->geo->nameTranslation, $this->localeId);
+                    if (isset($respondent->currentGeo->geo->geoType)) {
+                        $row['current_geo_type'] = $respondent->currentGeo->geo->geoType->name;
+                    }
                 }
             }
 
-            return $newRow;
-        }, $respondents);
+            // Apply all condition tags for this respondent
+            if (isset($rctMap[$respondent->id])) {
+                foreach ($rctMap[$respondent->id] as $tagName) {
+                    if (!isset($this->headers[$tagName])) {
+                        throw new \ErrorException("Invalid tag name $tagName. Tag name not already found in headers.");
+                    }
+                    $row[$tagName] = true;
+                }
+            }
 
-        ReportService::saveDataFile($this->report, $headers, $rows);
-        // TODO: Save respondent photos as zip file
+            array_push($rows, $row);
+        }
+
+        $this->file->writeRows($rows);
 
     }
 

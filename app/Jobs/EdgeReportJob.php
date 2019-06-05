@@ -2,21 +2,22 @@
 
 namespace App\Jobs;
 
+use App\Library\CsvFileWriter;
+use App\Models\Edge;
+use App\Models\QuestionDatum;
 use App\Services\ReportService;
 use Log;
 use App\Models\Report;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Bus\SelfHandling;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Uuid;
 
 class EdgeReportJob extends Job
 {
-//    use InteractsWithQueue, SerializesModels;
 
     protected $studyId;
-    protected $report;
+    public $report;
+    private $headers;
+    private $file;
 
     /**
      * Create a new job instance.
@@ -24,15 +25,15 @@ class EdgeReportJob extends Job
      * @param  $studyId
      * @return void
      */
-    public function __construct($studyId, $fileId)
+    public function __construct($studyId, $config)
     {
         Log::debug("EdgeReportJob - constructing: $studyId");
         $this->studyId = $studyId;
         $this->report = new Report();
-        $this->report->id = $fileId;
+        $this->report->id = Uuid::uuid4();
         $this->report->type = 'edge';
         $this->report->status = 'queued';
-        $this->report->report_id = $this->studyId;
+        $this->report->study_id = $this->studyId;
         $this->report->save();
     }
 
@@ -41,8 +42,9 @@ class EdgeReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
+    public function handle () {
+
+        set_time_limit(10 * 60);
         $startTime = microtime(true);
         Log::debug("EdgeReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -54,6 +56,9 @@ class EdgeReportJob extends Job
             Log::debug("Edge report $this->studyId failed");
         } finally{
             $this->report->save();
+            if (isset($this->file)) {
+                $this->file->close();
+            }
             $duration = microtime(true) - $startTime;
             Log::debug("EdgeReportJob - finished: $this->studyId in $duration seconds");
         }
@@ -62,68 +67,65 @@ class EdgeReportJob extends Job
 
     public function create(){
 
-        $edges = DB::table('edge')
-            ->leftJoin('respondent as sourceR', 'sourceR.id', '=', 'edge.source_respondent_id')
-            ->leftJoin('respondent as targetR', 'targetR.id', '=', 'edge.target_respondent_id')
-            ->leftJoin('edge_datum','edge_datum.edge_id', '=', 'edge.id')
-            ->leftJoin('datum', 'datum.id', '=', 'edge_datum.datum_id')
-            ->leftJoin('question', 'question.id', '=', 'datum.question_id')
-            ->leftJoin('geo as sGeo', 'sGeo.id', '=', 'sourceR.geo_id')
-            ->leftJoin('geo as tGeo', 'tGeo.id', '=', 'targetR.geo_id')
-            ->leftJoin('survey', 'survey.id', '=', 'datum.survey_id')
+        $this->makeHeaders();
+
+        $id = Uuid::uuid4();
+        $fileName = $id . '.csv';
+        $filePath = storage_path('app/' . $fileName);
+        $this->file = new CsvFileWriter($filePath, $this->headers);
+        $this->file->open();
+        $this->file->writeHeader();
+
+        $q = QuestionDatum::whereIn('question_type_id', function ($s) {
+            return $s->select('id')->from('question_type')->where('name', '=', DB::raw('"relationship"'));
+        })
+            ->leftJoin('datum', 'datum.question_datum_id', '=', 'question_datum.id')
+            ->leftJoin('edge', 'datum.edge_id', '=', 'edge.id')
+            ->leftJoin('respondent as sourceR', 'edge.source_respondent_id', '=', 'sourceR.id')
+            ->leftJoin('respondent as targetR', 'edge.target_respondent_id', '=', 'targetR.id')
+            ->join('question', 'question.id', '=', 'question_datum.question_id')
+            ->join('survey', 'survey.id', '=', 'question_datum.survey_id')
             ->where('survey.study_id', '=', $this->studyId)
             ->select(
+                'edge.id',
                 'sourceR.id as sId',
                 'targetR.id as tId',
                 'sourceR.name as sName',
                 'targetR.name as tName',
                 'question.var_name',
-                'sourceR.geo_id as sGeoId',
-                'sGeo.latitude as sLat',
-                'sGeo.longitude as sLong',
-                'sGeo.altitude as sAlt',
-                'targetR.geo_id as tGeoId',
-                'tGeo.latitude as tLat',
-                'tGeo.longitude as tLong',
-                'tGeo.altitude as tAlt',
-                'survey.updated_at',
-                'datum.opt_out',
-                'datum.opt_out_val'
+                'question_datum.updated_at',
+                'question_datum.dk_rf',
+                'question_datum.dk_rf_val',
+                'question_datum.no_one',
+                'question.id as qId',
+                'question_datum.survey_id'
             );
-
-        $headers = [
-            'sId' => 'ego',
-            'sName' => 'ego_name',
-            'tId' => 'alter',
-            'tName' => 'alter_name',
-            'var_name' => 'question',
-            'updated_at' => 'survey_updated_at',
-            'sLat' => 'ego_latitude',
-            'sLong' => 'ego_longitude',
-            'sAlt' => 'ego_altitude',
-            'sGeoId' => 'ego_geo_id',
-            'tLat' => 'alter_latitude',
-            'tLong' => 'alter_longitude',
-            'tAlt' => 'alter_altitude',
-            'tGeoId' => "alter_geo_id",
-            'opt_out' => "question_opt_out",
-            'opt_out_val' => "question_opt_out_response"
-        ];
-
-        $sql = $edges->toSql();
-        Log::debug("EdgeReport query: $sql");
-
-        $rows = array_map(function ($r) use ($headers) {
-            $newRow = array();
-            foreach ($headers as $key => $name){
-                $newRow[$key] = $r->$key;
+        foreach ($q->cursor() as $edge) {
+            $dk = 'dk_rf';
+            if (!is_null($edge[$dk])) {
+                $edge[$dk] = $edge[$dk] === 1 ? 'Dont_know': 'Refused';
             }
-            return $newRow;
-        }, $edges->get());
-
-
-        ReportService::saveDataFile($this->report, $headers, $rows);
+            $this->file->writeRow($edge);
+        }
+        ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
+    }
+
+    private function makeHeaders () {
+        $this->headers = [
+            'var_name' => 'question',
+            'survey_id' => 'survey_id',
+            'dk_rf' => "question_dk_rf",
+            'dk_rf_val' => "question_dk_rf_response",
+            'no_one' => 'question_no_one',
+            'id' => 'edge_id',
+            'sId' => 'ego_id',
+            'sName' => 'ego_name',
+            'tId' => 'alter_id',
+            'tName' => 'alter_name',
+            'updated_at' => 'survey_updated_at',
+            'qId' => 'question_id',
+        ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Exception;
 use ZipArchive;
 
 class FileService{
@@ -60,7 +61,6 @@ class FileService{
             fputcsv($file, $row);
         }
 
-
         fclose($file);
 
     }
@@ -85,6 +85,28 @@ class FileService{
             return 'failed';
         }
 
+    }
+
+  /**
+   * Copy a file from a zip archive into the file system with a new name.
+   * @param $zip
+   * @param $entryName
+   * @param $fileName
+   * @throws Exception
+   */
+    public static function copyFromZip ($zip, $entryName, $fileName) {
+      $fp = $zip->getStream($entryName);
+      if(!$fp) {
+        throw new Exception("No entry with the name, $entryName exists in this zipfile");
+      }
+
+      $contents = '';
+      while (!feof($fp)) {
+        $contents .= fread($fp, 2);
+      }
+
+      fclose($fp);
+      file_put_contents($fileName, $contents);
     }
 
 }

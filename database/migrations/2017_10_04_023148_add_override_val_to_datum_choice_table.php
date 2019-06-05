@@ -13,7 +13,7 @@ class AddOverrideValToDatumChoiceTable extends Migration
     public function up()
     {
         Schema::table('datum_choice', function (Blueprint $table) {
-            $table->text('override_val', 65535)->after('sort_order');
+            $table->text('override_val', 65535)->after('sort_order')->nullable();
         });
     }
 

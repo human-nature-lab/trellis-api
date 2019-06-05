@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Model;
 
-class FormSection extends Model
+class FormSection extends Pivot
 {
     use SoftDeletes;
 
@@ -26,6 +26,7 @@ class FormSection extends Model
         'max_repetitions',
         'repeat_prompt_translation_id',
         'follow_up_question_id',
+        'randomize_follow_up',
         'created_at',
         'updated_at',
         'deleted_at'

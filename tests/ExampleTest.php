@@ -15,7 +15,7 @@ class ExampleTest extends TestCase
         $this->get('/');
 
         $this->assertEquals(
-            '{"msg":"Unauthorized"}', $this->response->getContent()
+            $this->app->version(), $this->response->getContent()
         );
     }
 }

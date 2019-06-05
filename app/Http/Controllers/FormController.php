@@ -13,6 +13,7 @@ use App\Models\QuestionAssignConditionTag;
 use App\Models\QuestionChoice;
 use App\Models\QuestionGroup;
 use App\Models\QuestionParameter;
+use App\Models\Respondent;
 use App\Models\Section;
 use App\Models\SectionQuestionGroup;
 use App\Models\Study;
@@ -28,26 +29,36 @@ use App\Services\QuestionParameterService;
 use App\Services\QuestionService;
 use App\Services\QuestionChoiceService;
 use App\Services\QuestionTypeService;
+use App\Services\SelfAdministeredSurveyService;
 use App\Services\SkipService;
 use App\Services\TranslationService;
 use App\Services\TranslationTextService;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
+use Throwable;
 use Validator;
-use DB;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Adapter\Local;
 use League\Csv\Reader;
 
 class FormController extends Controller
 {
+    /**
+     * Get the form with all of the translations, question text and other supplementary information included with it
+     * @param Request $request
+     * @param $id
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function getForm(Request $request, $id)
     {
         $validator = Validator::make(
             ['id' => $id],
-            ['id' => 'required|string|min:36']
+            ['id' => 'required|string|min:36|exists:form,id']
         );
 
         if ($validator->fails() === true) {
@@ -57,25 +68,111 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        //$formModel = Form::find($id);
         $formModel = Form::with('sections', 'nameTranslation')->find($id);
-
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource not found'
-            ], Response::HTTP_OK);
-        }
 
         return response()->json([
             'form' => $formModel
         ], Response::HTTP_OK);
     }
 
-    public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService, QuestionParameterService $questionParameterService)
+    /**
+     * Get the structure of the form. This is loosely defined as everything that is required to navigate the form, but not
+     * display it.
+     * @param $formId
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function getFormStructure($formId){
+
+        $validator = Validator::make([
+            'formId' => $formId
+        ], [
+            'formId' => 'required|string|min:32|exists:form,id'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'msg' => "Invalid form id",
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        // TODO: This could be a custom query that returns a more 'bare bones' response without the fluff
+        $form = Form::with('sections')->find($formId);
+
+        return response()->json([
+            'structure' => $form
+        ], Response::HTTP_OK);
+    }
+
+    public function assignForm(Request $request, $studyId, SelfAdministeredSurveyService $sasService)
     {
         $validator = Validator::make(array_merge($request->all(), [
             'studyId' => $studyId
         ]), [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'formId' => 'required|string|min:36|exists:form,id'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $hasAssignFormFile = $request->hasFile('assignFormCsv');
+        if ($hasAssignFormFile) {
+            $assignFormFile = $request->file('assignFormCsv');
+            $assignFormStream = fopen($assignFormFile->getRealPath(), 'r+');
+            $assignFormCsv = Reader::createFromStream($assignFormStream);
+            $nAssigned = 0;
+
+            // Skip past header-row
+            $skipHeader = $request->input('skipHeader');
+            Log::info('$skipHeader: ' . $skipHeader);
+
+            if ($skipHeader === "true") {
+                $assignFormCsv->setOffset(1);
+            }
+
+            $formId = $request->input('formId');
+
+            $assignFormCsv->each(function ($row) use ($nAssigned, $studyId, $sasService, $formId) {
+                // TODO: incrementing $nRespondents here doesn't work
+                // $nAssigned += 1;
+                $respondentAssignedId = trim($row[0]);
+                $respondentPassword = trim($row[1]);
+                Log::info('$respondentAssignedId: ' . $respondentAssignedId);
+                Log::info('$respondentPassword: ' . $respondentPassword);
+
+                $respondentModel = Respondent::where('assigned_id', $respondentAssignedId)->first();
+                if ($respondentModel !== null) {
+                    Log::info('$respondentId: ' . $respondentModel->id);
+                    //public static function assignSurvey ($respondentId, $formId, $studyId, $password)
+                }
+                $sasService->assignSurvey($respondentModel->id, $formId, $studyId, $respondentPassword);
+                return true;
+            });
+
+            return response()->json(
+                [ 'importedRespondents' => $nAssigned ],
+                Response::HTTP_OK
+            );
+        } else {
+            return response()->json([
+                'msg' => 'Request failed',
+                'err' => 'Provide a CSV file of respondent IDs and passwords'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    public function importForm(Request $request, $studyId, TranslationService $translationService, TranslationTextService $translationTextService,  FormService $formService, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, SkipService $skipService, ConditionTagService $conditionTagService, AssignConditionTagService $assignConditionTagService, QuestionParameterService $questionParameterService)
+    {
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'formName' => $request->get('formName'),
+            'formType' => $request->get('formType')
+        ], [
             'studyId' => 'required|string|min:36|exists:study,id',
             'formName' => 'required|string',
             'formType' => 'required|integer'
@@ -91,71 +188,29 @@ class FormController extends Controller
         $formName = $request->input('formName');
         $formType = $request->input('formType');
 
-        // Create the form
-        $importedForm = $formService->createForm($formName, $studyId, $formType);
-        $importedFormId = $importedForm['id'];
-
         $hasFormFile = $request->hasFile('formJsonFile');
-        if ($hasFormFile) {
-            $formFile = $request->file('formJsonFile');
-            $formFileStream = fopen($formFile->getRealPath(), 'r+');
-            $formJsonString = stream_get_contents($formFileStream);
-            $jsonObject = json_decode($formJsonString, true);
-            $formObject = $jsonObject["form"];
+        $importedForm = null;
 
-            foreach ($formObject["sections"] as $sectionObject) {
-                $sectionSortOrder = $sectionObject["form_sections"][0]["sort_order"];
-                $sectionNameTranslationId = $translationService->importTranslation($sectionObject["name_translation"], $translationTextService);
-                $importedSection = $sectionService->createTranslatedSection($importedFormId, $sectionNameTranslationId, $sectionSortOrder);
-
-                foreach ($sectionObject["question_groups"] as $questionGroupObject) {
-                    $questionGroupSortOrder = $questionGroupObject["pivot"]["question_group_order"];
-                    $importedQuestionGroup = $questionGroupService->createQuestionGroup($importedSection["id"], $questionGroupSortOrder);
-
-                    foreach($questionGroupObject["skips"] as $skipObject) {
-                        $importedSkip = $skipService->createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"]);
-
-                        foreach($skipObject["conditions"] as $skipConditionTagObject) {
-                            $skipService->createSkipConditionTag($importedSkip["id"], $skipConditionTagObject["condition_tag_name"]);
-                        }
-                    }
-
-                    foreach($questionGroupObject["questions"] as $questionObject) {
-                        $questionTranslationId = $translationService->importTranslation($questionObject["question_translation"], $translationTextService);
-                        $importedQuestion = $questionService->createTranslatedQuestion($importedQuestionGroup["id"], $questionTranslationId, $questionObject["var_name"], $questionObject["question_type"]["id"], $questionObject["sort_order"]);
-
-                        foreach($questionObject["question_parameters"] as $questionParameterObject) {
-                            $questionParameterService->createQuestionParameter($importedQuestion["id"], $questionParameterObject["parameter_id"], $questionParameterObject["val"]);
-                        }
-
-                        foreach($questionObject["assign_condition_tags"] as $assignConditionTagObject) {
-                            $importedConditionTag = $conditionTagService->createConditionTag($assignConditionTagObject['condition']['name']);
-                            $assignConditionTagService->createAssignConditionTag($importedQuestion["id"], $importedConditionTag["id"], $assignConditionTagObject["logic"], $assignConditionTagObject["scope"]);
-                        }
-
-                        foreach($questionObject["choices"] as $choiceObject) {
-                            $choiceTranslationId = $translationService->importTranslation($choiceObject['choice_translation'], $translationTextService);
-                            $questionChoiceService->createTranslatedQuestionChoice($importedQuestion["id"], $choiceTranslationId, $choiceObject["val"], $choiceObject["pivot"]["sort_order"]);
-                        }
-                    }
-                }
-            }
-
-            $studyModel = Study::find($studyId);
-            $returnForm = $studyModel->forms()->find($importedFormId);
-            //$returnForm = Form::with('sections', 'nameTranslation')->find($importedFormId);
-
-            return response()->json(
-                [ 'importedForm' => $returnForm,
-                  'formObject' => $formObject ],
-                Response::HTTP_OK
-            );
-        } else {
-            return response()->json([
-                'msg' => 'Request failed',
-                'err' => 'Provide a JSON file exported from Trellis'
-            ], Response::HTTP_BAD_REQUEST);
+        try {
+          DB::beginTransaction();
+          $importedForm = FormService::importFormAndAddToStudy($request->file('formJsonFile')->getRealPath(), $formName, $studyId, $formType);
+          DB::commit();
+        } catch (Throwable $e) {
+          DB::rollBack();
+          throw $e;
+          return response()->json([
+            'msg' => 'Request failed',
+            'err' => 'Provide a JSON file exported from Trellis'
+          ], Response::HTTP_BAD_REQUEST);
         }
+        $studyModel = Study::find($studyId);
+        $returnForm = $studyModel->forms()->find($importedForm->id);
+        $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
+        return response()->json(
+          [ 'importedForm' => $returnForm,
+            'formObject' => $formObject ],
+          Response::HTTP_OK
+        );
     }
 
     public function importSection(Request $request, $formId, SectionService $sectionService, QuestionGroupService $questionGroupService, QuestionService $questionService, QuestionChoiceService $questionChoiceService, QuestionTypeService $questionTypeService)
@@ -316,33 +371,25 @@ class FormController extends Controller
 
 
         $studyModel = Study::find($studyId);
-        $formModel = $studyModel->forms()->get();
+        $forms = $studyModel->forms()->get();
 
-        //$censusFormModel = Form::with('nameTranslation')->where('id', $studyModel->census_form_master_id)->get();
-
-        /*
-        $formModel = Form::select('form.id', 'form.form_master_id', 'form.version', 'form.is_published', 'tt.translated_text AS name')
-            ->join('translation_text AS tt', 'tt.translation_id', '=', 'form.name_translation_id')
-            ->join('study_form AS sf', 'sf.form_master_id', '=', 'form.form_master_id')
-            ->where('sf.study_id', $studyId)
-            ->where('tt.locale_id', $localeId)
-            ->get();
-        */
+//        $q = StudyForm::where('study_id', $studyId)->with('form')->get();
 
         return response()->json(
-            ['forms' => $formModel],
+            ['forms' => $forms],
             Response::HTTP_OK
         );
     }
 
-    public function updateForm(Request $request, $id)
+    public function updateForm(Request $request, $formId)
     {
         $validator = Validator::make(array_merge($request->all(), [
-            'id' => $id
+            'formId' => $formId
         ]), [
-            'id' => 'required|string|min:36',
-            'form_master_id' => 'string|min:36',
-            'name_translation_id' => 'string|min:36'
+            'formId' => 'string|min:36|exists:form,id',
+            'form_master_id' => 'nullable|string|min:36|exists:form,id',
+            'is_published' => 'boolean',
+            'name_translation_id' => 'nullable|string|min:36|exists:translation,id'
         ]);
 
         if ($validator->fails() === true) {
@@ -352,19 +399,40 @@ class FormController extends Controller
             ], $validator->statusCode());
         }
 
-        $formModel = Form::find($id);
+        $formModel = Form::find($formId);
 
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $formModel->fill->input();
+        $formModel->fill($request->all());
         $formModel->save();
 
         return response()->json([
-            'msg' => Response::$statusTexts[Response::HTTP_OK]
+            'form' => $formModel
+        ], Response::HTTP_OK);
+    }
+
+
+    public function updateStudyForm (Request $request, $studyId, $formId) {
+        $validator = Validator::make(array_merge($request->all(), [
+            'studyId' => $studyId,
+            'formId' => $formId
+        ]), [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'formId' => 'required|string|min:36|exists:form,id',
+            'sort_order' => 'nullable|number',
+            'census_type_id' => 'nullable|string|min:36|exists:census_type,id',
+            'form_type_id' => 'nullable|string|min:36|exists:form_type,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $studyForm = StudyForm::where('study_id', $studyId)->where('form_master_id', $formId)->first();
+        $studyForm->fill($request->all());
+        $studyForm->save();
+        return response()->json([
+            'study_form' => $studyForm
         ], Response::HTTP_OK);
     }
 
@@ -373,7 +441,7 @@ class FormController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'form_master_id' => $form_master_id
         ]), [
-            'form_master_id' => 'string|min:36|exists:form,form_master_id',
+            'form_master_id' => 'nullable|string|min:36|exists:form,form_master_id',
             'published' => 'required|integer|min:0|max:1'
         ]);
 
@@ -398,38 +466,33 @@ class FormController extends Controller
         ]);
     }
 
-    public function removeForm($id)
+    public function removeForm($studyId, $formId)
     {
-        $validator = Validator::make(
-            ['id' => $id],
-            ['id' => 'required|string|min:36|exists:form,id']
-        );
+        $validator = Validator::make([
+            'formId' => $formId,
+            'studyId' => $studyId
+        ], [
+            'formId' => 'required|string|min:36|exists:form,id',
+            'studyId' => 'string|min:36|exists:study,id'
+        ]);
 
         if ($validator->fails() === true) {
             return response()->json([
-                'msg' => 'Validation failed',
-                'err' => $validator->errors()
+                'msg' => $validator->errors()
             ], $validator->statusCode());
         }
 
-        $formModel = Form::find($id);
+        DB::transaction(function () use ($formId, $studyId) {
+            StudyForm::where('study_id', $studyId)->where('form_id', $formId)->destroy();
+            Form::destroy($formId);
+        });
 
-        if ($formModel === null) {
-            return response()->json([
-                'msg' => 'URL resource was not found'
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        $formModel->delete();
-
-        return response()->json([
-
-        ]);
+        return response()->json();
     }
 
-    public function createForm(Request $request, FormService $formService)
+    public function createForm(Request $request, $studyId)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make(array_merge($request->all(), ['study_id' => $studyId]), [
             'name' => 'nullable|string',
             'study_id' => 'required|string|min:36|exists:study,id',
             'form_type' => 'integer|min:0|max:255'
@@ -443,12 +506,12 @@ class FormController extends Controller
         }
 
         $formName = ($request->input('name') == null) ? "" : $request->input('name');
-        $studyId = $request->input('study_id');
+        $formType = $request->get('form_type');
 
-        $newFormModel = $formService->createForm(
+        $newFormModel = FormService::createFormWithStudyForm(
             $formName,
             $studyId,
-            $request->input('form_type')
+            $formType
         );
 
         if ($newFormModel === null) {
@@ -956,6 +1019,41 @@ class FormController extends Controller
 
         return response()->json([
             'msg' => 'Form prepped successfully.'
+        ], Response::HTTP_OK);
+    }
+
+
+    public function getPublishedForms (Request $request, $studyId) {
+        $studyId = urldecode($studyId);
+        $formTypeId = $request->get('form_type_id');
+
+        $validator = Validator::make([
+            'study' => $studyId,
+            'formType' => $formTypeId
+        ], [
+            'study' => 'required|string|min:36|exists:study,id',
+            'formType' => 'nullable|integer|exists:form_type,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $q = Form::where('is_published', 1)
+                ->whereIn('id', function ($sub) use ($studyId, $formTypeId) {
+                   $sub->select('form_master_id')
+                        ->from('study_form')
+                        ->where('study_id', $studyId);
+                   if ($formTypeId !== null) {
+                       $sub->where('form_type_id', $formTypeId);
+                   }
+                })
+                ->with('studyForm', 'nameTranslation', 'skips');
+
+        return response()->json([
+            'forms' => $q->get()
         ], Response::HTTP_OK);
     }
 }

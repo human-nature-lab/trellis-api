@@ -427,7 +427,7 @@ class QuestionController extends Controller
             'question_id' => $questionId
         ]), [
             'question_id' => 'required|string|min:36|exists:question,id',
-            'logic' => 'string',
+            'logic' => 'nullable|string',
             'scope' => 'required|string|in:respondent,form,section',
             'condition' => 'required',
         ]);

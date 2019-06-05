@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
-use DB;
+use Log;
 use App\Models\Device;
 
 class DeviceController extends Controller
@@ -41,10 +43,10 @@ class DeviceController extends Controller
 
     public function getAllDevices(Request $request)
     {
-        $deviceModel = Device::get();
+        $devices = Device::with('addedByUser')->get();
 
         return response()->json(
-            ['devices' => $deviceModel],
+            ['devices' => $devices],
             Response::HTTP_OK
         );
     }
@@ -78,11 +80,16 @@ class DeviceController extends Controller
         ]);
     }
 
-    public function createDevice(Request $request)
-    {
+    /**
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response
+     * @throws \Exception
+     */
+    public function createDevice (Request $request) {
+        Log::info($request->all());
         $validator = Validator::make($request->all(), [
-            'id' => 'string|min:1|max:255',
-            'name' => 'string|min:1|max:255'
+            'device.device_id' =>   'required|string|min:1|max:255',
+            'device.name' =>        'required|string|min:1|max:255'
         ]);
 
         if ($validator->fails() === true) {
@@ -92,18 +99,46 @@ class DeviceController extends Controller
             ], $validator->statusCode());
         }
 
-        $id = Uuid::uuid4();
-        $deviceName = $request->input('name');
-        $deviceId = $request->input('id');
+        function RandomToken($length = 32){
+            if(!isset($length) || intval($length) <= 8 ){
+                $length = 32;
+            }
+            if (function_exists('random_bytes')) {
+                return bin2hex(random_bytes($length));
+            }
+            if (function_exists('mcrypt_create_iv')) {
+                return bin2hex(mcrypt_create_iv($length, MCRYPT_DEV_URANDOM));
+            }
+            if (function_exists('openssl_random_pseudo_bytes')) {
+                return bin2hex(openssl_random_pseudo_bytes($length));
+            }
+        }
 
-        $newDeviceModel = new Device;
-        $newDeviceModel->id = $id;
-        $newDeviceModel->name = $deviceName;
-        $newDeviceModel->device_id = $deviceId;
-        $newDeviceModel->save();
+        $userModel = $request->user();
+
+        if (is_null($userModel)) {
+            abort(Response::HTTP_FORBIDDEN);
+        }
+
+        $device = $request->get('device');
+
+        $model = Device::withTrashed()->where('device_id', $device['device_id'])->first();
+
+        // Make a new device if it doesn't exist
+        if (!isset($model)) {
+            $model = new Device;
+            $model->id = Uuid::uuid4();
+            $model->device_id = $device['device_id'];
+        }
+
+        $model->name = $device['name'];
+        $model->key = RandomToken();
+        $model->added_by_user_id = $userModel->id;
+        $model->deleted_at = null;
+        $model->save();
 
         return response()->json([
-            'device' => $newDeviceModel
+            'device' => $model->makeVisible(['key'])
         ], Response::HTTP_OK);
     }
 
@@ -113,8 +148,8 @@ class DeviceController extends Controller
             'id' => $id
         ]), [
             'id' => 'required|string|min:36',
-            'device_id' => 'string|min:1|max:255',
-            'name' => 'string|min:1|max:255'
+            'device_id' => 'nullable|string|min:1|max:255',
+            'name' => 'nullable|string|min:1|max:255'
         ]);
 
         if ($validator->fails() === true) {
@@ -136,6 +171,7 @@ class DeviceController extends Controller
         $deviceModel->save();
 
         return response()->json([
+            'device' => $deviceModel,
             'msg' => Response::$statusTexts[Response::HTTP_OK]
         ], Response::HTTP_OK);
     }

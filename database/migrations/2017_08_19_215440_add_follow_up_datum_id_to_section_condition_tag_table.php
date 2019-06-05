@@ -14,7 +14,8 @@ class AddFollowUpDatumIdToSectionConditionTagTable extends Migration
     {
         Schema::table('section_condition_tag', function (Blueprint $table) {
             $table->string('follow_up_datum_id', 41)->nullable()->after('repetition');
-            $table->foreign('follow_up_datum_id', 'fk__follow_up_datum__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('NO ACTION');
+            // Set follow_up_datum_id to null if the referenced datum is deleted
+            $table->foreign('follow_up_datum_id', 'fk__follow_up_datum__datum')->references('id')->on('datum')->onUpdate('NO ACTION')->onDelete('SET NULL');
         });
     }
 

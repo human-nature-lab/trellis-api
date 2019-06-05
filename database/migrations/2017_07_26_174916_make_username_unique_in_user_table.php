@@ -17,6 +17,7 @@ class MakeUsernameUniqueInUserTable extends Migration
         });
     }
 
+
     /**
      * Reverse the migrations.
      *

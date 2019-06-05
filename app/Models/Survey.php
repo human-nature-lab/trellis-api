@@ -55,7 +55,31 @@ class Survey extends Model
     }
 
     public function respondent(){
-        return $this->belongsTo("App\Models\Respondent", "respondent_id");
+        return $this->belongsTo("App\Models\Respondent", "respondent_id")
+            ->with('geos', 'names', 'photos');
     }
 
+
+    public function data () {
+        return $this->hasMany('App\Models\QuestionDatum', 'survey_id')
+            ->whereNull('question_datum.deleted_at')
+            ->with('data');
+    }
+
+    public function sectionConditionTags () {
+        return $this->hasMany('App\Models\SectionConditionTag', 'survey_id')
+            ->whereNull('section_condition_tag.deleted_at');
+//            ->with('conditionTag');
+    }
+
+    public function surveyConditionTags () {
+        return $this->hasMany('App\Models\SurveyConditionTag', 'survey_id')
+            ->whereNull('survey_condition_tag.deleted_at');
+//            ->with('conditionTag');
+    }
+
+    public function respondentConditionTags () {
+        return $this->hasMany('App\Models\RespondentConditionTag', 'respondent_id', 'respondent_id')
+            ->with('conditionTag');
+    }
 }
