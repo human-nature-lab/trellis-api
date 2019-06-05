@@ -88,8 +88,6 @@ class DeviceController extends Controller
     public function createDevice (Request $request) {
         Log::info($request->all());
         $validator = Validator::make($request->all(), [
-            'username' =>           'required|string|min:3|max:255',
-            'password' =>           'required|string|min:3|max:255',
             'device.device_id' =>   'required|string|min:1|max:255',
             'device.name' =>        'required|string|min:1|max:255'
         ]);
@@ -116,9 +114,9 @@ class DeviceController extends Controller
             }
         }
 
-        $userModel = User::where('username', $request->get('username'))->first();
+        $userModel = $request->user();
 
-        if (is_null($userModel) || $userModel->role !== 'ADMIN' || !Hash::check($request->get('password'), $userModel->password)) {
+        if (is_null($userModel)) {
             abort(Response::HTTP_FORBIDDEN);
         }
 
