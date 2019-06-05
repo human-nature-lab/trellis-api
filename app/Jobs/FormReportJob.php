@@ -290,7 +290,6 @@ class FormReportJob extends Job
                 $formatStart = microtime(true);
                 $row = $this->formatSurveyData($survey, $questions, $questionsMap, $surveyDataMap[$survey->id]);
                 $formatTime = microtime(true) - $formatStart;
-                Log::info("Format time $formatTime");
             } else {
                 $row = [];
             }
