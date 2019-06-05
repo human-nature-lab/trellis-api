@@ -41,6 +41,7 @@ class CorsMiddleware
             $response->headers->set('Access-Control-Allow-Methods', $allowedMethods);
             $response->headers->set('Access-Control-Allow-Headers', $allowedHeaders);
             $response->headers->set('Access-Control-Allow-Origin', '*');
+            $response->headers->set('Access-Control-Max-Age', 600);
             $response->headers->set('Vary', 'Origin');
             return $response;
         }
