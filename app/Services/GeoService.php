@@ -12,6 +12,7 @@ use Ramsey\Uuid\Uuid;
 use Exception;
 use Throwable;
 use ZipArchive;
+use Log;
 
 class GeoService {
 
@@ -49,7 +50,7 @@ class GeoService {
   }
 
   function createGeoType (String $name, Study $study, String $parentId = null, bool $canUserAdd = true, bool $canUserAddChild = true, bool $canContainRespondent = true): GeoType {
-    $geoType = GeoType::firstOrNew(['name' => $name], [
+    $geoType = GeoType::firstOrNew(['name' => $name, 'study_id' => $study->id], [
       'id' => Uuid::uuid4(),
       'name' => $name,
       'study_id' => $study->id,
@@ -65,7 +66,25 @@ class GeoService {
   function createGeo (Study $study, String $name, $latitude, $longitude, $altitude, String $geoTypeName, String $assignedId, String $parentId = null): Geo {
     $nameTranslation = TranslationService::createTranslationForDefault($name, $study); // TODO: Create this translation
     $geoType = $this->createGeoType($geoTypeName, $study);
-    $parent = Geo::where('assigned_id', $parentId)->orWhere('id', $parentId)->first();
+    if (isset($parentId)) {
+      // Ensure that the parent is part of the same study
+      $parent = Geo::where('assigned_id', $parentId)
+        ->orWhere('id', $parentId)
+        ->whereIn('geo_type_id', function ($q) use ($study) {
+          return $q->select('id')->from('geo_type')->where('study_id', $study->id);
+        })
+        ->first();
+    }
+    if (isset($assignedId)) {
+      $existingAssignedIdCount = Geo::where('assigned_id', $assignedId)
+        ->whereIn('geo_type_id', function ($q) use ($study) {
+          return $q->select('id')->from('geo_type')->where('study_id', $study->id);
+        })
+        ->count();
+      if ($existingAssignedIdCount > 0) {
+        throw new Exception("This id has already been assigned to another geo in this study: $assignedId");
+      }
+    }
     $geo = new Geo;
     $geo->id = Uuid::uuid4();
     $geo->assigned_id = $assignedId;
@@ -77,7 +96,7 @@ class GeoService {
     if (isset($parent)) {
       $geo->parent_id = $parent->id;
     } else if (isset($parentId) && !isset($parent)) {
-      throw new Exception('Unable to find parent matching this assigned id');
+      throw new Exception("Unable to find geo matching this assigned parent_id: $parentId");
     }
     $geo->save();
     return $geo;
@@ -108,7 +127,7 @@ class GeoService {
               ->first();
 
             if (!isset($geo)) {
-              throw new Exception("Unable to find respondent with assigned id matching file name $assignedId");
+              throw new Exception("Unable to find geo with assigned id matching file name $assignedId");
             }
 
             $photo = new Photo;
@@ -116,12 +135,12 @@ class GeoService {
             $photo->file_name = Uuid::uuid4() . '.jpg';
             $photo->save();
 
-            $respondentPhoto = new GeoPhoto;
-            $respondentPhoto->id = Uuid::uuid4();
-            $respondentPhoto->photo_id = $photo->id;
-            $respondentPhoto->respondent_id = $geo->id;
-            $respondentPhoto->sort_order = 0;
-            $respondentPhoto->save();
+            $geoPhoto = new GeoPhoto;
+            $geoPhoto->id = Uuid::uuid4();
+            $geoPhoto->photo_id = $photo->id;
+            $geoPhoto->geo_id = $geo->id;
+            $geoPhoto->sort_order = 0;
+            $geoPhoto->save();
 
             // Copy the files from the zip archive into the respondent_photos directory
             $newLocation = storage_path("respondent-photos/$photo->file_name");

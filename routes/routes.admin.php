@@ -173,6 +173,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   });
 
   //* Geo Controller Routes *//
+  $router->post('study/{study_id}/geo-photo/import',           ['middleware' => 'requires:IMPORT_GEOS',                 'uses' => 'GeoController@importGeoPhotos']);
   $router->post('study/{study_id}/geo/import',                 ['middleware' => 'requires:IMPORT_GEOS',                 'uses' => 'GeoController@importGeos']);
   $router->get('geo/id/{geo_id}',                              [                                                        'uses' => 'GeoController@getGeo']);
   $router->get('geo/id/locale/{locale_id}',                    [                                                        'uses' => 'GeoController@getAllGeos']);
