@@ -161,8 +161,7 @@ class GeoController extends Controller
       } catch (Throwable $e) {
         DB::rollBack();
         return response()->json([
-          'msg' => 'Request failed',
-          'err' => $e->getMessage()
+          'msg' => $e->getMessage()
         ], Response::HTTP_BAD_REQUEST);
       }
     } else {

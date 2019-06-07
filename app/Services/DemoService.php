@@ -56,9 +56,14 @@ class DemoService {
       Log::debug("Added $numPhotos photos to this study");
       // TODO: Import demo locations and assign them to this study
 
-//      $numGeos = count(GeoService::importGeosFromFile(resource_path('demo/states.csv'), $study->id));
-//      $numGeos += count(GeoService::importGeosFromFile(resource_path('demo/cities.csv'), $study->id));
-//      Log::debug("Added $numGeos geos to this study");
+      $geoService = new GeoService();
+
+      $numGeos = count($geoService->importGeosFromFile(resource_path('demo/states.csv'), $study->id));
+      $numGeos += count($geoService->importGeosFromFile(resource_path('demo/cities.csv'), $study->id));
+      Log::debug("Added $numGeos geos to this study");
+
+      $numGeoPhotos = $geoService->importGeoPhotos(resource_path('demo/state_capital_photos.zip'), $study->id);
+      Log::debug("Added $numGeoPhotos geo photos to this study");
 
       // Load all of the forms
       $importedForm = FormService::importFormAndAddToStudy(resource_path('demo/forms/example-question-types.json'), 'Example Question Types', $study->id, 0);
