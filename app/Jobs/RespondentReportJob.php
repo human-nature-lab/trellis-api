@@ -76,48 +76,47 @@ class RespondentReportJob extends Job
 
     public function create(){
 
-        $this->makeHeaders();
+      $this->makeHeaders();
 
-        $id = Uuid::uuid4();
-        $fileName = $id . '.csv';
-        $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileWriter($filePath, $this->headers);
-        $this->file->open();
-        $this->file->writeHeader();
+      $id = Uuid::uuid4();
+      $fileName = $id . '.csv';
+      $filePath = storage_path('app/' . $fileName);
+      $this->file = new CsvFileWriter($filePath, $this->headers);
+      $this->file->open();
+      $this->file->writeHeader();
 
-        $batchSize = 3000;
-        $skip = 0;
-
-        // Streaming loop
-        do {
-            $respondents = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType')
-                ->whereNull('deleted_at')
-                ->take($batchSize)
-                ->skip($skip)
-                ->get();
-            $this->processBatch($respondents);
-            $skip += $batchSize;
-            $mightHaveMore = count($respondents) > 0;
-        } while ($mightHaveMore);
-
-        ReportService::saveFileStream($this->report, $fileName);
-        // TODO: Save respondent photos as zip file
+      // Streaming loop
+      $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType');
+      $respondents = [];
+      foreach ($q->cursor() as $respondent) {
+        array_push($respondents, $respondent);
+        if (count($respondents) >= 100) {
+          $this->processBatch($respondents);
+          $respondents = [];
+        }
+      }
+      if (count($respondents) > 0) {
+        $this->processBatch($respondents);
+      }
+      ReportService::saveFileStream($this->report, $fileName);
+      // TODO: Save respondent photos as zip file
 
     }
 
     private function makeHeaders () {
         $this->defaultHeaders = [
-            'id' => "respondent_id",
-            'name' => "respondent_name",
-            "associated_respondent_id" => "associated_respondent_id",
-            'created_at' => "created_at",
-            'updated_at' => "updated_at"
+          'id' => "respondent_id",
+          'name' => "respondent_name",
+          'associated_respondent_id' => 'associated_respondent_id',
+          'assigned_id' => 'assigned_id',
+          'created_at' => 'created_at',
+          'updated_at' => 'updated_at'
         ];
 
         $geoHeaders = [
-            "current_geo_id" => "current_geo_id",
-            "current_geo_name" => "current_geo_name",
-            "current_geo_type" => "current_geo_type"
+          'current_geo_id' => 'current_geo_id',
+          'current_geo_name' => 'current_geo_name',
+          'current_geo_type' => 'current_geo_type'
         ];
 
         $uniqueRCTQuery = ConditionTag::select('condition_tag.name')
