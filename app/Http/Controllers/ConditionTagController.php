@@ -4,12 +4,14 @@
 
 use App\Models\ConditionTag;
 use App\Models\RespondentConditionTag;
+use App\Services\ConditionTagService;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Throwable;
 use Validator;
+use Log;
 
 class ConditionTagController extends Controller {
 
@@ -153,5 +155,45 @@ class ConditionTagController extends Controller {
         }
 
 	}
+
+
+  public function importRespondentConditionTags (Request $request, ConditionTagService $ctService, $studyId) {
+    $validator = Validator::make(array_merge($request->all(), [
+      'studyId' => $studyId
+    ]), [
+      'studyId' => 'required|string|min:36|exists:study,id'
+    ]);
+
+    if ($validator->fails() === true) {
+      return response()->json([
+        'msg' => 'Validation failed',
+        'err' => $validator->errors()
+      ], $validator->statusCode());
+    }
+
+    $hasFile = $request->hasFile('file');
+    if ($hasFile) {
+      $file = $request->file('file');
+      try {
+        DB::beginTransaction();
+        $importedRespondentIds = $ctService->importRespondentConditionTagsFromFile($file->getRealPath(), $studyId);
+        DB::commit();
+      } catch (Throwable $e) {
+        DB::rollBack();
+        Log::error($e);
+        return response()->json([
+          'msg' => $e->getMessage()
+        ], Response::HTTP_BAD_REQUEST);
+      }
+      return response()->json([
+        'respondent_condition_tags' => count($importedRespondentIds)
+      ], Response::HTTP_OK);
+    } else {
+      return response()->json([
+        'msg' => 'Request failed',
+        'err' => 'Provide a CSV file of respondent IDs and names'
+      ], Response::HTTP_BAD_REQUEST);
+    }
+  }
 
 }
