@@ -1,7 +1,7 @@
 respondent_id,condition_tag
 74,female
 93,male
-65,female
+65,male
 96,female
 23,female
 47,male
@@ -9,14 +9,14 @@ respondent_id,condition_tag
 68,male
 25,female
 100,male
-89,male
+89,female
 34,female
 84,male
 22,male
 62,male
 59,male
 3,female
-2,female
+2,male
 35,male
 12,female
 90,male
