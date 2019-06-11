@@ -7,6 +7,7 @@ use App\Models\Photo;
 use App\Models\RespondentGeo;
 use App\Models\RespondentName;
 use App\Models\RespondentPhoto;
+use App\Models\Study;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -321,5 +322,49 @@ class RespondentService
       } else {
         throw new Exception('Unable to open zip file');
       }
+  }
+
+  static function lookupRespondentById (String $assignedId, String $studyId): Respondent {
+      return Respondent::whereIn('id', function ($q) use ($studyId) {
+        return $q->select('respondent_id')->from('study_respondent')->where('study_id', $studyId);
+      })->where(function ($q) use ($assignedId) {
+        return $q->where('id', $assignedId)->orWhere('assigned_id', $assignedId);
+      })->first();
+  }
+
+  function importRespondentGeosFromFile (String $filePath, String $studyId): array {
+    $fileReader = new CsvFileReader($filePath);
+    $fileReader->open();
+    $row = $fileReader->getNextRowHash();
+
+    if (!$row) {
+      throw new Exception("Cannot process empty file");
     }
+
+    $study = Study::find($studyId);
+
+    if (!isset($study)) {
+      throw new Exception("Invalid study: $studyId");
+    }
+
+    $respondentGeos = [];
+    while ($row) {
+      $respondentAssignedId = $row['respondent_id'];
+      $geoAssignedId = $row['geo_id'];
+      $isPrimary = isset($row['primary']) ? $row['primary'] === 1 : false;
+      $respondent = self::lookupRespondentById($respondentAssignedId, $studyId);
+      if (!isset($respondent)) {
+        throw new Exception("Cannot find matching respondent: $respondentAssignedId");
+      }
+      $geo = GeoService::lookupGeoById($geoAssignedId, $studyId);
+      if (!isset($geo)) {
+        throw new Exception("Cannot find matching location: $geoAssignedId");
+      }
+      $rg = self::createRespondentGeo($respondent->id, $geo->id, $isPrimary);
+      array_push($respondentGeos, $rg);
+      $row = $fileReader->getNextRowHash();
+    }
+
+    return $respondentGeos;
+  }
 }

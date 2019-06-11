@@ -26,7 +26,7 @@ class GeoService {
     $study = Study::find($studyId);
 
     if (!isset($study)) {
-      throw new Exception('No study with this idea exists');
+      throw new Exception("Invalid study: $studyId");
     }
 
     $geoIds = [];
@@ -68,20 +68,11 @@ class GeoService {
     $geoType = $this->createGeoType($geoTypeName, $study);
     if (isset($parentId)) {
       // Ensure that the parent is part of the same study
-      $parent = Geo::where('assigned_id', $parentId)
-        ->orWhere('id', $parentId)
-        ->whereIn('geo_type_id', function ($q) use ($study) {
-          return $q->select('id')->from('geo_type')->where('study_id', $study->id);
-        })
-        ->first();
+      $parent = self::lookupGeoById($parentId, $study->id);
     }
     if (isset($assignedId)) {
-      $existingAssignedIdCount = Geo::where('assigned_id', $assignedId)
-        ->whereIn('geo_type_id', function ($q) use ($study) {
-          return $q->select('id')->from('geo_type')->where('study_id', $study->id);
-        })
-        ->count();
-      if ($existingAssignedIdCount > 0) {
+      $existingGeo = self::lookupGeoById($assignedId, $study->id);
+      if (isset($existingGeo)) {
         throw new Exception("This id has already been assigned to another geo in this study: $assignedId");
       }
     }
@@ -102,6 +93,18 @@ class GeoService {
     return $geo;
   }
 
+  public static function lookupGeoById (String $assignedId, String $studyId): ?Geo {
+    return Geo::whereIn('geo_type_id', function ($q) use ($studyId) {
+        return $q->select('id')
+          ->from('geo_type')
+          ->where('study_id', $studyId);
+      })
+      ->where(function ($q) use ($assignedId) {
+        return $q->where('assigned_id', $assignedId)->orWhere('id', $assignedId);
+      })
+      ->first();
+  }
+
 
   public static function importGeoPhotos (String $zipPath, String $studyId): int {
     $nPhotos = 0;
@@ -117,15 +120,7 @@ class GeoService {
           if ($fileInfo['extension'] === 'jpg') {
             Log::info('JPG: ' . $fileInfo['basename']);
             $assignedId = $fileInfo['filename'];
-
-            $geo = Geo::where('assigned_id', $assignedId)->orWhere('id', $assignedId)
-              ->whereIn('geo_type_id', function ($q) use ($studyId) {
-                return $q->select('id')
-                  ->from('geo_type')
-                  ->where('study_id', $studyId);
-              })
-              ->first();
-
+            $geo = self::lookupGeoById($assignedId, $studyId);
             if (!isset($geo)) {
               throw new Exception("Unable to find geo with assigned id matching file name $assignedId");
             }

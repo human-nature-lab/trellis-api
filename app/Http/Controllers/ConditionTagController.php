@@ -156,7 +156,6 @@ class ConditionTagController extends Controller {
 
 	}
 
-
   public function importRespondentConditionTags (Request $request, ConditionTagService $ctService, $studyId) {
     $validator = Validator::make(array_merge($request->all(), [
       'studyId' => $studyId
@@ -191,7 +190,7 @@ class ConditionTagController extends Controller {
     } else {
       return response()->json([
         'msg' => 'Request failed',
-        'err' => 'Provide a CSV file of respondent IDs and names'
+        'err' => 'Provide a CSV file of respondent ids and condition tags'
       ], Response::HTTP_BAD_REQUEST);
     }
   }
