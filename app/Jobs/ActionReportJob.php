@@ -76,8 +76,7 @@ class ActionReportJob extends Job
         $q = Action::join('interview', 'interview.id', '=', 'action.interview_id')
             ->join('survey', 'interview.survey_id', '=', 'survey.id')
             ->where('survey.study_id', '=', $this->studyId)
-            ->select('action.*', 'interview.survey_id')
-            ->orderBy('action.created_at');
+            ->select('action.*', 'interview.survey_id');
 
         foreach ($q->cursor() as $action) {
             $actionRow = $action->toArray();

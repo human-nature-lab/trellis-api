@@ -92,8 +92,7 @@ class InterviewReportJob extends Job
             ->where('survey.study_id', '=', $this->studyId)
             ->select('interview.*', 'survey.respondent_id', 'survey.form_id', 'user.name as user_name', 'user.username', 'translation_text.translated_text as form_name')
             ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = true) as dk_count"))
-            ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = false) as rf_count"))
-            ->orderBy('interview.created_at', 'asc');
+            ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = false) as rf_count"));
 
         $q->chunk(500, function ($interviews) {
             $this->file->writeRows($interviews);

@@ -74,33 +74,25 @@ class RespondentReportJob extends Job
     }
 
 
-    public function create(){
+    public function create () {
 
-        $this->makeHeaders();
+      $this->makeHeaders();
 
-        $id = Uuid::uuid4();
-        $fileName = $id . '.csv';
-        $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
-        $this->file->open();
-        $this->file->writeHeader();
-
-        $batchSize = 3000;
-        $skip = 0;
+      $id = Uuid::uuid4();
+      $fileName = $id . '.csv';
+      $filePath = storage_path('app/' . $fileName);
+      $this->file = new CsvFileStream($filePath, $this->headers);
+      $this->file->open();
+      $this->file->writeHeader();
 
         // Streaming loop
-        do {
-            $respondents = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType')
-                ->take($batchSize)
-                ->skip($skip)
-                ->get();
-            $this->processBatch($respondents);
-            $skip += $batchSize;
-            $mightHaveMore = count($respondents) > 0;
-        } while ($mightHaveMore);
+      $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType');
+      $q->chunk(400, function ($respondents) {
+        $this->processBatch($respondents);
+      });
 
-        ReportService::saveFileStream($this->report, $fileName);
-        // TODO: Save respondent photos as zip file
+      ReportService::saveFileStream($this->report, $fileName);
+      // TODO: Save respondent photos as zip file
 
     }
 
