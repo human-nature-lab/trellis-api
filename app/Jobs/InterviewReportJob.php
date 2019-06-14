@@ -82,7 +82,7 @@ class InterviewReportJob extends Job
 
         $study = Study::find($this->studyId);
 
-        $q = Interview::join('survey', 'survey.id', '=', 'interview.survey_id')
+        $q = DB::table('interview')->join('survey', 'survey.id', '=', 'interview.survey_id')
             ->join('form', 'form.id', '=', 'survey.form_id')
             ->join('translation_text', function($join) use ($study){
                 $join->on('translation_text.translation_id', '=', 'form.name_translation_id');
@@ -94,9 +94,10 @@ class InterviewReportJob extends Job
             ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = true) as dk_count"))
             ->addSelect(DB::raw("(select count(*) from question_datum qd where qd.survey_id = survey.id and qd.dk_rf = false) as rf_count"));
 
-        $q->chunk(500, function ($interviews) {
-            $this->file->writeRows($interviews);
-        });
+        foreach ($q->cursor() as $interview) {
+          $interview = json_decode(json_encode($interview), true);
+          $this->file->writeRow($interview);
+        }
 
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images

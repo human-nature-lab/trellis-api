@@ -76,7 +76,7 @@ class EdgeReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $q = QuestionDatum::whereIn('question_type_id', function ($s) {
+        $q = DB::table('question_datum')->whereIn('question_type_id', function ($s) {
             return $s->select('id')->from('question_type')->where('name', '=', DB::raw('"relationship"'));
         })
             ->leftJoin('datum', 'datum.question_datum_id', '=', 'question_datum.id')
@@ -101,12 +101,22 @@ class EdgeReportJob extends Job
                 'question_datum.survey_id'
             );
         foreach ($q->cursor() as $edge) {
-            $dk = 'dk_rf';
-            if (!is_null($edge[$dk])) {
-                $edge[$dk] = $edge[$dk] === 1 ? 'Dont_know': 'Refused';
-            }
-            $this->file->writeRow($edge);
+          $edge = json_decode(json_encode($edge), true);
+          $dk = 'dk_rf';
+          if (!is_null($edge[$dk])) {
+              $edge[$dk] = $edge[$dk] === 1 ? 'Dont_know': 'Refused';
+          }
+          $this->file->writeRow($edge);
         }
+//        $q->chunk(1000, function ($edges) {
+//          foreach ($edges as $edge) {
+//            $dk = 'dk_rf';
+//            if (!is_null($edge[$dk])) {
+//              $edge[$dk] = $edge[$dk] === 1 ? 'Dont_know': 'Refused';
+//            }
+//            $this->file->writeRow($edge);
+//          }
+//        });
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 

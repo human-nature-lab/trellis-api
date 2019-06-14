@@ -3,7 +3,8 @@
 namespace App\Jobs;
 
 
-use App\Classes\CsvFileStream;
+use App\Library\CsvFileWriter;
+use App\Library\QueryHelper;
 use App\Models\Action;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\Schema;
@@ -12,14 +13,16 @@ use App\Models\Report;
 use App\Models\Datum;
 use App\Models\Study;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 
 
-class ActionReportJob extends Job
-{
+class ActionReportJob extends Job {
 
     protected $studyId;
     protected $report;
     private $file;
+    const TSV_TO_CSV = 'app/Console/Scripts/tsv-to-csv.gawk';
 
     public function __construct($studyId, $fileId)
     {
@@ -35,7 +38,7 @@ class ActionReportJob extends Job
 
     public function handle()
     {
-        set_time_limit(60 * 15);
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("ActionReportJob - handling: $this->studyId, $this->report->id");
         try{
@@ -58,30 +61,36 @@ class ActionReportJob extends Job
 
     public function create(){
 
-        $columns = Schema::getColumnListing('action');
-        $this->headers = array_reduce($columns, function ($agg, $col) {
-            if ($col !== 'random_sort_order') {
-                $agg[$col] = $col;
-            }
-            return $agg;
-        }, []);
-
         $id = Uuid::uuid4();
         $fileName = $id . '.csv';
         $filePath = storage_path('app/' . $fileName);
-        $this->file = new CsvFileStream($filePath, $this->headers);
-        $this->file->open();
-        $this->file->writeHeader();
 
-        $q = Action::join('interview', 'interview.id', '=', 'action.interview_id')
-            ->join('survey', 'interview.survey_id', '=', 'survey.id')
-            ->where('survey.study_id', '=', $this->studyId)
-            ->select('action.*', 'interview.survey_id');
+        $sql = "select a.*, i.survey_id from action a inner join interview i on i.id = a.interview_id inner join survey s on i.survey_id = s.id where s.study_id = ?";
 
-        foreach ($q->cursor() as $action) {
-            $actionRow = $action->toArray();
-            $this->file->writeRow($actionRow);
+        $tsv2CsvPath =  base_path() . '/' . self::TSV_TO_CSV;
+
+        $statement = QueryHelper::preparedSql($sql, [$this->studyId]);
+        $statement = str_replace('"', '\\"', $statement);
+
+        $dbHost = env('DB_HOST');
+        $dbUser = env('DB_USERNAME');
+        $dbPass = env('DB_PASSWORD');
+        $dbDatabase = env('DB_DATABASE');
+        $cmd = "mysql -u$dbUser -p$dbPass -h$dbHost -B -e\"$statement\" $dbDatabase | gawk -f $tsv2CsvPath > $filePath";
+        $process = Process::fromShellCommandline($cmd, base_path(), [
+          'DB_HOST' => env('DB_HOST'),
+          'DB_PORT' => env('DB_PORT'),
+          'DB_USERNAME' => env('DB_USERNAME'),
+          'MYSQL_PWD' => env('DB_PASSWORD'),  // use MYSQL_PWD to suppress "mysqldump: [Warning] Using a password on the command line interface can be insecure." instead of passing --password="$DB_PASSWORD"  //BUG decide whether to use mysql_config_editor
+          'DB_DATABASE' => env('DB_DATABASE'),
+        ]);
+
+        $process->setTimeout(null)->run();
+
+        if (!$process->isSuccessful()) {
+          throw new ProcessFailedException($process);
         }
+
         ReportService::saveFileStream($this->report, $fileName);
 
     }
