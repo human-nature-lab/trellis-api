@@ -5,6 +5,7 @@ namespace App\Jobs;
 
 use App\Library\CsvFileWriter;
 use App\Library\QueryHelper;
+use App\Library\ShellHelper;
 use App\Models\Action;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\Schema;
@@ -76,7 +77,10 @@ class ActionReportJob extends Job {
         $dbUser = env('DB_USERNAME');
         $dbPass = env('DB_PASSWORD');
         $dbDatabase = env('DB_DATABASE');
-        $cmd = "mysql -u$dbUser -p$dbPass -h$dbHost -B -e\"$statement\" $dbDatabase | gawk -f $tsv2CsvPath > $filePath";
+
+        $bestAwk = ShellHelper::getBestAvailableAwk();
+
+        $cmd = "mysql -u$dbUser -p$dbPass -h$dbHost -B -e\"$statement\" $dbDatabase | $bestAwk -f $tsv2CsvPath > $filePath";
         $process = Process::fromShellCommandline($cmd, base_path(), [
           'DB_HOST' => env('DB_HOST'),
           'DB_PORT' => env('DB_PORT'),
