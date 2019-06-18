@@ -7,6 +7,9 @@ use App\Models\RespondentGeo;
 use App\Services\RespondentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Throwable;
+use DB;
+use Log;
 use Validator;
 
 
@@ -147,6 +150,45 @@ class RespondentGeoController extends Controller {
             'msg' => "Deleted respondent_geo, $respondentGeoId"
         ], Response::HTTP_OK);
 
+    }
+
+    public function importRespondentGeos (Request $request, RespondentService $respondentService, $studyId) {
+      $validator = Validator::make(array_merge($request->all(), [
+        'studyId' => $studyId
+      ]), [
+        'studyId' => 'required|string|min:36|exists:study,id'
+      ]);
+
+      if ($validator->fails() === true) {
+        return response()->json([
+          'msg' => 'Validation failed',
+          'err' => $validator->errors()
+        ], $validator->statusCode());
+      }
+
+      $hasFile = $request->hasFile('file');
+      if ($hasFile) {
+        $file = $request->file('file');
+        try {
+          DB::beginTransaction();
+          $importedRespondenGeoIds = $respondentService->importRespondentGeosFromFile($file->getRealPath(), $studyId);
+          DB::commit();
+        } catch (Throwable $e) {
+          DB::rollBack();
+          Log::error($e);
+          return response()->json([
+            'msg' => $e->getMessage()
+          ], Response::HTTP_BAD_REQUEST);
+        }
+        return response()->json([
+          'respondent_geos' => count($importedRespondenGeoIds)
+        ], Response::HTTP_OK);
+      } else {
+        return response()->json([
+          'msg' => 'Request failed',
+          'err' => 'Provide a CSV file of respondent ids and condition tags'
+        ], Response::HTTP_BAD_REQUEST);
+      }
     }
 
 }
