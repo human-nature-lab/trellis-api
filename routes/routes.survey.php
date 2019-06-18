@@ -76,7 +76,7 @@ $router->group([
     });
 
     $router->post('edges',                                      'EdgeController@createEdges');
-    $router->get('edges/{e_ids}',                               'EdgeController@getEdgesById');
+    $router->get('edges/{e_ids}',                               ['uses' => 'EdgeController@getEdgesById']);
 
     $router->post('rosters',                                    'RosterController@createRosterRows');
     $router->get('rosters/{r_ids}',                             'RosterController@getRostersById');
@@ -96,8 +96,8 @@ $router->group([
     $router->delete('geo-photo/{geo_photo_id}',                 ['middleware' => 'requires:REMOVE_GEO_PHOTO',       'uses' => 'GeoController@deleteGeoPhoto']);
     $router->get('geo-types',                                   'GeoTypeController@getGeoTypes');
 
-    $router->get('photo/{p_id}',                                'PhotoController@getPhoto');
-    $router->get('photos/{p_ids}',                              'PhotoController@getPhotos');
+    $router->get('photo/{p_id}',                                ['middleware' => 'cache',                           'uses' => 'PhotoController@getPhoto']);
+    $router->get('photos/{p_ids}',                              ['middleware' => 'cache',                           'uses' => 'PhotoController@getPhotos']);
     $router->post('respondent-photos',                          ['middleware' => 'requires:EDIT_RESPONDENT_PHOTO',  'uses' => 'RespondentController@updateRespondentPhotos']);
     $router->delete('respondent-photo/{respondent_photo_id}',   'RespondentController@deleteRespondentPhoto');
 
