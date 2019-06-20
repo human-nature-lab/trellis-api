@@ -23,7 +23,7 @@ class ActionReportJob extends Job {
     protected $studyId;
     protected $report;
     private $file;
-    const TSV_TO_CSV = 'app/Console/Scripts/tsv-to-csv.gawk';
+    const TSV_TO_CSV = 'app/Console/Scripts/tsv-to-csv.awk';
 
     public function __construct($studyId, $fileId)
     {
