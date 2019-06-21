@@ -80,7 +80,7 @@ class ActionReportJob extends Job {
         $bestAwk = ShellHelper::getBestAvailableAwk();
 
         $cmd = "mysql -u$dbUser -p$dbPass -h$dbHost -B -e\"$statement\" $dbDatabase | $bestAwk -f $tsv2CsvPath > $filePath";
-        $process = Process::fromShellCommandline($cmd, base_path(), [
+        $process = new Process($cmd, base_path(), [
           'DB_HOST' => env('DB_HOST'),
           'DB_PORT' => env('DB_PORT'),
           'DB_USERNAME' => env('DB_USERNAME'),
