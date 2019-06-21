@@ -50,7 +50,7 @@ class RespondentReportJob extends Job
      */
     public function handle () {
 
-        set_time_limit(600);
+        set_time_limit(0);
         $startTime = microtime(true);
 //        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
         $this->localeId = "48984fbe-84d4-11e5-ba05-0800279114ca";

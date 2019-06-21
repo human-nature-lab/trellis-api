@@ -148,6 +148,12 @@ $ php artisan migrate --seed
 ```
 Enter and confirm a password for the admin user when prompted.
 
+### Setup the scheduler
+Add the following line to crontab:
+```
+* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
 ## Trellis App
 
 ### Create the trellis-app directory and change its permissions

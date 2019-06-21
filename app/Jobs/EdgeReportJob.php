@@ -44,7 +44,7 @@ class EdgeReportJob extends Job
      */
     public function handle () {
 
-        set_time_limit(10 * 60);
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("EdgeReportJob - handling: $this->studyId, $this->report->id");
         try{
