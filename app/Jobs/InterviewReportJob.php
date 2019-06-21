@@ -45,9 +45,8 @@ class InterviewReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
-        set_time_limit(300);
+    public function handle () {
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("InterviewReportJob - handling: $this->studyId, $this->report->id");
         try{

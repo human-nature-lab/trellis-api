@@ -34,7 +34,7 @@ class TimingReportJob extends Job
     }
 
     public function handle () {
-        set_time_limit(60 * 15);
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("TimingReportJob - handling: $this->studyId, $this->report->id");
         try{

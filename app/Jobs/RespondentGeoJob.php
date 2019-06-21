@@ -42,9 +42,8 @@ class RespondentGeoJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
-        set_time_limit(300);
+    public function handle () {
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("RespondentGeoReport - handling: $this->studyId, $this->report->id");
         try{

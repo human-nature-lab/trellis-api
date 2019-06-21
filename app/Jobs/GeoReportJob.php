@@ -62,9 +62,8 @@ class GeoReportJob extends Job
      *
      * @return void
      */
-    public function handle()
-    {
-        set_time_limit(60 * 10);
+    public function handle () {
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("GeoReportJob - handling: $this->studyId, $this->report->id");
         try{

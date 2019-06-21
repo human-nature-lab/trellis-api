@@ -57,7 +57,7 @@ class FormReportJob extends Job
     }
 
     public function handle () {
-        set_time_limit(10 * 60);
+        set_time_limit(0);
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
