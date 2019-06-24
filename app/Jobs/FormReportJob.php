@@ -61,7 +61,7 @@ class FormReportJob extends Job
 
     public function handle () {
         set_time_limit(0);
-        ini_set('memory_limit','1G');
+//        ini_set('memory_limit','512M');
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
@@ -153,7 +153,7 @@ class FormReportJob extends Job
                 'tt.translated_text as current_location_name'
             );
 
-        $batchSize = 800;
+        $batchSize = 400;
         $batch = new Collection;
         foreach ($q->cursor() as $survey) {
             $batch->push($survey);
