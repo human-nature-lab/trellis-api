@@ -75,7 +75,7 @@ class Kernel extends ConsoleKernel
     if (env('CLEAN_REPORTS', 1)) {
       $cleanReportsTime = env('CLEAN_REPORTS_TIME', '07:00');
       $cleanReportsOlderThan = env('CLEAN_REPORTS_AGE', '14');
-      $schedule->command('trellis:clean:reports --days-old=' . $cleanReportsOlderThan)->dailyAt($cleanReportsTime);
+      $schedule->command('trellis:clean:reports --keep-last-days=' . $cleanReportsOlderThan)->dailyAt($cleanReportsTime);
     }
     if (env('EXPORT_SNAPSHOTS', 0)) {
       $schedule->command('trellis:export:snapshotv2')->everyFiveMinutes();
