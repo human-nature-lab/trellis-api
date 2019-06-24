@@ -17,6 +17,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Queue\Job;
 // use Laravel\Lumen\Routing\DispatchesJobs;
 use Log;
+use DB;
 use Queue;
 use Ramsey\Uuid\Uuid;
 
