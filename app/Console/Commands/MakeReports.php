@@ -20,44 +20,30 @@ use Log;
 use Queue;
 use Ramsey\Uuid\Uuid;
 
-class MakeReports extends Command
-{
-
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms} {--locale=} {--form=}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
+class MakeReports extends Command {
+    protected $signature = 'trellis:make:reports {--study=*} {--skip-main} {--skip-forms} {--locale=} {--form=}';
     protected $description = 'Run each type of report once to get the latest data';
 
-    /**
-     * Execute the console command.
-     *
-     * To call from within code:
-     *
-     * ob_start();
-     *
-     * \Illuminate\Support\Facades\Artisan::call('trellis:check:models');
-     *
-     * $result = json_decode(ob_get_clean(), true);
-     *
-     * @return mixed
-     */
-    public function handle () {
+  public function handle () {
+    ini_set('memory_limit', '-1');
+    Queue::after(function ($connection, $job, $data) {
+      Log::debug("Finished job: ", $job->id, $data);
+    });
+    $studyIds = $this->option('study');
+    if (count($studyIds) === 0) {
+      $studyIds = DB::table('study')->select('id')->get()->map(function ($s) { return $s->id; });
+    }
+    $studyCount = count($studyIds);
+    $this->info("Generating reports for $studyCount studies");
+    foreach ($studyIds as $studyId) {
+      $this->info("Generating reports for study $studyId");
+      $this->makeStudyReports($studyId);
+    }
+  }
 
-        Queue::after(function ($connection, $job, $data) {
-            Log::debug("Finished job: ", $job->id, $data);
-        });
+    public function makeStudyReports ($studyId) {
 
         $remainingJobIds = [];
-        $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $localeId = $this->option('locale') ?: '48984fbe-84d4-11e5-ba05-0800279114ca';
         if (!isset($study)) {
