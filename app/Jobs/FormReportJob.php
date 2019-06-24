@@ -108,7 +108,9 @@ class FormReportJob extends Job
             ->whereNull('form_section.deleted_at')
             ->whereNull('question_group.deleted_at')
             ->where('form_section.form_id', '=', $this->formId)
-            ->orderBy('form_section.sort_order', 'section_question_group.question_group_order', 'question.sort_order')
+            ->orderBy('form_section.sort_order')
+            ->orderBy('section_question_group.question_group_order')
+            ->orderBy('question.sort_order')
             ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable', 'form_section.randomize_follow_up')
             ->with('choices');
 
@@ -261,7 +263,8 @@ class FormReportJob extends Job
         Log::debug("Processing $count surveys");
         $surveyIds = $surveys->map(function ($s) { return $s->id; });
         $batchData = QuestionDatum::whereIn('survey_id', $surveyIds)
-            ->orderBy('survey_id', 'created_at')
+            ->orderBy('survey_id')
+            ->orderBy('created_at')
             ->with('fullData')
             ->get();
 
@@ -330,6 +333,9 @@ class FormReportJob extends Job
 
         // Filter out questionDatum that are from deleted datum
         $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
+            if (!isset($questionsMap[$qd->question_id])) {
+              return false;
+            }
             $question = $questionsMap[$qd->question_id];
             $keep = isset($qd->follow_up_datum_id) || $question->has_follow_up ? isset($datumMap[$qd->follow_up_datum_id]) : true;
             return $keep;

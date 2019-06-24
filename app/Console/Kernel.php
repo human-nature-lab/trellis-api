@@ -39,6 +39,7 @@ class Kernel extends ConsoleKernel
         Commands\ToTable::class,
         Commands\MakeReports::class,
         Commands\BundleLatestReports::class,
+        Commands\CleanReports::class,
 
         // overrides:   //TODO take this out if switched to Laravel
         Commands\MakeModel::class,
