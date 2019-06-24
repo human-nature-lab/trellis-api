@@ -18,90 +18,82 @@ use Illuminate\Contracts\Queue\Job;
 // use Laravel\Lumen\Routing\DispatchesJobs;
 use Log;
 use Queue;
+use DB;
 use Ramsey\Uuid\Uuid;
 
-class MakeReports extends Command
-{
-
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'trellis:make:reports {study} {--skip-main} {--skip-forms} {--locale=} {--form=}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
+class MakeReports extends Command {
+    protected $signature = 'trellis:make:reports {--skip-main} {--skip-forms} {--locale=} {--form=} {--study=*}';
     protected $description = 'Run each type of report once to get the latest data';
 
-    /**
-     * Execute the console command.
-     *
-     * To call from within code:
-     *
-     * ob_start();
-     *
-     * \Illuminate\Support\Facades\Artisan::call('trellis:check:models');
-     *
-     * $result = json_decode(ob_get_clean(), true);
-     *
-     * @return mixed
-     */
     public function handle () {
+        ini_set('memory_limit', '-1');
         Queue::after(function ($connection, $job, $data) {
             Log::debug("Finished job: ", $job->id, $data);
         });
 
-        $remainingJobIds = [];
-        $studyId = $this->argument('study');
-        Log::debug($studyId);
-        $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $localeId = $this->option('locale') ?: '48984fbe-84d4-11e5-ba05-0800279114ca';
-        if (!isset($study)) {
-            throw Exception('Study id must be valid');
-        }
-        $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
+        $studyIds = $this->option('study');
 
-        if (!$this->option('skip-main')) {
-            foreach ($mainJobConstructors as $constructor){
-                $reportId = Uuid::uuid4();
-                array_push($remainingJobIds, $reportId);
-                $config = new \stdClass();
-                $config->localeId = $localeId;
-                $reportJob = new $constructor($studyId, $reportId, $config);
-                $reportJob->handle();
-                $this->info("Queued $constructor");
-            }
+        if (count($studyIds) === 0) {
+          $studyIds = DB::table('study')->select('id')->get()->map(function ($s) { return $s->id; });
         }
 
-        if (!$this->option('skip-forms')) {
-            if ($this->option('form')) {
-                $formIds = [$this->option('form')];
-            } else {
-                $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
-                    $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-                })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
-                    return $item->id;
-                });
-            }
+        $studyCount = count($studyIds);
+        $this->info("Generating reports for $studyCount studies");
 
-            $config = new \stdClass();
-            $config->studyId = $studyId;
-            $config->useChoiceNames = true;
-            $config->locale = $study->defaultLocale->id;
-            $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
-
-            foreach ($formIds as $formId){
-              $reportJob = new FormReportJob($studyId, $formId, $config);
-              array_push($remainingJobIds, $reportJob->report->id);
-              $reportJob->handle();
-              $this->info("Queued FormReportJob for form, $formId");
-            }
+        foreach ($studyIds as $studyId) {
+          $this->info("Generating reports for study $studyId");
+          $this->makeStudyReports($studyId);
         }
 
+    }
+
+    private function makeStudyReports ($studyId) {
+      $remainingJobIds = [];
+      $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
+      $localeId = $this->option('locale') ?: '48984fbe-84d4-11e5-ba05-0800279114ca';
+      if (!isset($study)) {
+        throw Exception('Study id must be valid');
+      }
+      $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
+
+      if (!$this->option('skip-main')) {
+        foreach ($mainJobConstructors as $constructor){
+          $reportId = Uuid::uuid4();
+          array_push($remainingJobIds, $reportId);
+          $config = new \stdClass();
+          $config->localeId = $localeId;
+          $reportJob = new $constructor($studyId, $reportId, $config);
+          $reportJob->handle();
+          $this->info("Queued $constructor");
+        }
+      }
+
+      if (!$this->option('skip-forms')) {
+        if ($this->option('form')) {
+          $formIds = [$this->option('form')];
+        } else {
+          $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+          })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+            return $item->id;
+          });
+        }
+
+        $config = new \stdClass();
+        $config->studyId = $studyId;
+        $config->useChoiceNames = true;
+        $config->locale = $study->defaultLocale->id;
+        $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
+
+        foreach ($formIds as $formId){
+          $reportJob = new FormReportJob($studyId, $formId, $config);
+          array_push($remainingJobIds, $reportJob->report->id);
+          $reportJob->handle();
+          $this->info("Queued FormReportJob for form, $formId");
+        }
+      }
+
+      $this->info("Completed reports for study $studyId");
     }
 
 }
