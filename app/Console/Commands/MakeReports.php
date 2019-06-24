@@ -57,6 +57,7 @@ class MakeReports extends Command
 
         $remainingJobIds = [];
         $studyId = $this->argument('study');
+        Log::debug($studyId);
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $localeId = $this->option('locale') ?: '48984fbe-84d4-11e5-ba05-0800279114ca';
         if (!isset($study)) {
@@ -94,11 +95,10 @@ class MakeReports extends Command
             $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
 
             foreach ($formIds as $formId){
-                $reportId = Uuid::uuid4();
-                array_push($remainingJobIds, $reportId);
-                $reportJob = new FormReportJob($formId, $reportId, $config);
-                $reportJob->handle();
-                $this->info("Queued FormReportJob for form, $formId");
+              $reportJob = new FormReportJob($studyId, $formId, $config);
+              array_push($remainingJobIds, $reportJob->report->id);
+              $reportJob->handle();
+              $this->info("Queued FormReportJob for form, $formId");
             }
         }
 
