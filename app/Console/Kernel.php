@@ -63,9 +63,32 @@ class Kernel extends ConsoleKernel
    * @return void
    */
   protected function schedule (Schedule $schedule) {
-    $schedule->command('trellis:check:disk-space --email=wyatt.israel@yale.edu --email=mark.mcknight@yale.edu')->dailyAt('08:00');
-    $schedule->command('trellis:clean:reports --days-old=14')->dailyAt('07:00');
-    $schedule->command('trellis:export:snapshotv2')->everyFiveMinutes();
-    $schedule->command('trellis:import:upload')->everyMinute();
+    if (env('CHECK_DISK_SPACE', 1)) {
+      $checkDiskTime = env('CHECK_DISK_SPACE_TIME', '08:00');
+      $emailString = env('DISK_LOW_EMAILS', 'wyatt.israel@yale.edu,mark.mcknight@yale.edu');
+      $emails = explode(',', $emailString);
+      $cmd = 'trellis:check:disk-space';
+      foreach ($emails as $email) {
+        $cmd .= ' --email=' . $email;
+      }
+      $schedule->command($cmd)->dailyAt($checkDiskTime);
+    }
+    if (env('CLEAN_REPORTS', 1)) {
+      $cleanReportsTime = env('CLEAN_REPORTS_TIME', '07:00');
+      $cleanReportsOlderThan = env('CLEAN_REPORTS_AGE', '14');
+      $schedule->command('trellis:clean:reports --keep-last-days=' . $cleanReportsOlderThan)->dailyAt($cleanReportsTime);
+    }
+    if (env('EXPORT_SNAPSHOTS', 0)) {
+      $schedule->command('trellis:export:snapshotv2')->everyFiveMinutes();
+    }
+    if (env('IMPORT_UPLOADS', 0)) {
+      $schedule->command('trellis:import:upload')->everyMinute();
+    }
+
+    if (env('GENERATE_REPORTS', 0)) {
+      $reportTime = env('GENERATE_REPORTS_TIME', '00:00');
+      $schedule->command('trellis:make:reports')->dailyAt($reportTime);
+    }
+
   }
 }
