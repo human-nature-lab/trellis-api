@@ -60,7 +60,8 @@ class FormReportJob extends Job
     }
 
     public function handle () {
-        set_time_limit(10 * 60);
+        set_time_limit(0);
+//        ini_set('memory_limit','512M');
         $startTime = microtime(true);
         Log::debug("FormReportJob - handling: $this->formId, $this->report->id");
         try{
@@ -135,7 +136,7 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $q = Survey::where('form_id', '=', $this->formId)
+        $q = DB::table('survey')->where('form_id', '=', $this->formId)
             ->leftJoin('respondent_geo as rg', function ($join) {
                 $join->on('rg.respondent_id', '=', 'survey.respondent_id');
                 $join->on('rg.is_current', '=', DB::raw('1'));
@@ -221,14 +222,14 @@ class FormReportJob extends Job
             $baseKey = $question->id;
             $baseName = $question->var_name;
             if (isset($question->follow_up_question_id)) {
-                $q = Datum::whereIn('question_datum_id', function ($q) use ($question) {
+                $q = DB::table('datum')->whereIn('question_datum_id', function ($q) use ($question) {
                     $q->select('id')
                         ->from('question_datum')
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
                 })->select('sort_order')
                 ->distinct();
-                $repetitions = $q->get();
-                $repetitions = $repetitions->count();
+                $repetitions = $q->count();
+//                $repetitions = $repetitions->count();
                 $repetitions = $repetitions === 0 ? 1 : $repetitions;
                 for ($i = 0; $i < $repetitions; $i++) {
                     $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
@@ -271,8 +272,11 @@ class FormReportJob extends Job
         $this->count += $count;
         Log::debug("Processing $count surveys");
         $surveyIds = $surveys->map(function ($s) { return $s->id; });
+        // TODO: This should use the query builder and not make queries for all data types each time. Should use some
+        //        type of lazy loading instead.
         $batchData = QuestionDatum::whereIn('survey_id', $surveyIds)
-            ->orderBy('survey_id', 'created_at')
+            ->orderBy('survey_id')
+            ->orderBy('created_at')
             ->with('fullData')
             ->get();
 
@@ -297,7 +301,7 @@ class FormReportJob extends Job
                 $row[$key] = $survey->$key;
             }
             // Show a different value for the Unknown location besides null
-            if (!is_null($survey['rg_id']) && is_null($survey['current_location_id'])) {
+            if (!is_null($survey->rg_id) && is_null($survey->current_location_id)) {
                 $row['current_location_name'] = 'UNKNOWN LOCATION';
                 $row['current_location_id'] = 'UNKNOWN LOCATION';
             }

@@ -50,7 +50,7 @@ class RespondentReportJob extends Job
      */
     public function handle () {
 
-        set_time_limit(600);
+        set_time_limit(0);
         $startTime = microtime(true);
 //        $this->localeId = ReportService::extractLocaleId($this->config, $this->studyId);
         $this->localeId = "48984fbe-84d4-11e5-ba05-0800279114ca";
@@ -74,10 +74,11 @@ class RespondentReportJob extends Job
     }
 
 
-    public function create(){
+    public function create () {
 
       $this->makeHeaders();
 
+      // TODO: Save respondent photos as zip file
       $id = Uuid::uuid4();
       $fileName = $id . '.csv';
       $filePath = storage_path('app/' . $fileName);
@@ -87,17 +88,10 @@ class RespondentReportJob extends Job
 
       // Streaming loop
       $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType');
-      $respondents = [];
-      foreach ($q->cursor() as $respondent) {
-        array_push($respondents, $respondent);
-        if (count($respondents) >= 100) {
-          $this->processBatch($respondents);
-          $respondents = [];
-        }
-      }
-      if (count($respondents) > 0) {
+      $q->chunk(400, function ($respondents) {
         $this->processBatch($respondents);
-      }
+      });
+
       ReportService::saveFileStream($this->report, $fileName);
       // TODO: Save respondent photos as zip file
 

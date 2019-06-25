@@ -40,6 +40,7 @@ class BundleLatestReports extends Command
      * @return mixed
      */
     public function handle () {
+      set_time_limit(0);
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
