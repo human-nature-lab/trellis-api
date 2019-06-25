@@ -86,7 +86,7 @@ class RespondentReportJob extends Job
       $this->file->open();
       $this->file->writeHeader();
 
-        // Streaming loop
+      // Streaming loop
       $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType');
       $q->chunk(400, function ($respondents) {
         $this->processBatch($respondents);
@@ -99,17 +99,18 @@ class RespondentReportJob extends Job
 
     private function makeHeaders () {
         $this->defaultHeaders = [
-            'id' => "respondent_id",
-            'name' => "respondent_name",
-            "associated_respondent_id" => "associated_respondent_id",
-            'created_at' => "created_at",
-            'updated_at' => "updated_at"
+          'id' => "respondent_id",
+          'name' => "respondent_name",
+          'associated_respondent_id' => 'associated_respondent_id',
+          'assigned_id' => 'assigned_id',
+          'created_at' => 'created_at',
+          'updated_at' => 'updated_at'
         ];
 
         $geoHeaders = [
-            "current_geo_id" => "current_geo_id",
-            "current_geo_name" => "current_geo_name",
-            "current_geo_type" => "current_geo_type"
+          'current_geo_id' => 'current_geo_id',
+          'current_geo_name' => 'current_geo_name',
+          'current_geo_type' => 'current_geo_type'
         ];
 
         $uniqueRCTQuery = ConditionTag::select('condition_tag.name')

@@ -3,6 +3,7 @@
 namespace App\Library;
 
 use Error;
+use Log;
 
 class CsvFileReader {
 
@@ -20,7 +21,7 @@ class CsvFileReader {
 
 
   public function open () {
-
+    ini_set('auto_detect_line_endings',TRUE);
     $existing = file_exists(dirname($this->path));
     if (!$existing) {
       if ($this->makePath) {
@@ -53,6 +54,9 @@ class CsvFileReader {
   public function getNextRowHash () {
 
     $raw = $this->getNextRow();
+
+    Log::debug(gettype($raw));
+    Log::debug($raw ? 'TRUE' : 'FALSE');
 
     if (!$raw) return $raw;
 
