@@ -13,7 +13,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->get('permissions',                               ['middleware' => 'requires:VIEW_PERMISSIONS',               'uses' => 'PermissionController@all']);
 
   //* Photo Controller Routes *//
-  $router->get('photo/{id}', 'PhotoController@getPhoto');
+  $router->get('photo/{id}',                                [                                                           'uses' => 'PhotoController@getPhoto']);
 
   //* Census Form Controller Routes *//
   $router->get('form/census/types',   'CensusFormController@getCensusFormTypes');
@@ -73,6 +73,8 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   //* Respondent Controller Routes *//
   $router->post('study/{studyId}/respondent/import',              ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@importRespondents']);
   $router->post('study/{studyId}/respondent-photo/import',        ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@importRespondentPhotos']);
+  $router->post('study/{study_id}/respondent-tag/import',         ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'ConditionTagController@importRespondentConditionTags']);
+  $router->post('study/{study_id}/respondent-geo/import',         ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentGeoController@importRespondentGeos']);
   $router->post('respondent-preload-data/import',                 ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@preloadRespondentData']);
   $router->get('respondent/{study_id}/count',                     ['middleware' => 'requires:VIEW_RESPONDENTS',         'uses' => 'RespondentController@getRespondentCountByStudyId']);
   $router->get('respondent/{study_id}/search',                    ['middleware' => 'requires:VIEW_RESPONDENTS',         'uses' => 'RespondentController@searchRespondentsByStudyId']);

@@ -128,7 +128,8 @@ $app->singleton(
    'device' => 'App\Http\Middleware\DeviceMiddleware',
    'basic-auth' => 'App\Http\Middleware\BasicAuthMiddleware',
    'demo' => 'App\Http\Middleware\DemoMiddleware',
-   'requires' => 'App\Http\Middleware\PermissionMiddleware'
+   'requires' => 'App\Http\Middleware\PermissionMiddleware',
+   'cache' => 'App\Http\Middleware\CacheMiddleware'
  ]);
 
 /*
