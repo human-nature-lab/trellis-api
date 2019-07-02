@@ -417,9 +417,9 @@ class FormController extends Controller
         ]), [
             'studyId' => 'required|string|min:36|exists:study,id',
             'formId' => 'required|string|min:36|exists:form,id',
-            'sort_order' => 'nullable|number',
+            'sort_order' => 'nullable|integer',
             'census_type_id' => 'nullable|string|min:36|exists:census_type,id',
-            'form_type_id' => 'nullable|string|min:36|exists:form_type,id'
+            'form_type_id' => 'nullable|integer|exists:form_type,id'
         ]);
 
         if ($validator->fails()) {
