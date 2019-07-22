@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PermissionService;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
@@ -135,7 +136,7 @@ class UserController extends Controller
         );
     }
 
-    public function updatePassword (Request $request, $userId) {
+    public function updatePassword (PermissionService $permissionService, Request $request, $userId) {
 
         $validator = Validator::make(array_merge($request->all()), [
             'userId' => $userId
@@ -154,7 +155,7 @@ class UserController extends Controller
 
         $requestUser = $request->user();
         $user = User::find($userId);
-        if ($requestUser->role !== 'ADMIN' && !Hash::check($request->get('oldPassword'), $user->password)) {
+        if (!$permissionService->hasPermission($requestUser, 'CHANGE_PASSWORDS') && !Hash::check($request->get('oldPassword'), $user->password)) {
             return response()->json([
                 'msg' => "Old password doesn't match"
             ], Response::HTTP_BAD_REQUEST);
