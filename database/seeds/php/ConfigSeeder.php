@@ -23,6 +23,7 @@ class ConfigSeeder extends Seeder {
         'logging.console' => true,
         'logging.rate' => 0,
         'logging.levels' => '[]',
+        'database.logging.levels' => '["error"]',
         'logging.max' => 100,
         'sentry.dsn' => '',                             // The sentry DSN for this server
         'sentry.offline' => true,                       // Use our custom, offline Transport
@@ -32,6 +33,8 @@ class ConfigSeeder extends Seeder {
       ];
 
       $private = ['mapTileLayer.accessToken', 'demo.expirationTime'];
+
+      $objectList = ["logging.levels", "database.logging.levels"];
 
       foreach ($defaults as $key => $value) {
         $c = DB::table('config')->where('key', $key)->first();
@@ -51,7 +54,9 @@ class ConfigSeeder extends Seeder {
           ];
         }
 
-        if (is_string($value)) {
+        if (array_key_exists($value, $objectList)) {
+          $vals['type'] = 'object';
+        } else if (is_string($value) ) {
           $vals['type'] = 'string';
         } else if (is_bool($value)) {
           $vals['type'] = 'boolean';
