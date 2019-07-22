@@ -483,8 +483,8 @@ class FormController extends Controller
         }
 
         DB::transaction(function () use ($formId, $studyId) {
-            StudyForm::where('study_id', $studyId)->where('form_id', $formId)->destroy();
-            Form::destroy($formId);
+            StudyForm::where('study_id', $studyId)->where('form_master_id', $formId)->delete();
+            Form::find($formId)->delete();
         });
 
         return response()->json();
@@ -520,8 +520,8 @@ class FormController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        //$returnForm = Form::with('nameTranslation')->find($newFormModel->id);
-        $returnForm = Study::find($studyId)->forms()->find($newFormModel->id);
+        $studyModel = Study::find($studyId);
+        $returnForm = $studyModel->forms()->find($newFormModel->id);
 
         return response()->json([
             'form' => $returnForm
