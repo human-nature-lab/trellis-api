@@ -25,7 +25,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->get('study/{studyId}/forms',                                       [                                         'uses' => 'RespondentController@getRespondentStudyForms']);
   $router->post('study/{study_id}/form',                                      ['middleware' => 'requires:ADD_FORM',     'uses' => 'FormController@createForm']);
   $router->post('study/{studyId}/form/import',                                ['middleware' => 'requires:ADD_FORM',     'uses' => 'FormController@importForm']);
-  $router->delete('study/{study_id}/form/{id}',                               ['middleware' => 'requires:REMOVE_FORM',  'uses' => 'FormController@removeForm']);
+  $router->delete('study/{study_id}/form/{form_id}',                          ['middleware' => 'requires:REMOVE_FORM',  'uses' => 'FormController@removeForm']);
   $router->put('study/{study_id}/form/{form_id}',                             ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateStudyForm']);
   $router->put('form/{id}',                                                   ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateForm']);
   $router->put('form/{form_master_id}/publish',                               ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@publishForm']);
