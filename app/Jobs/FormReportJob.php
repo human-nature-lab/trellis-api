@@ -392,7 +392,7 @@ class FormReportJob extends Job
                 $datum = $datumMap[$qd->follow_up_datum_id];
                 $baseKey .= '_r' . $datum->repeat_index;
             }
-//            $this->addMetadata($baseKey, $question);
+            $this->addMetadata($baseKey, $question);
             switch ($question->questionType->name) {
                 case 'multiple_select':
                     foreach ($qd->fullData as $datum) {
@@ -409,7 +409,7 @@ class FormReportJob extends Job
 
                         // This seems like the safest way to check if it's an other response
                         if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice->val) {
-                            $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
+                          $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
 
