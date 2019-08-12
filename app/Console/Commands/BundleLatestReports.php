@@ -55,7 +55,7 @@ class BundleLatestReports extends Command
 
         foreach ($types as $type) {
             $report = Report::where('type', '=', $type)
-                ->where('report_id', '=', $studyId)
+                ->where('study_id', '=', $studyId)
                 ->where('status', '=', "saved")
                 ->with('files')
                 ->orderBy('updated_at', 'desc')
@@ -67,7 +67,7 @@ class BundleLatestReports extends Command
 
         foreach ($formIds as $formId) {
             $report = Report::where('type', '=', 'form')
-                ->where('report_id', '=', $formId)
+                ->where('form_id', '=', $formId)
                 ->with('files')
                 ->orderBy('updated_at', 'desc')
                 ->first();
