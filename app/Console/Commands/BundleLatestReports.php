@@ -100,7 +100,7 @@ class BundleLatestReports extends Command
 
         foreach($formReports as $report){
             $form = Form::with("nameTranslation")
-                ->find($report->report_id);
+                ->find($report->form_id);
             foreach($report->files as $file){
                 $nameTranslation = $form->nameTranslation;
                 $formName = $nameTranslation->translationText[0]->translated_text;
