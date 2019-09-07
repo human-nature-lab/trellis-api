@@ -88,7 +88,7 @@ class TimingReportJob extends Job
           return $agg;
         }, []);
 
-        $users = User::all()->reduce(function ($agg, $user) {
+        $users = User::withTrashed()->get()->reduce(function ($agg, $user) {
           $agg[$user->id] = $user;
           return $agg;
         }, []);
@@ -107,6 +107,8 @@ class TimingReportJob extends Job
           $questionData = DB::table('question_datum')
             ->join('question', 'question_datum.question_id', '=', 'question.id')
             ->whereIn('survey_id', $surveyIds)
+            ->whereNull('question_datum.deleted_at')
+            ->whereNull('question.deleted_at')
             ->select(
               'question.var_name',
               'question.question_type_id',
