@@ -59,19 +59,19 @@ class TimingReportJob extends Job
     public function create(){
 
         $this->headers = [
-            'interview_id' => "interview_id",
-            'survey_id' => "survey_id",
-            'respondent_id' => 'respondent_id',
-            'question_id' => 'question_id',
-            'form_id' => "form_id",
-            'user_id' => "user_id",
-            'name' => "user_name",
-            'username' => "user_username",
-            'question_type' => "question_type",
-            'question_name' => "question_name",
-            'created_at' => 'created_at',
-            'updated_at' => "updated_at",
-            "deleted_at" => 'deleted_at'
+          'interview_id' => "interview_id",
+          'survey_id' => "survey_id",
+          'respondent_id' => 'respondent_id',
+          'question_id' => 'question_id',
+          'form_id' => "form_id",
+          'user_id' => "user_id",
+          'name' => "user_name",
+          'username' => "user_username",
+          'question_type' => "question_type",
+          'question_name' => "question_name",
+          'created_at' => 'created_at',
+          'updated_at' => "updated_at",
+          "deleted_at" => 'deleted_at'
         ];
 
         $id = Uuid::uuid4();
@@ -83,64 +83,66 @@ class TimingReportJob extends Job
 
         $study = Study::find($this->studyId);
 
-      $questionTypes = QuestionType::all()->reduce(function ($agg, $qt) {
-        $agg[$qt->id] = $qt->name;
-        return $agg;
-      }, []);
+        $questionTypes = QuestionType::all()->reduce(function ($agg, $qt) {
+            $agg[$qt->id] = $qt->name;
+            return $agg;
+        }, []);
 
-      $users = User::all()->reduce(function ($agg, $user) {
-        $agg[$user->id] = $user;
-        return $agg;
-      }, []);
+        $users = User::withTrashed()->get()->reduce(function ($agg, $user) {
+            $agg[$user->id] = $user;
+            return $agg;
+        }, []);
 
-      $interviews = Interview::join('survey', 'interview.survey_id', '=', 'survey.id')
-        ->where('survey.study_id', '=', $study->id);
-      $interviews->chunk(200, function ($interviews) use ($users, $questionTypes) {
-        $interviewToSurveyMap = [];
-        $interviewMap = [];
-        $surveyIds = [];
-        foreach ($interviews as $interview) {
-          array_push($surveyIds, $interview->survey_id);
-          $interviewToSurveyMap[$interview->id] = $interview->survey_id;
-          $interviewMap[$interview->survey_id] = $interview;
-        }
-        $questionData = DB::table('question_datum')
-          ->join('question', 'question_datum.question_id', '=', 'question.id')
-          ->whereIn('survey_id', $surveyIds)
-          ->select(
-            'question.var_name',
-            'question.question_type_id',
-            'question_id',
-            'question_datum.survey_id',
-            'question_datum.created_at',
-            'question_datum.updated_at',
-            'question_datum.deleted_at'
-          )->get();
-        foreach ($questionData as $qd) {
-          $interview = $interviewMap[$qd->survey_id];
-          $user = $users[$interview->user_id];
-          $questionTypeName = $questionTypes[$qd->question_type_id];
-          $this->file->writeRow([
-            'interview_id' => $interview->id,
-            'survey_id' => $interview->survey_id,
-            'question_id' => $qd->question_id,
-            'form_id' => $interview->form_id,
-            'respondent_id' => $interview->respondent_id,
-            'study_id' => $interview->study_id,
-            'user_id' => $user->id,
-            'name' => $user->name,
-            'username' => $user->username,
-            'question_name' => $qd->var_name,
-            'question_type' => $questionTypeName,
-            'created_at' => $qd->created_at,
-            'updated_at' => $qd->updated_at,
-            'deleted_at' => $qd->deleted_at
-          ]);
-        }
-      });
+        $interviews = Interview::join('survey', 'interview.survey_id', '=', 'survey.id')
+            ->where('survey.study_id', '=', $study->id);
+        $interviews->chunk(200, function ($interviews) use ($users, $questionTypes) {
+            $interviewToSurveyMap = [];
+            $interviewMap = [];
+            $surveyIds = [];
+            foreach ($interviews as $interview) {
+                array_push($surveyIds, $interview->survey_id);
+                $interviewToSurveyMap[$interview->id] = $interview->survey_id;
+                $interviewMap[$interview->survey_id] = $interview;
+            }
+            $questionData = DB::table('question_datum')
+                ->join('question', 'question_datum.question_id', '=', 'question.id')
+                ->whereIn('survey_id', $surveyIds)
+                ->whereNull('question_datum.deleted_at')
+                ->whereNull('question.deleted_at')
+                ->select(
+                    'question.var_name',
+                    'question.question_type_id',
+                    'question_id',
+                    'question_datum.survey_id',
+                    'question_datum.created_at',
+                    'question_datum.updated_at',
+                    'question_datum.deleted_at'
+                )->get();
+            foreach ($questionData as $qd) {
+                $interview = $interviewMap[$qd->survey_id];
+                $user = $users[$interview->user_id];
+                $questionTypeName = $questionTypes[$qd->question_type_id];
+                $this->file->writeRow([
+                    'interview_id' => $interview->id,
+                    'survey_id' => $interview->survey_id,
+                    'question_id' => $qd->question_id,
+                    'form_id' => $interview->form_id,
+                    'respondent_id' => $interview->respondent_id,
+                    'study_id' => $interview->study_id,
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'question_name' => $qd->var_name,
+                    'question_type' => $questionTypeName,
+                    'created_at' => $qd->created_at,
+                    'updated_at' => $qd->updated_at,
+                    'deleted_at' => $qd->deleted_at
+                ]);
+            }
+        });
 
-      ReportService::saveFileStream($this->report, $fileName);
-      // TODO: create zip file with location images
+        ReportService::saveFileStream($this->report, $fileName);
+        // TODO: create zip file with location images
 
     }
 }
