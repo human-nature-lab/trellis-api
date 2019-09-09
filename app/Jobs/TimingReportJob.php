@@ -59,19 +59,20 @@ class TimingReportJob extends Job
     public function create(){
 
         $this->headers = [
-            'interview_id' => "interview_id",
-            'survey_id' => "survey_id",
-            'respondent_id' => 'respondent_id',
-            'question_id' => 'question_id',
-            'form_id' => "form_id",
-            'user_id' => "user_id",
-            'name' => "user_name",
-            'username' => "user_username",
-            'question_type' => "question_type",
-            'question_name' => "question_name",
-            'created_at' => 'created_at',
-            'updated_at' => "updated_at",
-            "deleted_at" => 'deleted_at'
+          'interview_id' => 'interview_id',
+          'survey_id' => 'survey_id',
+          'respondent_id' => 'respondent_id',
+          'question_id' => 'question_id',
+          'form_id' => 'form_id',
+          'user_id' => 'user_id',
+          'name' => 'user_name',
+          'username' => 'user_username',
+          'question_type' => 'question_type',
+          'question_name' => 'question_name',
+          'created_at' => 'created_at',
+          'updated_at' => 'updated_at',
+          'deleted_at' => 'deleted_at',
+          'last_response_time' => 'last_response_time'
         ];
 
         $id = Uuid::uuid4();
@@ -116,7 +117,8 @@ class TimingReportJob extends Job
               'question_datum.survey_id',
               'question_datum.created_at',
               'question_datum.updated_at',
-              'question_datum.deleted_at'
+              'question_datum.deleted_at',
+              DB::raw('(select updated_at from datum where datum.question_datum_id = question_datum.id and datum.deleted_at is null order by updated_at desc limit 1) last_response_time')
             )->get();
           foreach ($questionData as $qd) {
             $interview = $interviewMap[$qd->survey_id];
@@ -136,7 +138,8 @@ class TimingReportJob extends Job
               'question_type' => $questionTypeName,
               'created_at' => $qd->created_at,
               'updated_at' => $qd->updated_at,
-              'deleted_at' => $qd->deleted_at
+              'deleted_at' => $qd->deleted_at,
+              'last_response_time' => $qd->last_response_time
             ]);
           }
         });
