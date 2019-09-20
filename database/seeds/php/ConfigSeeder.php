@@ -54,7 +54,7 @@ class ConfigSeeder extends Seeder {
           ];
         }
 
-        if (array_key_exists($value, $objectList)) {
+        if (array_key_exists($key, $objectList)) {
           $vals['type'] = 'object';
         } else if (is_string($value) ) {
           $vals['type'] = 'string';
