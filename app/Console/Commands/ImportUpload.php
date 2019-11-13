@@ -64,6 +64,7 @@ class ImportUpload extends Command
         return 0;
     }
 
+    /*
     function getFirstPendingUpload() {
         $firstPendingUpload = Upload::where('deleted_at', null)
             ->where('status', 'PENDING')
@@ -73,10 +74,28 @@ class ImportUpload extends Command
 
         return $firstPendingUpload;
     }
+    */
+
+    // Transactional function to get next pending upload and set its status to RUNNING at the same time
+    function getFirstPendingUpload() {
+        $firstPendingUpload = null;
+        DB::transaction(function () use (&$firstPendingUpload) {
+            $firstPendingUpload = Upload::where('status', 'PENDING')
+                ->whereNull('deleted_at')
+                ->orderBy('created_at', 'asc')
+                ->lockForUpdate()
+                ->first();
+            if ($firstPendingUpload != null) {
+                $firstPendingUpload->update(['status' => 'RUNNING']);
+            }
+        });
+        return $firstPendingUpload;
+    }
 
     function processUpload($upload, $config) {
         try {
-            $upload->update(['status' => 'RUNNING']);
+            // Moved status update to getFirstPendingUpload transaction
+            // $upload->update(['status' => 'RUNNING']);
 
             $fileName = $upload->file_name;
             $this->info("Processing: $fileName");
