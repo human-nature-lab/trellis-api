@@ -195,12 +195,12 @@ class SkipController extends Controller
             'skipId' => 'required|string|min:36|exists:skip,id',
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
-            'precedence' => 'required|integer',
-            'condition_tags.*.condition_tag_name' => 'nullable|string|min:1'
+            'precedence' => 'required|integer'
         ]);
 
+        $conditions = $request->input('conditions') ?: $request->input('condition_tags');
 
-        if ($validator->fails() === true) {
+        if ($validator->fails() === true || is_null($conditions) || count($conditions) === 0) {
             return response()->json([
                 'msg' => 'Validation failed',
                 'err' => $validator->errors()
@@ -210,13 +210,12 @@ class SkipController extends Controller
 
         $skipModel = Skip::find($skipId);
 
-        DB::transaction(function () use ($request, $skipModel, $skipId) {
+        DB::transaction(function () use ($request, $skipModel, $skipId, $conditions) {
             $skipModel->show_hide = $request->input('show_hide');
             $skipModel->any_all = $request->input('any_all');
             $skipModel->precedence = $request->input('precedence');
             $skipModel->save();
 
-            $conditions = $request->input('condition_tags');
             foreach ($conditions as $newCondition) {
                 $exists = false;
                 foreach ($skipModel->conditions as $existingCondition) {
