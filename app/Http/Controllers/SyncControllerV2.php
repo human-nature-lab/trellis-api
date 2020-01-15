@@ -355,9 +355,10 @@ class SyncControllerV2 extends Controller
         return response()->make($image, Response::HTTP_OK, ['content-type' => $mimetype]);
     }
 
-    public function listMissingImages($deviceId)
-    {
-        ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
+    public function listMissingImages ($deviceId) {
+        if (ob_get_length()) {
+            ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
+        }
 
         http_response_code(Response::HTTP_OK);
 
