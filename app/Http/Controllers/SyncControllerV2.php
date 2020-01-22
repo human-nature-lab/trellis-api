@@ -148,7 +148,8 @@ class SyncControllerV2 extends Controller
         // $uploads = Upload::with('device')->get();
         $uploadQuery = DB::table('upload')
             ->select('upload.*', DB::raw('(select name from device d where d.device_id like upload.device_id and d.deleted_at is null limit 1) as device_name'))
-            ->orderBy($orderBy, $direction ? 'desc' : 'asc')
+	    ->orderBy($orderBy, $direction ? 'desc' : 'asc')
+	    ->whereNull('upload.deleted_at')
             ->take($limit)
             ->skip($page * $limit);
 
