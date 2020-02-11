@@ -48,6 +48,10 @@ class CsvFileWriter {
 
     }
 
+    public function writeRowArr ($row) {
+        fputcsv($this->file, $row);
+    }
+
     public function writeRow ($rowMap) {
         $row = [];
         foreach ($this->headerIds as $id){
