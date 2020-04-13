@@ -112,7 +112,7 @@ class FormReportJob extends Job
             ->orderBy('section_question_group.question_group_order')
             ->orderBy('question.sort_order')
             ->select('question.*', 'form_section.follow_up_question_id', 'form_section.is_repeatable', 'form_section.randomize_follow_up')
-            ->with('choices');
+            ->with('choices', 'questionParameters');
 
         $questions = $questions->get();
 
@@ -120,6 +120,22 @@ class FormReportJob extends Job
         foreach ($questions as $question) {
             $question->has_follow_up = isset($question->follow_up_question_id);
             $questionsMap[$question->id] = $question;
+            $otherChoiceIds = [];
+            foreach ($question->questionParameters as $qp) {
+                if ($qp->parameter->name === 'other') {
+                    foreach ($question->choices as $choice) {
+                        $match = $choice->val === $qp->val;
+                        if ($match) {
+                            array_push($otherChoiceIds, $choice->id);
+                            Log::info("$question->var_name has other parameter of $choice->val");
+                        }
+                    }
+                }
+            }
+            $question->other_choice_ids = $otherChoiceIds;
+            if (count($otherChoiceIds) > 0) {
+                Log::info($otherChoiceIds);
+            }
         }
 
         $this->makeHeaders($questions);
@@ -132,7 +148,7 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $q = Survey::where('form_id', '=', $this->formId)
+        $q = DB::table('survey')->where('form_id', '=', $this->formId)
             ->leftJoin('respondent_geo as rg', function ($join) {
                 $join->on('rg.respondent_id', '=', 'survey.respondent_id');
                 $join->on('rg.is_current', '=', DB::raw('1'));
@@ -212,14 +228,13 @@ class FormReportJob extends Job
             $baseKey = $question->id;
             $baseName = $question->var_name;
             if (isset($question->follow_up_question_id)) {
-                $q = Datum::whereIn('question_datum_id', function ($q) use ($question) {
+                $q = DB::table('datum')->whereIn('question_datum_id', function ($q) use ($question) {
                     $q->select('id')
                         ->from('question_datum')
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
                 })->select('sort_order')
                 ->distinct();
-                $repetitions = $q->get();
-                $repetitions = $repetitions->count();
+                $repetitions = $q->count();
                 $repetitions = $repetitions === 0 ? 1 : $repetitions;
                 for ($i = 0; $i < $repetitions; $i++) {
                     $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
@@ -289,7 +304,7 @@ class FormReportJob extends Job
                 $row[$key] = $survey->$key;
             }
             // Show a different value for the Unknown location besides null
-            if (!is_null($survey['rg_id']) && is_null($survey['current_location_id'])) {
+            if (!is_null($survey->rg_id) && is_null($survey->current_location_id)) {
                 $row['current_location_name'] = 'UNKNOWN LOCATION';
                 $row['current_location_id'] = 'UNKNOWN LOCATION';
             }
@@ -396,7 +411,7 @@ class FormReportJob extends Job
                         }
 
                         // This seems like the safest way to check if it's an other response
-                        if (isset($datum->val) && strlen($datum->val) > 0 && isset($datum->choice_id) && $datum->val !== $datum->choice->val) {
+                        if (isset($question->other_choice_ids) && isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
                             $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
@@ -434,6 +449,14 @@ class FormReportJob extends Job
                     if (isset($qd->no_one) && $qd->no_one) {
                         $row[$baseKey] = ['No_One'];
                         break;
+                    }
+                case 'multiple_choice':
+                    if (count($question->other_choice_ids) > 0 && count($qd->fullData) > 0) {
+                        $datum = $qd->fullData[0];
+                        if (isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
+                            Log::info("Adding other $question->var_name");
+                            $this->addOther($this->headers[$baseKey], $survey->id, $survey->respondent_id, $datum->val);
+                        }
                     }
                 default:
                     $key = $baseKey;
