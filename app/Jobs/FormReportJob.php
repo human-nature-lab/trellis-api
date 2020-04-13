@@ -469,7 +469,7 @@ class FormReportJob extends Job
                         $datum = $qd->fullData[0];
                         if (isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
                             Log::info("Adding other $question->var_name");
-                            $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
+                            $this->addOther($this->headers[$baseKey], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
                 default:
