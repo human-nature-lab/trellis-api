@@ -111,4 +111,29 @@ class RosterController extends Controller {
         ], Response::HTTP_OK);
     }
 
+
+    public function getRespondentRosters (Request $request, $respondentId) {
+        $uniqueId = $request->input('uniqueId');
+        $validator = Validator::make([
+            'respondentId' => $respondentId,
+            'uniqueId' => $uniqueId
+        ], [
+            'respondentId' => 'required|string|min:7',
+            'uniqueId' => 'required|string'
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+        $q = DB::table('roster')
+            ->innerJoin('datum', 'datum.roster_id', '=', 'roster.id')
+            ->innerJoin('question_datum', 'question_datum.id', '=', 'datum.question_datum_id')
+            ->innerJoin('survey', 'survey.id', '=', 'question_datum.survey_id')
+            ->where('survey.respondent_id', '=', $respondentId);
+        return response()->json([
+            rosters => $q->get()
+        ]);
+    }
+
 }
