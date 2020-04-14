@@ -14,7 +14,6 @@ class CacheMiddleware {
       if (!isset($cacheControl)) {
         $cacheControl = 'max-age=' . 60 * 60 * 24 * 7 . ', public';
       }
-      Log::debug("Cache-Control: $cacheControl");
 
       $response = $next($request);
 
