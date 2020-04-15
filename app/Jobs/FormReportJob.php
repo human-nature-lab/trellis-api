@@ -229,7 +229,7 @@ class FormReportJob extends Job
             $baseKey = $question->id;
             $baseName = $question->var_name;
             if (isset($question->follow_up_question_id)) {
-                $q = DB::table('datum')->whereIn('question_datum_id', function ($q) use ($question) {
+                $q = Datum::whereIn('question_datum_id', function ($q) use ($question) {
                     $q->select('id')
                         ->from('question_datum')
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
