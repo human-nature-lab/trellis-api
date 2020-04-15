@@ -234,7 +234,8 @@ class FormReportJob extends Job
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
                 })->select('sort_order')
                 ->distinct();
-                $repetitions = $q->count();
+                // $repetitions = $q->count();
+                $repetitions = $repetitions->count();
                 $repetitions = $repetitions === 0 ? 1 : $repetitions;
                 for ($i = 0; $i < $repetitions; $i++) {
                     $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
@@ -454,7 +455,6 @@ class FormReportJob extends Job
                     if (count($question->other_choice_ids) > 0 && count($qd->fullData) > 0) {
                         $datum = $qd->fullData[0];
                         if (isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
-                            Log::info("Adding other $question->var_name");
                             $this->addOther($this->headers[$baseKey], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
