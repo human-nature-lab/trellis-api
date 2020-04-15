@@ -234,7 +234,7 @@ class FormReportJob extends Job
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
                 })->select('sort_order')
                 ->distinct();
-                // $repetitions = $q->count();
+                $repetitions = $q->get();
                 $repetitions = $repetitions->count();
                 $repetitions = $repetitions === 0 ? 1 : $repetitions;
                 for ($i = 0; $i < $repetitions; $i++) {
