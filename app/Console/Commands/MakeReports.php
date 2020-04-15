@@ -22,7 +22,7 @@ use Queue;
 use Ramsey\Uuid\Uuid;
 
 class MakeReports extends Command {
-    protected $signature = 'trellis:make:reports {--study=*} {--skip-main} {--skip-forms} {--locale=} {--form=}';
+    protected $signature = 'trellis:make:reports {--study=*} {--skip-main} {--skip-forms} {--locale=} {--form=*}';
     protected $description = 'Run each type of report once to get the latest data';
 
   public function handle () {
@@ -66,7 +66,7 @@ class MakeReports extends Command {
 
         if (!$this->option('skip-forms')) {
             if ($this->option('form')) {
-                $formIds = [$this->option('form')];
+                $formIds = $this->option('form');
             } else {
                 $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
                     $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
@@ -74,6 +74,7 @@ class MakeReports extends Command {
                     return $item->id;
                 });
             }
+            $this->info('Queuing forms: ' . join(',', $formIds));
 
             $config = new \stdClass();
             $config->studyId = $studyId;
