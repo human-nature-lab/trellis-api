@@ -132,9 +132,8 @@ class FormReportJob extends Job
                     }
                 }
             }
-            $question->other_choice_ids = $otherChoiceIds;
             if (count($otherChoiceIds) > 0) {
-                Log::info($otherChoiceIds);
+                $question->other_choice_ids = $otherChoiceIds;
             }
         }
 
