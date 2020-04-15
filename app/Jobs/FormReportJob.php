@@ -434,7 +434,7 @@ class FormReportJob extends Job
                     if (!is_null($qd->dk_rf)) {
                         $row[$idKey] = $this->mapDkRf($qd->dk_rf);
                         $row[$actionKey] = $this->mapDkRf($qd->dk_rf);
-                        $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                        $this->addOther($this->headers[$idKey], $survey->id, $qd->dk_rf, $qd->dk_rf_val);
                     } else {
                         $ids = [];
                         $actions = [];
