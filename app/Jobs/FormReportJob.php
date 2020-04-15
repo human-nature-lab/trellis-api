@@ -147,7 +147,7 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $q = DB::table('survey')->where('form_id', '=', $this->formId)
+        $q = Survey::where('form_id', '=', $this->formId)
             ->leftJoin('respondent_geo as rg', function ($join) {
                 $join->on('rg.respondent_id', '=', 'survey.respondent_id');
                 $join->on('rg.is_current', '=', DB::raw('1'));
