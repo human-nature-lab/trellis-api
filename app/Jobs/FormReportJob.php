@@ -164,6 +164,8 @@ class FormReportJob extends Job
                 'tt.translated_text as current_location_name'
             );
 
+
+        // TODO: Optimization - Parallize this by using parallel constructs https://www.php.net/manual/en/book.parallel.php
         $batchSize = 400;
         $batch = new Collection;
         foreach ($q->cursor() as $survey) {
@@ -283,6 +285,7 @@ class FormReportJob extends Job
             ->with('fullData')
             ->get();
 
+        // TODO: Optimization - Look for faster ways to group data by survey_id
         $surveyDataMap = $batchData->reduce(function ($agg, $qd) {
             if (!isset($agg[$qd->survey_id])) {
                 $agg[$qd->survey_id] = new Collection();
@@ -347,6 +350,7 @@ class FormReportJob extends Job
         }
 
         // Filter out questionDatum that are from deleted datum
+        // TODO: Optimization - Can we filter these out in the query?
         $questionDatum = $questionDatum->filter(function ($qd) use ($questionsMap, $datumMap) {
             if (!isset($questionsMap[$qd->question_id])) {
               return false;
@@ -363,14 +367,13 @@ class FormReportJob extends Job
         }
 
         $datumSortStart = microtime(true);
+        // TODO: Optimization - Can we sort this as part of the query?
+        // TODO: Optimization - Can we just remove this sort? Seems like this data is already sorted in this order
         // Sort question datum
         foreach ($questionDatum as $qd) {
             $qd->fullData = $qd->fullData->sortBy('repeat_index');
         }
         $datumSortTime = microtime(true) - $datumSortStart;
-//        Log::debug("Datum sort time $datumSortTime");
-
-        // TODO: Make complete form test to use for exporting. Repeated sections with each question type
 
         $qdSortStart = microtime(true);
         // Make sure the $questionDatum are all ordered the same way
@@ -451,7 +454,7 @@ class FormReportJob extends Job
                         break;
                     }
                 case 'multiple_choice':
-                    if (isset($question->other_choice_ids) && count($question->other_choice_ids) > 0 && count($qd->fullData) > 0) {
+                    if (isset($question->other_choice_ids) && isset($qd->fullData) && isset($qd->fullData[0])) {
                         $datum = $qd->fullData[0];
                         if (isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
                             $this->addOther($this->headers[$baseKey], $survey->id, $survey->respondent_id, $datum->val);
