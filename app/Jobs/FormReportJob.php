@@ -451,7 +451,7 @@ class FormReportJob extends Job
                         break;
                     }
                 case 'multiple_choice':
-                    if (count($question->other_choice_ids) > 0 && count($qd->fullData) > 0) {
+                    if (isset($question->other_choice_ids) && count($question->other_choice_ids) > 0 && count($qd->fullData) > 0) {
                         $datum = $qd->fullData[0];
                         if (isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
                             $this->addOther($this->headers[$baseKey], $survey->id, $survey->respondent_id, $datum->val);
