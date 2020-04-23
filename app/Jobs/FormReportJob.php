@@ -152,7 +152,7 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
-        $q = DB::table('survey')->where('form_id', '=', $this->formId)
+        $q = Survey::where('form_id', '=', $this->formId)
             ->leftJoin('respondent_geo as rg', function ($join) {
                 $join->on('rg.respondent_id', '=', 'survey.respondent_id');
                 $join->on('rg.is_current', '=', DB::raw('1'));
@@ -238,14 +238,14 @@ class FormReportJob extends Job
             $baseKey = $question->id;
             $baseName = $question->var_name;
             if (isset($question->follow_up_question_id)) {
-                $q = DB::table('datum')->whereIn('question_datum_id', function ($q) use ($question) {
+                $q = Datum::whereIn('question_datum_id', function ($q) use ($question) {
                     $q->select('id')
                         ->from('question_datum')
                         ->where('question_datum.question_id', '=', $question->follow_up_question_id);
                 })->select('sort_order')
                 ->distinct();
-                $repetitions = $q->count();
-//                $repetitions = $repetitions->count();
+                $repetitions = $q->get();
+                $repetitions = $repetitions->count();
                 $repetitions = $repetitions === 0 ? 1 : $repetitions;
                 for ($i = 0; $i < $repetitions; $i++) {
                     $assignQuestionHeaders($baseKey . '_r' . $i, $baseName . '_r' . ReportService::zeroPad($i), $question);
@@ -425,7 +425,6 @@ class FormReportJob extends Job
 
                         // This seems like the safest way to check if it's an other response
                         if (isset($question->other_choice_ids) && isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
-                            Log::info("Adding other $question->var_name");
                             $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
