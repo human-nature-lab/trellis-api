@@ -428,12 +428,10 @@ class FormReportJob extends Job
                             $this->addOther($this->headers[$key], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
-
                     if (!is_null($qd->dk_rf)) {
                         $row[$baseKey] = $this->mapDkRf($qd->dk_rf);
                         $this->addNote($this->headers[$baseKey], $survey, $this->mapDkRf($qd->dk_rf), $qd->dk_rf_val);
                     }
-
                     break;
                 case 'respondent_geo':
                     $idKey = $baseKey . '_ids';
@@ -516,6 +514,29 @@ class FormReportJob extends Job
                         foreach ($question->questionTranslation->translationText as $tt) {
                             $lang = $tt->locale->language_name;
                             $this->metaRows[$this->headers[$key]]["question_$lang"] = $tt->translated_text;
+                        }
+                    }
+                }
+                break;
+            case 'multiple_choice':
+                foreach ($keys as $bKey) {
+                    foreach ($question->choices as $choice) {
+                        $key = $bKey . '_' . $choice->id;
+                        $header = $this->headers[$bKey];
+                        $this->metaRows[$key] = [
+                            'header' => $header,
+                            'question_type' => $question->questionType->name,
+                            'variable_name' => $question->var_name,
+                            'option_code' => $choice->val,
+                            'option_id' => $choice->id
+                        ];
+                        foreach ($choice->choiceTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$key]["option_$lang"] = $tt->translated_text;
+                        }
+                        foreach ($question->questionTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$key]["question_$lang"] = $tt->translated_text;
                         }
                     }
                 }

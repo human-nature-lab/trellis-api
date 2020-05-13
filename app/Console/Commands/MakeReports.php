@@ -63,8 +63,9 @@ class MakeReports extends Command {
           $config = new \stdClass();
           $config->localeId = $localeId;
           $reportJob = new $constructor($studyId, $reportId, $config);
-          $reportJob->handle();
           $this->info("Queued $constructor");
+          $reportJob->handle();
+          $this->info("Finished $constructor");
         }
       }
 
@@ -88,8 +89,9 @@ class MakeReports extends Command {
         foreach ($formIds as $formId){
           $reportJob = new FormReportJob($studyId, $formId, $config);
           array_push($remainingJobIds, $reportJob->report->id);
-          $reportJob->handle();
           $this->info("Queued FormReportJob for form, $formId");
+          $reportJob->handle();
+          $this->info("Finished FormReportJob for form, $formId");
         }
       }
 
