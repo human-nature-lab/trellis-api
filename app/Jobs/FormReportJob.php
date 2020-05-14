@@ -509,6 +509,29 @@ class FormReportJob extends Job
                     }
                 }
                 break;
+            case 'multiple_choice':
+                foreach ($keys as $bKey) {
+                    foreach ($question->choices as $choice) {
+                        $key = $bKey . '_' . $choice->id;
+                        $header = $this->headers[$bKey];
+                        $this->metaRows[$key] = [
+                            'header' => $header,
+                            'question_type' => $question->questionType->name,
+                            'variable_name' => $question->var_name,
+                            'option_code' => $choice->val,
+                            'option_id' => $choice->id
+                        ];
+                        foreach ($choice->choiceTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$key]["option_$lang"] = $tt->translated_text;
+                        }
+                        foreach ($question->questionTranslation->translationText as $tt) {
+                            $lang = $tt->locale->language_name;
+                            $this->metaRows[$key]["question_$lang"] = $tt->translated_text;
+                        }
+                    }
+                }
+                break;
             case 'respondent_geo':
                 $keys = [$baseKey . '_ids', $baseKey . '_actions'];
             default:
