@@ -74,7 +74,7 @@ class MakeReports extends Command {
                     return $item->id;
                 });
             }
-            $this->info('Queuing forms: ' . join(',', $formIds));
+            $this->info('Queuing forms: ' . implode(',', $formIds->toArray()));
 
             $config = new \stdClass();
             $config->studyId = $studyId;
