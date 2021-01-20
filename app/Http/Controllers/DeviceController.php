@@ -131,8 +131,15 @@ class DeviceController extends Controller
             $model->device_id = $device['device_id'];
         }
 
+        $deviceKey = RandomToken();
+        if (!isset($deviceKey)) {
+          return response()->json([
+            'message' => 'Unable to create device key. Ensure random_bytes works on this server.'
+          ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
         $model->name = $device['name'];
-        $model->key = RandomToken();
+        $model->key = $deviceKey;
         $model->added_by_user_id = $userModel->id;
         $model->deleted_at = null;
         $model->save();
