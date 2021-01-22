@@ -42,6 +42,7 @@ class Kernel extends ConsoleKernel
     Commands\DownloadApp::class,
     Commands\CheckDiskSpace::class,
     Commands\CleanReports::class,
+    Commands\RunReport::class,
 
     // overrides:   //TODO take this out if switched to Laravel
     Commands\MakeModel::class,
@@ -65,8 +66,11 @@ class Kernel extends ConsoleKernel
   protected function schedule (Schedule $schedule) {
     if (env('CHECK_DISK_SPACE', 1)) {
       $checkDiskTime = env('CHECK_DISK_SPACE_TIME', '08:00');
-      $emailString = env('DISK_LOW_EMAILS', 'wyatt.israel@yale.edu,mark.mcknight@yale.edu');
+      $emailString = env('DISK_LOW_EMAILS', "");
       $emails = explode(',', $emailString);
+      if (count($emails) === 0) {
+        return;
+      }
       $cmd = 'trellis:check:disk-space';
       foreach ($emails as $email) {
         $cmd .= ' --email=' . $email;
