@@ -6,7 +6,7 @@ use App\Library\CsvFileWriter;
 use App\Library\Memoization;
 use App\Models\Study;
 use App\Services\ReportService;
-use Log;
+use Illuminate\Support\Facades\Log;
 use App\Models\Report;
 use App\Models\Geo;
 use Ramsey\Uuid\Uuid;

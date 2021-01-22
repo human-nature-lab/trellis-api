@@ -8,7 +8,6 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use App\Models\TranslationText;
-use Log;
 
 class TranslationTextController extends Controller
 {

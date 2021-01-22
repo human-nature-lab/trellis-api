@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\EmailConfirmation;
 use Illuminate\Support\Facades\Mail;
-use Log;
-use Ramsey\Uuid\Uuid;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 use Validator;
 

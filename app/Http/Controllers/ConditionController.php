@@ -9,7 +9,6 @@ use App\Models\RespondentConditionTag;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Log;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;

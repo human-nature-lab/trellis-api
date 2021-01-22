@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 use Validator;
 use App\Models\Geo;

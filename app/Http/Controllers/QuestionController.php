@@ -19,7 +19,6 @@ use App\Http\Controllers\Controller;
 use Ramsey\Uuid\Uuid;
 use Validator;
 use DB;
-use Log;
 
 class QuestionController extends Controller
 {

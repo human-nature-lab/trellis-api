@@ -11,7 +11,7 @@ use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Throwable;
 use Validator;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 class ConditionTagController extends Controller {
 

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Throwable;
 use DB;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Validator;
 
 
