@@ -3,13 +3,10 @@
 namespace App\Jobs;
 
 
-use App\Library\CsvFileWriter;
 use App\Library\QueryHelper;
 use App\Library\ShellHelper;
-use App\Models\Action;
 use App\Services\ReportService;
-use Illuminate\Support\Facades\Schema;
-use Log;
+use Illuminate\Support\Facades\Log;
 use App\Models\Report;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Process\Process;

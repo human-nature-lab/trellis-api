@@ -6,8 +6,6 @@ use App\Services\PermissionService;
 use Closure;
 use Illuminate\Http\Response;
 use Laravel\Lumen\Http\Request;
-use Log;
-
 
 class PermissionMiddleware {
 

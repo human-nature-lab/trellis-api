@@ -7,8 +7,7 @@ use App\Models\ConditionTag;
 use App\Models\Respondent;
 use App\Models\RespondentConditionTag;
 use App\Services\ReportService;
-use Log;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Report;
 use Ramsey\Uuid\Uuid;
 

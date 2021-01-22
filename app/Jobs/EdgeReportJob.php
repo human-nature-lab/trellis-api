@@ -3,10 +3,8 @@
 namespace App\Jobs;
 
 use App\Library\CsvFileWriter;
-use App\Models\Edge;
-use App\Models\QuestionDatum;
 use App\Services\ReportService;
-use Log;
+use Illuminate\Support\Facades\Log;
 use App\Models\Report;
 use Illuminate\Support\Facades\DB;
 use Ramsey\Uuid\Uuid;

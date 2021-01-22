@@ -6,9 +6,8 @@ namespace App\Jobs;
 use App\Library\CsvFileWriter;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\DB;
-use Log;
+use Illuminate\Support\Facades\Log;
 use App\Models\Report;
-use App\Models\Interview;
 use App\Models\Study;
 use Ramsey\Uuid\Uuid;
 

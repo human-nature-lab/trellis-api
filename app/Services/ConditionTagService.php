@@ -8,7 +8,6 @@ use App\Models\RespondentConditionTag;
 use App\Services\RespondentService;
 use Ramsey\Uuid\Uuid;
 use DB;
-use Log;
 use \Exception;
 
 class ConditionTagService {

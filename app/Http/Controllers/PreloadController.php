@@ -3,7 +3,7 @@
 use App\Models\Preload;
 use App\Models\Survey;
 use Illuminate\Http\Response;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Validator;
 
 class PreloadController extends Controller {

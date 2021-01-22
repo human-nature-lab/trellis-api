@@ -9,7 +9,7 @@ use App\Models\QuestionType;
 use App\Models\User;
 use App\Services\ReportService;
 use Illuminate\Support\Facades\DB;
-use Log;
+use Illuminate\Support\Facades\Log;
 use App\Models\Report;
 use App\Models\Study;
 use Ramsey\Uuid\Uuid;

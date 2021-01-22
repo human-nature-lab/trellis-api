@@ -8,7 +8,6 @@ use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Validator;
-use Log;
 
 class ConfigController extends Controller {
 

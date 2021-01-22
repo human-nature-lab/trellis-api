@@ -15,7 +15,6 @@ use App\Models\Choice;
 use App\Models\Translation;
 use App\Models\TranslationText;
 use DB;
-use Log;
 
 class QuestionChoiceController extends Controller
 {

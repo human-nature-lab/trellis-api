@@ -3,9 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Http\Response;
 use Illuminate\Http\Request;
-use Log;
 
 class CacheMiddleware {
 

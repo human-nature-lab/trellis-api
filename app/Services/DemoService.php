@@ -14,7 +14,6 @@ use App\Services\RespondentService;
 use App\Services\GeoService;
 use App\Services\FormService;
 use App\Services\ConditionTagService;
-use Log;
 use Ramsey\Uuid\Uuid;
 
 class DemoService {
