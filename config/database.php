@@ -66,6 +66,20 @@ return [
             'version'   => '5.7.2', // required to prevent: 1235 This version of MySQL doesn't yet support 'multiple triggers with the same action time and event for one table'
         ],
 
+        'reports' => [
+          'driver'    => 'mysql',
+            'host'      => env('REPORTS_HOST', env('DB_HOST', 'localhost')),
+            'port'      => env('REPORTS_PORT', env('DB_PORT', '3306')),
+            'database'  => env('REPORTS_DATABASE', env('DB_DATABASE', 'homestead')),
+            'username'  => env('REPORTS_USERNAME', env('DB_USERNAME', 'homestead')),
+            'password'  => env('REPORTS_PASSWORD', env('DB_PASSWORD')),
+            'charset'   => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix'    => '',
+            'strict'    => false,
+            'version'   => '5.7.2', // required to prevent: 1235 This version of MySQL doesn't yet support 'multiple triggers with the same action time and event for one table'
+        ],
+
         'mysql_simulated' => [
             'driver'    => 'mysql',
             'host'      => env('DB_HOST', 'localhost'),
