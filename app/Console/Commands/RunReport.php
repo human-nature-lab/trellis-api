@@ -23,27 +23,31 @@ class RunReport extends Command {
       }
       $names = $this->option('name');
       $configs = $this->option('config');
+      $runners = [];
       if (isset($names)) {
         foreach ($studies as $studyId) {
           foreach ($names as $i => $name) {
             $this->info("Running $name report for study $studyId.");
-            $config = $configs[$i];
-            if (isset($config) && $config !== '') {    
-              $config = json_decode($config);
+            if (isset($configs[$i]) && $configs[$i] !== '') {    
+              $config = json_decode($configs[$i]);
               $this->info(print_r($config, true));
             } else {
               $config = [];
             }
-            $isDry = $this->option('dry');
             $report = ReportRunner::getReportInstance($name);
+            $config = array_merge([ 'studyId' => $studyId ], (array)$config);
             if (isset($report)) {
-              $runner = new ReportRunner($report, $studyId);
-              $runner->handle((array)$config, $isDry);
+              $runner = new ReportRunner($report, $studyId, $config);
+              array_push($runners, $runner);
             }
           }
         }
       } else {
         $this->error('Must supply names of reports to run');
+      }
+      foreach ($runners as $runner) {
+        $isDry = $this->option('dry');
+        $runner->handle($isDry);
       }
     }
     

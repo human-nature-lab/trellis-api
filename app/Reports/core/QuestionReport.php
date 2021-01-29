@@ -5,11 +5,10 @@ namespace App\Reports;
 use App\Models\Question;
 use App\Models\QuestionDatum;
 use App\Models\FormSection;
-use Log;
 
-class QuestionReport extends Base {
+class QuestionReport extends BaseReport {
 
-  public $name = "question";
+  public $name = 'question';
   public $configSchema = [
     'questionId' => 'string'
   ];
