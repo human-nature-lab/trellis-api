@@ -2,7 +2,7 @@
 
 namespace App\Reports;
 
-class StudyUsersReport extends Base {
+class StudyUsersReport extends BaseReport {
 
   public $name = "study_users";
 

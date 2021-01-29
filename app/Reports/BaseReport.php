@@ -6,16 +6,16 @@ use App\Library\CsvFileWriter;
 use App\Models\Report;
 use App\Models\ReportFile;
 use Ramsey\Uuid\Uuid;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
-class Base {
+class BaseReport {
   
   public $files = [];
   public $defaultConfigSchema = [
-    'studyId' => 'string'
+    'studyId' => 'string|exists:study,id'
   ];
   public $configSchema = [];
+  public $config = [];
   
   public function DB () {
     return DB::connection('reports');
@@ -30,13 +30,16 @@ class Base {
     return $this->DB()->getSchemaBuilder()->getColumnListing($table);
   }
 
-  public function streamTable (string $table, string $type = 'data', int $chunkSize = 400) {
+  public function streamTable (string $table, string $name = '', string $type = 'data', int $chunkSize = 400) {
+    if ($name === '') {
+      $name = $table;
+    }
     $columns = $this->tableColumns($table);
-    $this->streamQuery($this->DB()->table($table)->orderBy('id'), $columns, $type, $chunkSize);
+    $this->streamQuery($this->DB()->table($table)->orderBy('id'), $columns, $name, $type, $chunkSize);
   }
   
-  public function mapQuery ($cb, $query, array $headers, string $type = 'data', int $chunkSize = 400) {
-    $file = $this->createFile($type);
+  public function mapQuery ($cb, $query, array $headers, string $name = 'name', string $type = 'data', int $chunkSize = 400) {
+    $file = $this->createFile($name, $type);
     $file->setHeaders($headers);
     $file->writeHeader();
     $query->chunk($chunkSize, function ($records) use ($file, $cb) {
@@ -46,20 +49,23 @@ class Base {
     });
   }
 
-  public function streamQuery ($query, array $headers, string $type = 'data', int $chunkSize = 400) {
+  public function streamQuery ($query, array $headers, string $name = '', string $type = 'data', int $chunkSize = 400) {
     $this->mapQuery(function ($record) {
       return $record;
-    }, $query, $headers, $type, $chunkSize);
+    }, $query, $headers, $name, $type, $chunkSize);
   }
 
-  public function createFile (string $type = 'data'): CsvFileWriter {
-    $name = Uuid::uuid4() . '.csv';
-    $tempPath = storage_path('temp/' . $name);
-    $finalPath = storage_path('app/' . $name);
+  public function createFile (string $name = '', string $type = 'data'): CsvFileWriter {
+    $fileName = Uuid::uuid4() . '.csv';
+    if ($name !== '') {
+      $fileName = $name . '_' . $fileName;
+    }
+    $tempPath = storage_path('temp/' . $fileName);
+    $finalPath = storage_path('app/' . $fileName);
     $file = new CsvFileWriter($tempPath);
     $file->open();
     array_push($this->files, (object)[
-      'name' => $name,
+      'name' => $fileName,
       'temp' => $tempPath,
       'path' => $finalPath,
       'type' => $type,
@@ -87,9 +93,10 @@ class Base {
     DB::transaction(function () {
       $report = new Report();
       $report->id = Uuid::uuid4();
-      $report->type = $this->name;
+      $report->name = $this->name;
       $report->status = 'complete';
-      $report->study_id = $this->studyId;
+      $report->study_id = $this->config['studyId'];
+      $report->config = json_encode($this->config);
       $reportFiles = [];
       foreach ($this->files as $file) {
         $reportFile = new ReportFile();
@@ -104,7 +111,7 @@ class Base {
       $report->save();
       $report->files()->saveMany($reportFiles);
     });
-    // TODO: Should I do some cleanup on failure?
+    // TODO: Should we do some cleanup on failure?
   }
 
 }

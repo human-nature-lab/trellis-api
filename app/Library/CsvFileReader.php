@@ -3,7 +3,7 @@
 namespace App\Library;
 
 use Error;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 class CsvFileReader {
 
