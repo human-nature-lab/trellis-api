@@ -29,7 +29,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->put('study/{study_id}/form/{form_id}',                             ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateStudyForm']);
   $router->put('form/{id}',                                                   ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateForm']);
   $router->put('form/{form_master_id}/publish',                               ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@publishForm']);
-  $router->patch('form/reorder',                                              ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@reorderForms']);
+  $router->patch('study/{studyId}/forms/reorder',                              ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@reorderForms']);
   $router->get('study/{studyId}/form/{formId}/master/{formMasterId}/edit',    ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@editFormPrep']);
   $router->post('study/{studyId}/form/assign',                                ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@assignForm']);
   $router->post('study/form/{formId}/section/import',                         ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@importSection']);
