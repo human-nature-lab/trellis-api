@@ -43,6 +43,7 @@ class Kernel extends ConsoleKernel
     Commands\CheckDiskSpace::class,
     Commands\CleanReports::class,
     Commands\RunReport::class,
+    Commands\ShowReports::class,
 
     // overrides:   //TODO take this out if switched to Laravel
     Commands\MakeModel::class,

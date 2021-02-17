@@ -39,7 +39,7 @@ class BaseReport {
   }
   
   public function mapQuery ($cb, $query, array $headers, string $name = 'name', string $type = 'data', int $chunkSize = 400) {
-    $file = $this->createFile($name, $type);
+    $file = $this->createCsvFile($name, $type);
     $file->setHeaders($headers);
     $file->writeHeader();
     $query->chunk($chunkSize, function ($records) use ($file, $cb) {
@@ -55,23 +55,28 @@ class BaseReport {
     }, $query, $headers, $name, $type, $chunkSize);
   }
 
-  public function createFile (string $name = '', string $type = 'data'): CsvFileWriter {
+  public function createCsvFile (string $name = '', string $type = 'data'): CsvFileWriter {
     $fileName = Uuid::uuid4() . '.csv';
     if ($name !== '') {
       $fileName = $name . '_' . $fileName;
     }
+    $descriptor = $this->createFileDescriptor($fileName, $type, 'csv');
+    $descriptor->file = new CsvFileWriter($descriptor->temp);
+    $descriptor->file->open();
+    array_push($this->files, $descriptor);
+    return $descriptor->file;
+  }
+
+  public function createFileDescriptor (string $fileName, string $dataType, string $fileType) {
     $tempPath = storage_path('temp/' . $fileName);
     $finalPath = storage_path('app/' . $fileName);
-    $file = new CsvFileWriter($tempPath);
-    $file->open();
-    array_push($this->files, (object)[
+    return (object)[
       'name' => $fileName,
       'temp' => $tempPath,
       'path' => $finalPath,
-      'type' => $type,
-      'file' => $file
-    ]);
-    return $file;
+      'data_type' => $dataType,
+      'file_type' => $fileType,
+    ];
   }
 
   public function close () {
@@ -99,13 +104,19 @@ class BaseReport {
       $report->config = json_encode($this->config);
       $reportFiles = [];
       foreach ($this->files as $file) {
+        $size = filesize($file->temp);
         $reportFile = new ReportFile();
-        $reportFile->id = Uuid::uuid4();
-        $reportFile->report_id = $report->id;
-        $reportFile->file_name = $file->name;
+        $reportFile->fill([
+          'id' => Uuid::uuid4(),
+          'report_id' => $report->id,
+          'file_name' => $file->name,
+          'data_type' => $file->data_type,
+          'file_type' => $file->file_type,
+          'size' => $size,
+        ]);
         $reportFiles[] = $reportFile;
         if (!rename($file->temp, $file->path)){
-          throw new Error("Unable to rename file from $file->temp to $file->path");
+          throw new Exception("Unable to rename file from $file->temp to $file->path");
         }
       }
       $report->save();

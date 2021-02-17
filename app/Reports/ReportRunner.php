@@ -41,15 +41,16 @@ class ReportRunner {
   static function allReports() {
     $reportMap = ReportRunner::reportMap();
     $reports = [];
+    $base = dirname(__file__);
     foreach ($reportMap as $class => $filename) {
       $inst = new $class;
+      $filename = str_replace($base, "Reports", $filename);
       array_push($reports, [
         'name' => $inst->name,
         'configSchema' => self::mergeSchema($inst),
         'filename' => $filename
       ]);
     }
-    Log::info(print_r($reports, true));
     return $reports;
   }
 

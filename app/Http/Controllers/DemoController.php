@@ -13,11 +13,11 @@ use App\Mail\EmailConfirmation;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Validator;
+use Illuminate\Support\Facades\Validator;
 
 class DemoController extends Controller {
 
-  public function confirmEmail (DemoService $demoService, Request $request, $key) {
+  public function confirmEmail (DemoService $demoService, $key) {
 
     $key = urldecode($key);
 
@@ -85,6 +85,8 @@ class DemoController extends Controller {
    * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response
    */
   public function createUserConfirmation (Request $request) {
+    
+    Log::info($request->all());
 
     $validator = Validator::make($request->all(), [
       'email' => 'required|string|email',
@@ -106,9 +108,8 @@ class DemoController extends Controller {
       ], Response::HTTP_BAD_REQUEST);
     }
 
-    // Check if the username has already been assigned
-    $completedUsernameConfirmation = UserConfirmation::where('is_confirmed', 1)->where('username', $request->get('username'))->first();
-    if (isset($completedUsernameConfirmation)) {
+    // Check if the username has already been assigned. We don't need to check the user table because that happens during initial validation
+    if (UserConfirmation::where('is_confirmed', 1)->where('username', $request->get('username'))->exists()) {
       return response()->json([
         'msg' => 'This username has already been taken'
       ], Response::HTTP_BAD_REQUEST);
@@ -141,7 +142,7 @@ class DemoController extends Controller {
   }
 
   /**
-   * Generates a previous for the email confirmation
+   * Generates a preview for the email confirmation
    */
   public function previewConfirmation ($name) {
     $name = urldecode($name);

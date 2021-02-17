@@ -17,12 +17,14 @@ class ReportFile extends Model
     public $incrementing = false;
     protected $fillable = [
         'id',
+        'data_type',
         'file_type',
         'report_id',
         'file_name',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
+        'size'
     ];
 
     protected $table = 'report_file';

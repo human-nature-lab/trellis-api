@@ -199,10 +199,18 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->delete('config',                                    ['middleware' => 'requires:EDIT_CONFIG',                 'uses' => 'ConfigController@reset']);
 
   //* Reporting Controller Routes *//
+  $router->get('reports/available',                            ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportController@getAvailableReports']);
   $router->get('study/{study_id}/reports/latest',              ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportController@getLatestStudyReports']);
   $router->post('study/{study_id}/reports/dispatch',           ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportController@dispatchReports']);
   $router->get('study/{study_id}/reports/download',            ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportController@downloadReports']);
   $router->get('study/{study_id}/reports/{r_ids}',             ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportController@getReports']);
+  
+  $router->get('reportsv2/available',                          ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportControllerV2@getAvailableReports']);
+  $router->get('study/{study_id}/reportsv2/{name}/completed',  ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportControllerV2@getCompletedReportsPage']);
+  $router->get('study/{study_id}/reportv2/{report_id}',        ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportControllerV2@get']);
+  $router->get('study/{study_id}/reportsv2/latest',            ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportControllerV2@getLatestReports']);
+  $router->post('study/{study_id}/reportsv2/{name}/dispatch',  ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportControllerV2@runReportJob']);
+  $router->get('study/{study_id}/reportsv2/download',         ['middleware' => 'requires:VIEW_REPORTS',                'uses' => 'ReportControllerV2@downloadReports']);
 
   //* Sync Admin *//
   $router->get('list-uploads',                                ['middleware' => 'requires:VIEW_SYNC',                    'uses' => 'SyncControllerV2@listUploads']);
@@ -210,28 +218,5 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('generate-snapshot',                          ['middleware' => 'requires:ADD_SNAPSHOT',                 'uses' => 'SyncControllerV2@generateSnapshot']);
   $router->post('process-uploads',                            ['middleware' => 'requires:PROCESS_UPLOADS',              'uses' => 'SyncControllerV2@processUploads']);
   $router->get('upload-log/{upload_id}',                      [                                                         'uses' => 'UploadLogController@getUploadLogs']);
-
-  //* Group Tag Type Controller Routes *//
-// NOT USED   $router->delete('group_tag_type/{id}',                          'GroupTagTypeController@removeGroupTagType');
-// NOT USED   $router->get('group_tag_type',                                  'GroupTagTypeController@getAllGroupTagTypes');
-// NOT USED   $router->put('group_tag_type',                                  'GroupTagTypeController@createGroupTagType');
-
-  //* Interview Controller Routes *//
-//  NOT USED      $router->get('study/{id}/interview',                            'InterviewController@getInterviewPage');
-//  NOT USED      $router->get('study/{id}/interview/count',                      'InterviewController@getInterviewCount');
-
-
-  // NOT USED   $router->get('report/completed',                             ['middleware' => 'requires:', 'uses' => 'ReportController@getAllSavedReports']);
-// NOT USED   $router->get('report/download/{file_name}',                  ['middleware' => 'requires:', 'uses' => 'ReportController@downloadFile']);
-// NOT USED   $router->get('report/{report_id}',                           ['middleware' => 'requires:', 'uses' => 'ReportController@getReport']);
-// NOT USED   $router->get('report/{report_id}/status',                    ['middleware' => 'requires:', 'uses' => 'ReportController@getReportStatus']);
-// NOT USED   $router->post('report/images',                               ['middleware' => 'requires:', 'uses' => 'PhotoController@getZipPhotos']);
-// NOT USED   $router->post('report/clean',                                ['middleware' => 'requires:', 'uses' => 'ReportController@cleanReports']);
-// NOT USED    $router->post('report/form/{form_id}',                       ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchFormReport']);
-// NOT USED    $router->post('report/study/{study_id}/respondents',         ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchRespondentReport']);
-// NOT USED    $router->post('report/study/{study_id}/edges',               ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchEdgesReport']);
-// NOT USED    $router->post('report/study/{study_id}/geo',                 ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchGeoReport']);
-// NOT USED    $router->post('report/study/{study_id}/interview',           ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchInterviewReport']);
-// NOT USED    $router->post('report/study/{study_id}/actions',             ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchActionsReport']);
 
 });

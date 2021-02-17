@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Reports;
+namespace App\Reports\core;
 
+use App\Reports\BaseReport;
 use App\Models\Question;
 use App\Models\QuestionDatum;
 use App\Models\FormSection;

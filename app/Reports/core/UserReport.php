@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Reports;
+namespace App\Reports\core;
+
+use App\Reports\BaseReport;
 
 class UserReport extends BaseReport {
 

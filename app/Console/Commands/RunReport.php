@@ -8,7 +8,7 @@ use DB;
 
 class RunReport extends Command {
 
-    protected $signature = 'trellis:run:report 
+    protected $signature = 'trellis:report:run
                               { --name=* : The name of the report to run }
                               { --config=* : JSON config to pass to this report }
                               { --study=* : A study id to run these reports on }
