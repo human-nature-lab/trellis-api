@@ -32,14 +32,19 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single'],
+            'channels' => ['single', 'stdout'],
         ],
 
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/lumen.log'),
-//            'path' => 'php://stdout',
             'level' => 'debug',
+        ],
+
+        'stdout' => [
+          'driver' => 'single',
+          'path' => 'php://stdout',
+          'level' => 'debug',
         ],
 
         'daily' => [

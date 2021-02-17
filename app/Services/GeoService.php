@@ -12,6 +12,7 @@ use Ramsey\Uuid\Uuid;
 use Exception;
 use Throwable;
 use ZipArchive;
+use Illuminate\Support\Facades\Log;
 
 class GeoService {
 

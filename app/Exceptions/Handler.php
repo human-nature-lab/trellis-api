@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class Handler extends ExceptionHandler
 {
@@ -18,10 +19,10 @@ class Handler extends ExceptionHandler
      * @var array
      */
     protected $dontReport = [
-        AuthorizationException::class,
-        HttpException::class,
-        ModelNotFoundException::class,
-        ValidationException::class,
+        // AuthorizationException::class,
+        // HttpException::class,
+        // ModelNotFoundException::class,
+        // ValidationException::class,
     ];
 
     /**
@@ -34,6 +35,7 @@ class Handler extends ExceptionHandler
      */
     public function report(Exception $e)
     {
+        Log::error($e);
         parent::report($e);
     }
 
