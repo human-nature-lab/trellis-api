@@ -519,8 +519,10 @@ class GeoController extends Controller
       $newGeoModel->save();
     });
 
+    $returnGeo = Geo::with('parent', 'nameTranslation', 'geoType')->find($geoId);
+
     return response()->json([
-      'geo' => $newGeoModel
+      'geo' => $returnGeo
     ], Response::HTTP_OK);
   }
 
