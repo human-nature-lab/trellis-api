@@ -56,8 +56,10 @@ class FormService
         $studyForm->study_id = $studyId;
         $studyForm->form_master_id = $formId;
 
+        $formTypeId = 1 * $formType;
         $maxSortOrder = DB::table('study_form')
             ->where('study_id', '=', $studyId)
+            ->where('form_type_id', '=', $formTypeId)
             ->whereNull('deleted_at')
             ->max('sort_order');
 
@@ -67,7 +69,7 @@ class FormService
 
         $studyForm->sort_order = $maxSortOrder + 1;
 
-        $studyForm->form_type_id = 1*$formType;
+        $studyForm->form_type_id = $formTypeId;
 
         $studyForm->save();
         return $studyForm;
