@@ -12,5 +12,4 @@ insert ignore into role_permission (`role_id`, `permission_id`, `value`) values
 ('surveyor', 'VIEW_RESPONDENTS', 1),
 ('surveyor', 'ADD_RESPONDENT_PHOTO', 1),
 ('surveyor', 'EDIT_RESPONDENT_PHOTO', 1),
-('surveyor', 'CAN_DOWNLOAD', 1),
-('surveyor', 'VIEW_CONFIG', 1);
+('surveyor', 'CAN_DOWNLOAD', 1);
