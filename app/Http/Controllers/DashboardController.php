@@ -1,10 +1,12 @@
 <?php namespace App\Http\Controllers;
 
 use Carbon\Carbon;
-use DB;
 use Illuminate\Http\Response;
 use Illuminate\Http\Request;
-use Validator;
+use App\Models\Form;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class DashboardController extends Controller {
 
@@ -99,7 +101,8 @@ class DashboardController extends Controller {
     ]), [
       'study' => 'required|string|exists:study,id',
       'min' => 'required|string',
-      'max' => 'string'
+      'max' => 'string',
+      
     ])->validate();
 
     $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
@@ -116,10 +119,10 @@ class DashboardController extends Controller {
       groupBy(DB::raw('date(created_at)'))->
       get();
 
-      return [
-        'labels' => $surveys->map(function ($u) { return $u->date; }),
-        'data' => $surveys->map(function ($u) { return $u->n; }),
-      ];
+    return [
+      'labels' => $surveys->map(function ($u) { return $u->date; }),
+      'data' => $surveys->map(function ($u) { return $u->n; }),
+    ];
   }
 
   function getRespondents (Request $req, string $studyId) {
@@ -211,6 +214,65 @@ class DashboardController extends Controller {
       'labels' => $users->map(function ($u) { return $u->date; }),
       'data' => $users->map(function ($u) { return $u->n; }),
     ];
+  }
+
+  function getForms (Request $req, string $studyId) {
+    Validator::make(array_merge($req->all(), [
+      'study' => $studyId,
+    ]), [
+      'study' => 'required|string|exists:study,id',
+      'forms' => 'string',
+      'min' => 'required|string',
+      'max' => 'string'
+    ])->validate();
+
+    $forms = [];
+
+    if ($req->has('forms')) {
+      $formIds = explode(",", $req->get('forms'));
+      $forms = Form::whereIn('id', $formIds)->with('nameTranslation')->get();
+    } else {
+      $forms = Form::where('is_published', 1)->with('nameTranslation')->get();
+    }
+
+    $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
+    $min = $req->get('min');
+    $max = $max->format('Y-m-d');
+
+    $res = [];
+
+    $surveys = DB::table('survey')->
+      selectRaw('form_id, date(created_at) date, count(*) n')->
+      where('created_at', '>=', $min)->
+      where('created_at', '<=', $max)->
+      where('study_id', $studyId)->
+      whereNull('deleted_at')->
+      orderBy('created_at')->
+      groupBy(DB::raw('form_id, date(created_at)'));
+    
+    if (count($forms)) {
+      $surveys = $surveys->whereIn('form_id', $forms->map(function ($f) { return $f->id; }));
+    }
+
+    // TODO: Add filter by user
+    // TODO: Add filter by condition tag
+
+    $surveys = $surveys->get();
+    Log::info($surveys);
+
+    foreach ($forms as $form) {
+      $data = $surveys->filter(function ($s) use ($form) {return $s->form_id === $form->id;});
+      Log::info($data);
+      $res[$form->id] = [
+        'form' => $form,
+        'data' => [
+          'labels' => $data->map(function ($d) { return $d->date; })->values(),
+          'data' => $data->map(function ($d) { return $d->n; })->values()
+        ]
+      ];
+    }
+
+    return $res;
   }
 
 }
