@@ -34,7 +34,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study/{studyId}/form/assign',                                ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@assignForm']);
   $router->post('study/form/{formId}/section/import',                         ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@importSection']);
 
-  //* Study Controller Routes *//
+  //* Study model Routes *//
   $router->get('study/parameter/types',                           [                                                     'uses' => 'QuestionParamController@getParameterTypes']);
   $router->delete('study/{id}/parameter/{parameter_id}',          [                                                     'uses' => 'StudyController@deleteParameter']);
   $router->post('study/{id}/parameter',                           [                                                     'uses' => 'StudyController@createOrUpdateParameter']);
@@ -45,6 +45,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study',                                          ['middleware' => 'requires:ADD_STUDY',                'uses' => 'StudyController@createStudy']);
   $router->post('study/{study_id}/locales/{locale_id}',           ['middleware' => 'requires:EDIT_STUDY',               'uses' => 'StudyController@saveLocale']);
   $router->delete('study/{study_id}/locales/{locale_id}',         ['middleware' => 'requires:EDIT_STUDY',               'uses' => 'StudyController@deleteLocale']);
+  $router->get('study/{study_id}/users',                          [                                                     'uses' => 'StudyController@getUsers']);
 
   //* User Controller Routes *//
   $router->get('user/me',                                         [                                                     'uses' => 'UserController@getMe']);
