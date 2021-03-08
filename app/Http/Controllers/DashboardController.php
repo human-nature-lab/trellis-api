@@ -222,6 +222,8 @@ class DashboardController extends Controller {
     ]), [
       'study' => 'required|string|exists:study,id',
       'forms' => 'string',
+      'conditionTags' => 'array',
+      'users' => 'array',
       'min' => 'required|string',
       'max' => 'string'
     ])->validate();
@@ -254,8 +256,35 @@ class DashboardController extends Controller {
       $surveys = $surveys->whereIn('form_id', $forms->map(function ($f) { return $f->id; }));
     }
 
-    // TODO: Add filter by user
-    // TODO: Add filter by condition tag
+    // Limit returned surveys to only specified users
+    if ($req->has('users')) {
+      $users = $req->get('users');
+      $surveys = $surveys->whereIn('id', function ($q) use ($users) {
+        return $q->
+          select('survey_id')->
+          from('interview')->
+          whereIn('user_id', $users)->
+          whereNull('deleted_at');
+      });
+    }
+
+    // Filter to surveys from respondents with these condition tags assigned
+    if ($req->has('conditionTags')) {
+      $tags = $req->get('conditionTags');
+      $surveys = $surveys->whereIn('respondent_id', function ($q) use ($tags) {
+        return $q->
+          select('respondent_id')->
+          from('respondent_condition_tag')->
+          whereIn('condition_tag_id', function ($q) use ($tags) {
+            return $q->
+              select('id')->
+              from('condition_tag')->
+              whereIn('name', $tags)->
+              whereNull('deleted_at');
+          })->
+          whereNull('deleted_at');
+      });
+    }
 
     $surveys = $surveys->get();
     Log::info($surveys);
