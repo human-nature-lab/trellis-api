@@ -223,6 +223,7 @@ class DashboardController extends Controller {
       'study' => 'required|string|exists:study,id',
       'forms' => 'string',
       'conditionTags' => 'array',
+      'respondents' => 'array',
       'users' => 'array',
       'min' => 'required|string',
       'max' => 'string'
@@ -284,6 +285,10 @@ class DashboardController extends Controller {
           })->
           whereNull('deleted_at');
       });
+    }
+
+    if ($req->has('respondents')) {
+      $surveys = $surveys->whereIn('respondent_id', $req->get('respondents'));
     }
 
     $surveys = $surveys->get();
