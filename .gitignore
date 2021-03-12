@@ -50,3 +50,5 @@ Temporary Items
 laravel-queue-worker.conf
 laravel-worker.conf
 
+
+storage/*.sqlite.db
