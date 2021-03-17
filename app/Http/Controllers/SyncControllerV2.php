@@ -176,7 +176,7 @@ class SyncControllerV2 extends Controller
 
     public function generateSnapshot()
     {
-        $exitCode = Artisan::call('trellis:export:snapshotv2');
+        $exitCode = Artisan::call('trellis:study:snapshot --quick-check --no-completed-data');
 
         if ($exitCode == 1) {
             return response()->json(

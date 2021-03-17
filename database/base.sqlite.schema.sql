@@ -1,3 +1,6 @@
+PRAGMA synchronous = OFF;
+PRAGMA journal_mode = MEMORY;
+BEGIN TRANSACTION;
 CREATE TABLE `action` (
   `id` varchar(41) NOT NULL
 ,  `survey_id` varchar(41) DEFAULT NULL
@@ -181,14 +184,6 @@ CREATE TABLE `edge_datum` (
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `fk__connection_datum__connection` FOREIGN KEY (`edge_id`) REFERENCES `edge` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ,  CONSTRAINT `fk__connection_datum__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-);
-CREATE TABLE `failed_jobs` (
-  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
-,  `connection` text NOT NULL
-,  `queue` text NOT NULL
-,  `payload` longtext NOT NULL
-,  `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-,  `exception` text NOT NULL
 );
 CREATE TABLE `form` (
   `id` varchar(41) NOT NULL
@@ -794,17 +789,6 @@ CREATE TABLE `tag` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
 );
-CREATE TABLE `token` (
-  `id` varchar(41) NOT NULL
-,  `user_id` varchar(41) NOT NULL
-,  `token_hash` varchar(128) NOT NULL
-,  `key_id` integer  NOT NULL
-,  `created_at` datetime NOT NULL
-,  `updated_at` datetime NOT NULL
-,  `deleted_at` datetime DEFAULT NULL
-,  PRIMARY KEY (`id`)
-,  UNIQUE (`token_hash`)
-);
 CREATE TABLE `translation` (
   `id` varchar(41) NOT NULL
 ,  `created_at` datetime NOT NULL
@@ -853,3 +837,4 @@ CREATE TABLE `user_study` (
 ,  CONSTRAINT `fk__user_study__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ,  CONSTRAINT `fk__user_study__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 );
+END TRANSACTION;
