@@ -42,7 +42,8 @@ class Kernel extends ConsoleKernel
     Commands\DownloadApp::class,
     Commands\CheckDiskSpace::class,
     Commands\CleanReports::class,
-    Commands\SqlToSqlite::class,
+    Commands\StudySnapshot::class,
+    Commands\SyncSqliteSchema::class,
 
     // overrides:   //TODO take this out if switched to Laravel
     Commands\MakeModel::class,

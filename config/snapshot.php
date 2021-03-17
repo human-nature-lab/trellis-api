@@ -12,98 +12,25 @@ return [
         'min' => env('SNAPSHOT_SECONDS_MIN', 60),
     ],
 
-    // table fields to substitute during upload/download (the * wildcard indicates all fields).  set to null to skip
-    'substitutions' => [
-        'upload' => [
-            'device' => [
-                '*' => null,
-            ],
-            'epoch' => [
-                '*' => null,
-            ],
-            'failed_jobs' => [
-                '*' => null,
-            ],
-            'jobs' => [
-                '*' => null,
-            ],
-            'key' => [
-                '*' => null,
-            ],
-            'log' => [
-                '*' => null,
-            ],
-            'migrations' => [
-                '*' => null,
-            ],
-            'report_file' => [
-                '*' => null,
-            ],
-            'report' => [
-                '*' => null,
-            ],
-            'snapshot' => [
-                '*' => null,
-            ],
-            'sync' => [
-                '*' => null,
-            ],
-            'token' => [
-                '*' => null,
-            ],
-            'upload' => [
-                '*' => null,
-            ],
-            'upload_log' => [
-                '*' => null,
-            ],
-            'user' => [
-                '*' => null,
-            ],
-        ],
-        'download' => [
-            'device' => [
-                '*' => null,
-            ],
-            'failed_jobs' => [
-                '*' => null,
-            ],
-            'jobs' => [
-                '*' => null,
-            ],
-            'key' => [
-                '*' => null,
-            ],
-            'log' => [
-                '*' => null,
-            ],
-            'migrations' => [
-                '*' => null,
-            ],
-            'report' => [
-                '*' => null,
-            ],
-            'report_file' => [
-                '*' => null,
-            ],
-            'snapshot' => [
-                '*' => null,
-            ],
-            'sync' => [
-                '*' => null,
-            ],
-            'token' => [
-                '*' => null,
-            ],
-            'upload' => [
-                '*' => null,
-            ],
-            'upload_log' => [
-                '*' => null,
-            ],
-            'client_log' => [
-                '*' => null
-            ]
-        ],
+    'sqliteSchema' => 'database/base.sqlite.schema.sql',
+    'sqliteIndex' => 'database/base.sqlite.indexes.sql',
+
+    'ignoredTables' => [
+      'client_log',
+      'device',
+      'failed_jobs',
+      'jobs',
+      'key',
+      'log',
+      'migrations',
+      'report',
+      'report_file',
+      'snapshot',
+      'sync',
+      'token',
+      'upload',
+      'upload_log',
+      'user_confirmation',
     ],
+
 ];
