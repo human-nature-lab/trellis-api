@@ -12,8 +12,8 @@ return [
         'min' => env('SNAPSHOT_SECONDS_MIN', 60),
     ],
 
-    'sqliteSchema' => 'database/base.sqlite.schema.sql',
-    'sqliteIndex' => 'database/base.sqlite.indexes.sql',
+    'sqliteSchema' => __dir__ . '/../database/base.sqlite.schema.sql',
+    'sqliteIndex' => __dir__ . '/../database/base.sqlite.indexes.sql',
 
     'ignoredTables' => [
       'client_log',
