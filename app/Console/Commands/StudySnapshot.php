@@ -2,15 +2,16 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Ramsey\Uuid\Uuid;
 use App\Models\Snapshot;
 use App\Library\FileHelper;
 use Error;
+use Illuminate\Support\Collection;
 use ZipArchive;
+use App\Console\Commands\BaseCommand;
 
-class StudySnapshot extends Command {
+class StudySnapshot extends BaseCommand {
 
   protected $signature = 'trellis:study:snapshot
     {--chunk-size=2000}
@@ -22,12 +23,12 @@ class StudySnapshot extends Command {
 
   protected $description = 'Take all of the data related to a study and put it into a sqlite database for syncing';
 
-  private $schemaFile = 'database/base.sqlite.schema.sql';
-  private $indexFile = 'database/base.sqlite.indexes.sql';
-  private $ignoredTablesFile = 'database/ignored-tables.csv';
+  private $schemaFile = '';
+  private $indexFile = '';
 
   private $sqliteConn;
   private $mainConn;
+  private $ignoredTables = [];
   private $specialTables = ['config'];
   private $surveyTables = ['datum', 'question_datum', 'action', 'survey_condition_tag', 'section_condition_tag', 'edge'];
 
@@ -35,6 +36,9 @@ class StudySnapshot extends Command {
     set_time_limit(0);
     app()->configure('temp');
     app()->configure('snapshot');
+    $this->schemaFile = config('snapshot.sqliteSchema');
+    $this->indexFile = config('snapshot.sqliteIndex');
+    $this->ignoredTables = config('snapshot.ignoredTables');
     
     $this->time('snapshot', function () {
       $this->runIt();
@@ -217,7 +221,7 @@ class StudySnapshot extends Command {
     $this->sqliteConn->disconnect();
   }
 
-  private function stdObjsToArrs (array $objs): array {
+  private function stdObjsToArrs (Collection $objs): array {
     $arr = [];
     foreach ($objs as $i => $row) {
       $arr[$i] = (array)$row;
@@ -256,15 +260,13 @@ class StudySnapshot extends Command {
 
   private function getTables(): array {
 
-    $ignoredTables = file($this->ignoredTablesFile, FILE_IGNORE_NEW_LINES);
-
     $tables = [];
 
     // Laravel 6 add Schema::allTables() type method that abstracts this
     $tablesQuery = DB::select('SHOW TABLES');
     foreach ($tablesQuery as $raw) {
       $table = array_values(get_object_vars($raw))[0];
-      $shouldInclude = !in_array($table, $ignoredTables) && 
+      $shouldInclude = !in_array($table, $this->ignoredTables) && 
         !in_array($table, $this->specialTables) && 
         (!$this->option('no-completed-data') || !in_array($table, $this->surveyTables));
       if ($shouldInclude) {
