@@ -10,6 +10,7 @@ use Error;
 use Illuminate\Support\Collection;
 use ZipArchive;
 use App\Console\Commands\BaseCommand;
+use App\Models\Sync;
 
 class StudySnapshot extends BaseCommand {
 
@@ -19,6 +20,7 @@ class StudySnapshot extends BaseCommand {
     {--quick-check}
     {--skip-foreign}
     {--no-indices}
+    {--force}
     {--no-completed-data}';
 
   protected $description = 'Take all of the data related to a study and put it into a sqlite database for syncing';
@@ -47,6 +49,10 @@ class StudySnapshot extends BaseCommand {
 
   private function runIt () {
     $sqliteLocation = config('database.connections.snapshot.database');
+    if (!$this->dataHasChanged()) {
+      $this->info('Latest snapshot matches current database');
+      return 0;
+    }
 
     $this->time('sqlite copy', function () use ($sqliteLocation) {
       $this->copyIntoSqlite($sqliteLocation);
@@ -83,6 +89,62 @@ class StudySnapshot extends BaseCommand {
     }
     $zip->addFile($sqliteLocation, 'snapshot.db');
     $zip->close();
+  }
+
+  private function dataHasChanged (): bool {
+    if ($this->option('force')) {
+      return true;
+    }
+    $hasChanged = false;
+    // First check if there has been an upload since the last snapshot creation
+    $latestSnapshot = Snapshot::where('deleted_at',null)
+        ->orderBy('created_at', 'desc')
+        ->first();
+
+    $this->info("latestSnapshot: " . $latestSnapshot['created_at']);
+
+    // TODO: Check Upload table instead of Sync
+    $latestUpload = Sync::where('deleted_at', null)
+        ->where('type', 'upload')
+        ->orderBy('created_at', 'desc')
+        ->first();
+    $this->info(var_dump($latestUpload));
+    $this->info("latestUpload: " . $latestUpload['created_at']);
+
+    if ($latestSnapshot == null) {
+        // Always create a new snapshot if the snapshot table is empty
+        $hasChanged = true;
+        $this->info("No snapshot found, always create snapshot.");
+    } else if ($latestUpload != null) {
+        // Otherwise, create a snapshot if there is a newer upload than the latest snapshot
+        $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['created_at']));
+        $this->info("unix timestamp of latestUpload: " . strtotime($latestUpload['created_at']));
+        $hasChanged = (strtotime($latestSnapshot['created_at']) < strtotime($latestUpload['created_at']));
+        $this->info("latestSnapshot older than latestUpload?: " . (($hasChanged) ? "true" : "false"));
+    }
+
+    if (!$hasChanged) {
+      $dbConnection = config('database.default');
+      $databaseName = config("database.connections.$dbConnection.database");
+      // Check the latest updated table that is synced
+      $this->info("Checking the latest table update using the information_schema database.");
+      $q = DB::table('information_schema.tables')->
+        selectRaw('max(update_time) as latest_update_time')->
+        where('table_schema', $databaseName)->
+        whereIn('table_name', $this->ignoredTables);
+
+
+      $this->info("latestUpdateQuery: " . $q->toSql());
+      $latestUpdate = $q->first();
+      $this->info(var_dump($latestUpdate));
+      $latestUpdateTime = $latestUpdate->latest_update_time;
+      $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['created_at']));
+      $this->info("unix timestamp of latestUpdate: " . strtotime($latestUpdate->latest_update_time));
+      $snapshotCreationNeeded =  ( ($latestUpdateTime == null) || (strtotime($latestSnapshot['created_at']) < strtotime($latestUpdateTime)) );
+      $this->info("latestSnapshot older than latestUpdate?: " . (($snapshotCreationNeeded) ? "true" : "false"));
+    }
+    
+    return $hasChanged;
   }
 
   private function copyIntoSqlite (string $sqliteLocation) {
