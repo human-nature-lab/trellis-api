@@ -119,6 +119,11 @@ class FileHelper {
     }
   }
 
+  public static function isDotFile (string $path): bool {
+    $filename = basename($path);
+    return substr($filename, 0, 1) === '.';
+  }
+
   public static function removeOldFiles (string $dirPath, int $maxAgeS): array {
     if (!file_exists($dirPath) || !is_dir($dirPath)) {
       throw new \Exception("Invalid path for directory: $dirPath");
@@ -132,11 +137,11 @@ class FileHelper {
     $dir = new FilesystemIterator($dirPath);
     $fs = new FileSystem();
     foreach ($dir as $fileInfo) {
-      if ($fileInfo->isDir()) {
+      $filePath = $fileInfo->getRealPath();
+      if ($fileInfo->isDir() || self::isDotFile($filePath)) {
         continue;
       }
       $mTime = $fileInfo->getMTime();
-      $filePath = $fileInfo->getRealPath();
       if ($mTime <= $oldestMTime) {
         array_push($removed, $filePath);
         $fs->delete($filePath);
