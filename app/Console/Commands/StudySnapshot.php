@@ -10,7 +10,8 @@ use Error;
 use Illuminate\Support\Collection;
 use ZipArchive;
 use App\Console\Commands\BaseCommand;
-use App\Models\Sync;
+use App\Models\Upload;
+use App\Services\SnapshotService;
 
 class StudySnapshot extends BaseCommand {
 
@@ -30,11 +31,13 @@ class StudySnapshot extends BaseCommand {
 
   private $sqliteConn;
   private $mainConn;
+  private $snapshotService;
   private $ignoredTables = [];
   private $specialTables = ['config'];
   private $surveyTables = ['datum', 'question_datum', 'action', 'survey_condition_tag', 'section_condition_tag', 'edge'];
 
-  public function handle() {
+  public function handle(SnapshotService $ss) {
+    $this->snapshotService = $ss;
     set_time_limit(0);
     app()->configure('temp');
     app()->configure('snapshot');
@@ -49,10 +52,23 @@ class StudySnapshot extends BaseCommand {
 
   private function runIt () {
     $sqliteLocation = config('database.connections.snapshot.database');
-    if (!$this->dataHasChanged()) {
-      $this->info('Latest snapshot matches current database');
-      return 0;
+
+    if (!$this->option('force')) {
+      $isOutdated = $this->time('checking for database changes', function () {
+        return $this->snapshotService->snapshotIsOutdated();
+      });
+  
+      if ($isOutdated) {
+        $this->info('A new snapshot needs to be created!');
+      } else {
+        $this->info('The latest snapshot matches current database');
+        return;
+      }
     }
+
+    $this->time('cleaning old snapshots', function () {
+      $this->cleanOldSnapshots();
+    });
 
     $this->time('sqlite copy', function () use ($sqliteLocation) {
       $this->copyIntoSqlite($sqliteLocation);
@@ -82,6 +98,13 @@ class StudySnapshot extends BaseCommand {
     $snapshotModel->save();
   }
 
+  private function cleanOldSnapshots () {
+    $twoWeeksMS = 14 * 24 * 60 * 60;
+    $removed = FileHelper::removeOldFiles(FileHelper::storagePath(config('snapshot.directory.path')), $twoWeeksMS);
+    $c = count($removed);
+    $this->info("Removed $c old snapshots");
+  }
+
   private function zipDb (string $sqliteLocation, string $tempLocation, string $snapshotId) {
     $zip = new ZipArchive();
     if (!$zip->open($tempLocation, ZipArchive::CREATE)) {
@@ -103,12 +126,10 @@ class StudySnapshot extends BaseCommand {
 
     $this->info("latestSnapshot: " . $latestSnapshot['created_at']);
 
-    // TODO: Check Upload table instead of Sync
-    $latestUpload = Sync::where('deleted_at', null)
-        ->where('type', 'upload')
-        ->orderBy('created_at', 'desc')
+    $latestUpload = Upload::where('deleted_at', null)
+        ->where('status', 'SUCCESS')
+        ->orderBy('updated_at', 'desc')
         ->first();
-    $this->info(var_dump($latestUpload));
     $this->info("latestUpload: " . $latestUpload['created_at']);
 
     if ($latestSnapshot == null) {
@@ -131,12 +152,11 @@ class StudySnapshot extends BaseCommand {
       $q = DB::table('information_schema.tables')->
         selectRaw('max(update_time) as latest_update_time')->
         where('table_schema', $databaseName)->
-        whereIn('table_name', $this->ignoredTables);
+        whereNotIn('table_name', $this->ignoredTables);
 
 
       $this->info("latestUpdateQuery: " . $q->toSql());
       $latestUpdate = $q->first();
-      $this->info(var_dump($latestUpdate));
       $latestUpdateTime = $latestUpdate->latest_update_time;
       $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['created_at']));
       $this->info("unix timestamp of latestUpdate: " . strtotime($latestUpdate->latest_update_time));
@@ -309,15 +329,6 @@ class StudySnapshot extends BaseCommand {
     }
     
     $this->info("Copied $c rows into $table");
-  }
-
-  private function time(string $msg, $cb) {
-    $this->info("Start $msg");
-    $start = microtime(true);
-    $res = $cb();
-    $duration = microtime(true) - $start;
-    $this->info("Completed $msg in $duration seconds");
-    return [$duration, $res];
   }
 
   private function getTables(): array {

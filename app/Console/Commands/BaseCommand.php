@@ -11,6 +11,7 @@ class BaseCommand extends Command {
 
   function __construct () {
     parent::__construct();
+    // call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     $this->isCli = strpos(php_sapi_name(), 'cli') !== false;
   }
 
@@ -28,6 +29,15 @@ class BaseCommand extends Command {
     } else {
       Log::error($string);
     }
+  }
+
+  public function time(string $msg, $cb) {
+    $this->info("Start $msg");
+    $start = microtime(true);
+    $res = $cb();
+    $duration = microtime(true) - $start;
+    $this->info("Completed $msg in $duration seconds");
+    return $res;
   }
 
 }
