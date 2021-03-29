@@ -34,7 +34,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study/{studyId}/form/assign',                                ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@assignForm']);
   $router->post('study/form/{formId}/section/import',                         ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@importSection']);
 
-  //* Study Controller Routes *//
+  //* Study model Routes *//
   $router->get('study/parameter/types',                           [                                                     'uses' => 'QuestionParamController@getParameterTypes']);
   $router->delete('study/{id}/parameter/{parameter_id}',          [                                                     'uses' => 'StudyController@deleteParameter']);
   $router->post('study/{id}/parameter',                           [                                                     'uses' => 'StudyController@createOrUpdateParameter']);
@@ -45,6 +45,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study',                                          ['middleware' => 'requires:ADD_STUDY',                'uses' => 'StudyController@createStudy']);
   $router->post('study/{study_id}/locales/{locale_id}',           ['middleware' => 'requires:EDIT_STUDY',               'uses' => 'StudyController@saveLocale']);
   $router->delete('study/{study_id}/locales/{locale_id}',         ['middleware' => 'requires:EDIT_STUDY',               'uses' => 'StudyController@deleteLocale']);
+  $router->get('study/{study_id}/users',                          [                                                     'uses' => 'StudyController@getUsers']);
 
   //* User Controller Routes *//
   $router->get('user/me',                                         [                                                     'uses' => 'UserController@getMe']);
@@ -211,6 +212,12 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('process-uploads',                            ['middleware' => 'requires:PROCESS_UPLOADS',              'uses' => 'SyncControllerV2@processUploads']);
   $router->get('upload-log/{upload_id}',                      [                                                         'uses' => 'UploadLogController@getUploadLogs']);
 
+  $router->get('study/{study_id}/dashboard/counts',           [                                                         'uses' => 'DashboardController@getCounts']);
+  $router->get('study/{study_id}/dashboard/surveys',          [                                                         'uses' => 'DashboardController@getSurveys']);
+  $router->get('study/{study_id}/dashboard/respondents',      [                                                         'uses' => 'DashboardController@getRespondents']);
+  $router->get('study/{study_id}/dashboard/users',            [                                                         'uses' => 'DashboardController@getUsers']);
+  $router->get('study/{study_id}/dashboard/geos',             [                                                         'uses' => 'DashboardController@getGeos']);
+  $router->get('study/{study_id}/dashboard/forms',            [                                                         'uses' => 'DashboardController@getForms']);
   //* Group Tag Type Controller Routes *//
 // NOT USED   $router->delete('group_tag_type/{id}',                          'GroupTagTypeController@removeGroupTagType');
 // NOT USED   $router->get('group_tag_type',                                  'GroupTagTypeController@getAllGroupTagTypes');
