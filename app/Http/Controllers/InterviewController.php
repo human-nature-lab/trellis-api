@@ -8,18 +8,15 @@ use App\Models\Interview;
 use App\Models\Respondent;
 use App\Models\SelfAdministeredSurvey;
 use App\Models\Survey;
-use App\Models\User;
-use App\Models\Token;
 use App\Services\DatumService;
 use Carbon\Carbon;
+use DateTime;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Log;
 use Ramsey\Uuid\Uuid;
-use Validator;
-use DB;
-use DateTime;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class InterviewController extends Controller
 {
