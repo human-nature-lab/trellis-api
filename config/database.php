@@ -1,5 +1,15 @@
 <?php
 
+function join_paths() {
+  $paths = array();
+
+  foreach (func_get_args() as $arg) {
+      if ($arg !== '') { $paths[] = $arg; }
+  }
+
+  return preg_replace('#/+#','/',join('/', $paths));
+}
+
 return [
 
     /*
@@ -46,11 +56,11 @@ return [
 
     'connections' => [
 
-        // 'sqlite' => [
-        //     'driver'   => 'sqlite',
-        //     'database' => storage_path('database.sqlite'),
-        //     'prefix'   => '',
-        // ],
+        'sqlite' => [
+            'driver'   => 'sqlite',
+            'database' => env('DB_DATABASE', 'trellis.sqlite'),
+            'prefix'   => '',
+        ],
 
         'mysql' => [
             'driver'    => 'mysql',
@@ -64,6 +74,9 @@ return [
             'prefix'    => '',
             'strict'    => false,
             'version'   => '5.7.2', // required to prevent: 1235 This version of MySQL doesn't yet support 'multiple triggers with the same action time and event for one table'
+            'options' => [
+              'PDO::ATTR_TIMEOUT' => 0,
+            ]
         ],
 
         'mysql_simulated' => [
@@ -99,6 +112,15 @@ return [
             'charset'  => 'utf8',
             'prefix'   => '',
         ],
+
+        'snapshot' => [
+          'driver'   => 'sqlite',
+          'database' => storage_path('snapshot.sqlite.db'),
+          'prefix'   => '',
+          'options' => [
+            'PDO::ATTR_TIMEOUT' => 0,
+          ]
+        ]
     ],
 
     /*

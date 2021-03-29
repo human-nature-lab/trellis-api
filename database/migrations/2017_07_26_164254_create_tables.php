@@ -395,7 +395,7 @@ class CreateTables extends Migration
         Schema::create('question_group_skip', function (Blueprint $table) {
             $table->string('id', 41)->primary();
             $table->string('question_group_id', 41)->index('fk__question_group_skip__question_group_idx');
-            $table->string('skip_id', 41)->index('fk__form_skip__skip_idx');
+            $table->string('skip_id', 41)->index('fk__question_group__skip_idx');
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
             // $table->timestamps();
