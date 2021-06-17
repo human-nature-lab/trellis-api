@@ -8,6 +8,7 @@ CREATE INDEX "idx_respondent_group_tag_fk__respondent_group__respondent_idx" ON 
 CREATE INDEX "idx_respondent_group_tag_fk__respondent_group__group_idx" ON "respondent_group_tag" (`group_tag_id`);
 CREATE INDEX "idx_translation_text_fk__translation_text__translation_idx" ON "translation_text" (`translation_id`);
 CREATE INDEX "idx_translation_text_fk__translation_text__locale_idx" ON "translation_text" (`locale_id`);
+CREATE INDEX "idx_translation_text_idx_translation_locale" ON "translation_text" (`translation_id`,`locale_id`);
 CREATE INDEX "idx_edge_datum_fk__edge_datum__edge_idx" ON "edge_datum" (`edge_id`);
 CREATE INDEX "idx_edge_datum_fk__edge_datum__datum_idx" ON "edge_datum" (`datum_id`);
 CREATE INDEX "idx_section_condition_tag_fk__section_condition__condition_tag_idx" ON "section_condition_tag" (`condition_id`);
@@ -17,6 +18,7 @@ CREATE INDEX "idx_section_condition_tag_fk__follow_up_datum__datum" ON "section_
 CREATE INDEX "idx_question_datum_fk__question_datum__datum_idx" ON "question_datum" (`follow_up_datum_id`);
 CREATE INDEX "idx_question_datum_fk__question_datum__question_idx" ON "question_datum" (`question_id`);
 CREATE INDEX "idx_question_datum_fk__question_datum__survey_idx" ON "question_datum" (`survey_id`);
+CREATE INDEX "idx_question_datum_idx_survey_id_created_at" ON "question_datum" (`survey_id`,`created_at`);
 CREATE INDEX "idx_question_datum_question_datum_created_at_idx" ON "question_datum" (`created_at`);
 CREATE INDEX "idx_study_respondent_fk__study_respondent__study_idx" ON "study_respondent" (`study_id`);
 CREATE INDEX "idx_study_respondent_fk__study_respondent__respondent_idx" ON "study_respondent" (`respondent_id`);
@@ -32,6 +34,8 @@ CREATE INDEX "idx_study_parameter_study_parameter_parameter_id_foreign" ON "stud
 CREATE INDEX "idx_respondent_geo_respondent_geo_geo_id_foreign" ON "respondent_geo" (`geo_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_respondent_id_foreign" ON "respondent_geo" (`respondent_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_previous_respondent_geo_id_foreign" ON "respondent_geo" (`previous_respondent_geo_id`);
+CREATE INDEX "idx_respondent_geo_idx_is_current" ON "respondent_geo" (`is_current`);
+CREATE INDEX "idx_respondent_geo_idx_current_respondent_id" ON "respondent_geo" (`respondent_id`,`is_current`);
 CREATE INDEX "idx_respondent_geo_res_geo_is_current_idx" ON "respondent_geo" (`is_current`);
 CREATE INDEX "idx_respondent_geo_res_geo_res_id_is_current_idx" ON "respondent_geo" (`respondent_id`,`is_current`);
 CREATE INDEX "idx_question_assign_condition_tag_fk__question_assign_condition_tag__question_idx" ON "question_assign_condition_tag" (`question_id`);
@@ -46,6 +50,7 @@ CREATE INDEX "idx_study_form_fk__study_form__study_idx" ON "study_form" (`study_
 CREATE INDEX "idx_study_form_fk__study_form__form_idx" ON "study_form" (`form_master_id`);
 CREATE INDEX "idx_study_form_fk__form_study_form_type_idx" ON "study_form" (`form_type_id`);
 CREATE INDEX "idx_study_form_fk__study_form_census_type__idx" ON "study_form" (`census_type_id`);
+CREATE INDEX "idx_study_form_fk__geo_type_id_geo_type__idx" ON "study_form" (`geo_type_id`);
 CREATE INDEX "idx_datum_fk__datum__choice_idx" ON "datum" (`choice_id`);
 CREATE INDEX "idx_datum_fk__datum__survey_idx" ON "datum" (`survey_id`);
 CREATE INDEX "idx_datum_fk__datum__question_idx" ON "datum" (`question_id`);

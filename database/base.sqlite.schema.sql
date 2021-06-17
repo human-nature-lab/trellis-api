@@ -714,8 +714,10 @@ CREATE TABLE `study_form` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `form_type_id` integer NOT NULL
 ,  `census_type_id` varchar(255) DEFAULT NULL
+,  `geo_type_id` varchar(41) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `fk__form_study_form_type_idx` FOREIGN KEY (`form_type_id`) REFERENCES `form_type` (`id`)
+,  CONSTRAINT `fk__geo_type_id_geo_type__idx` FOREIGN KEY (`geo_type_id`) REFERENCES `geo_type` (`id`)
 ,  CONSTRAINT `fk__study_form__form` FOREIGN KEY (`form_master_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
 ,  CONSTRAINT `fk__study_form__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ,  CONSTRAINT `fk__study_form_census_type__idx` FOREIGN KEY (`census_type_id`) REFERENCES `census_type` (`id`)
