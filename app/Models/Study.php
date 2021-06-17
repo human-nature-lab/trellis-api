@@ -63,7 +63,7 @@ class Study extends Model
         return $this
             ->belongsToMany('App\Models\Form', 'study_form', 'study_id', 'form_master_id')
             ->using('App\Models\StudyForm')
-            ->withPivot('id', 'sort_order', 'form_type_id', 'census_type_id')
+            ->withPivot('id', 'sort_order', 'form_type_id', 'census_type_id', 'geo_type_id')
             ->whereNull('study_form.deleted_at')
             ->withTimestamps()
             ->with('nameTranslation', 'skips');

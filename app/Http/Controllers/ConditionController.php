@@ -227,18 +227,19 @@ class ConditionController extends Controller
     }
 
     public function getAllRespondentConditionTags() {
-        $tags = RespondentConditionTag::join('condition_tag', 'respondent_condition_tag.condition_tag_id', '=', 'condition_tag.id')
-            ->join('assign_condition_tag', function ($join) {
-                $join->on('assign_condition_tag.condition_tag_id', '=', 'condition_tag.id');
-                $join->on('assign_condition_tag.scope', '=', DB::raw("'respondent'"));
-            })
-            ->select('respondent_condition_tag.*')
-            ->with('conditionTag')
-            ->distinct();
+        $tags = ConditionTag::whereIn('id', function($query) {
+            $query
+                ->select('condition_tag_id')
+                ->from('respondent_condition_tag');
+        })->orWhereIn('id', function($query) {
+              $query
+                  ->select('condition_tag_id')
+                  ->from('assign_condition_tag')
+                  ->where('scope', '=', 'respondent');
+        })->distinct()->get();
+
         return response()->json([
-            'conditions' => $tags->get()->map(function ($item) {
-                return $item->conditionTag;
-            })
+            'conditions' => $tags
         ], Response::HTTP_OK);
     }
 }

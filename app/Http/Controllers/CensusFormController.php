@@ -21,7 +21,6 @@ class CensusFormController extends Controller {
     }
 
     public function getStudyCensusForm (Request $request, $studyId) {
-
         $validator = Validator::make([
             'studyId' => $studyId,
             'censusType' => $request->get('census_type')
@@ -41,13 +40,9 @@ class CensusFormController extends Controller {
             ->with('form')
             ->first();
 
-        if (!$studyForm) {
-            return response()->json([
-                'form' => null
-            ], Response::HTTP_OK);
-        }
-
-        $form = Form::find($studyForm->form_master_id);
+        $form = Form::where('form_master_id', $studyForm->form_master_id)
+            ->where('is_published', 1)
+            ->first();
 
         return response()->json([
             'form' => $form
