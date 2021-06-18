@@ -226,17 +226,35 @@ class DashboardController extends Controller {
       'respondents' => 'array',
       'users' => 'array',
       'min' => 'required|string',
-      'max' => 'string'
+      'max' => 'string',
+      'onlyPublished' => 'boolean'
     ])->validate();
 
     $forms = [];
 
     if ($req->has('forms')) {
       $formIds = explode(",", $req->get('forms'));
-      $forms = Form::whereIn('id', $formIds)->with('nameTranslation')->get();
+      $forms = Form::whereIn('id', $formIds)->
+        with('nameTranslation', 'studyForm')->
+        whereNull('deleted_at')->
+        get();
     } else {
-      $forms = Form::where('is_published', 1)->with('nameTranslation')->get();
+      $forms = Form::whereIn('id', function ($q) use ($studyId) {
+          $q->
+            select('form_master_id')->
+            from('study_form')->
+            where('study_id', $studyId)->
+            whereNull('deleted_at');
+        })->
+        with('nameTranslation', 'studyForm')->
+        whereNull('deleted_at');
     }
+
+    if ($req->get('onlyPublished')) {
+      $forms = $forms->where('is_published', 1);
+    }
+
+    $forms = $forms->get();
 
     $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
     $min = $req->get('min');
@@ -248,8 +266,7 @@ class DashboardController extends Controller {
       selectRaw('form_id, date(created_at) date, count(*) n')->
       where('created_at', '>=', $min)->
       where('created_at', '<=', $max)->
-      where('study_id', $studyId)->
-      whereNull('deleted_at')->
+      where('study_id', $studyId)-> whereNull('deleted_at')->
       orderBy('created_at')->
       groupBy(DB::raw('form_id, date(created_at)'));
     
