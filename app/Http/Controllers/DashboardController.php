@@ -289,31 +289,32 @@ class DashboardController extends Controller {
     // Filter to surveys from respondents with these condition tags assigned
     if ($req->has('conditionTags')) {
       $tags = $req->get('conditionTags');
-      $surveys = $surveys->whereIn('respondent_id', function ($q) use ($tags) {
-        return $q->
-          select('respondent_id')->
-          from('respondent_condition_tag')->
-          whereIn('condition_tag_id', function ($q) use ($tags) {
-            return $q->
-              select('id')->
-              from('condition_tag')->
-              whereIn('name', $tags)->
-              whereNull('deleted_at');
-          })->
-          whereNull('deleted_at');
-      });
+      foreach ($tags as $tag) {
+        $surveys = $surveys->whereIn('respondent_id', function ($q) use ($tag) {
+          $q->
+            select('respondent_id')->
+            from('respondent_condition_tag')->
+            whereNull('deleted_at')->
+            whereIn('condition_tag_id', function ($q) use ($tag) {
+              $q->
+                select('id')->
+                from('condition_tag')->
+                whereNull('deleted_at')->
+                where('name', $tag);
+            });
+        });
+      }
     }
 
     if ($req->has('respondents')) {
       $surveys = $surveys->whereIn('respondent_id', $req->get('respondents'));
     }
-
+    
     $surveys = $surveys->get();
-    Log::info($surveys);
 
+    // Convert data into labels and counts
     foreach ($forms as $form) {
       $data = $surveys->filter(function ($s) use ($form) {return $s->form_id === $form->id;});
-      Log::info($data);
       $res[$form->id] = [
         'form' => $form,
         'data' => [
