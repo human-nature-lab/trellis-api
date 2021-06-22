@@ -14,7 +14,7 @@ class DownloadApp extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:download-app';
+    protected $signature = 'trellis:download-app {--asset-name=trellis-web.zip} {--timeout=120}';
 
     /**
      * The console command description.
@@ -33,34 +33,43 @@ class DownloadApp extends Command
     {
         /* First, let's get the RELEASES.md from github and parse the list of releases. */
         $this->info("Checking for trellis app releases...");
+        $assetName = $this->option('asset-name');
+        $timeout = $this->option('timeout');
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://raw.githubusercontent.com/human-nature-lab/trellis/master/RELEASES.md");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        $output = curl_exec($ch);
-        /* Get everything up to the --- horizontal rule */
-        $versionListString = trim(substr($output, 0, strpos($output, "---")));
-        $versionList = explode("\n", $versionListString);
-        $versions = array();
-        $choices = array();
-        foreach ($versionList as $versionString) {
-            $version = array();
-            $start = strpos($versionString, "[") + 1;
-            $end = strpos($versionString, "]");
-            $version["name"] = substr($versionString, $start, $end - $start);
-            $start = strpos($versionString, "(") + 1;
-            $end = strpos($versionString, ")");
-            $version["url"] = substr($versionString, $start, $end - $start);
-            $choices[] = $version["name"];
-            $versions[] = $version;
-        }
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Trellis API');
+        curl_setopt($ch, CURLOPT_URL, 'https://api.github.com/repos/human-nature-lab/trellis-app/releases?prerelease=true');
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $versions = json_decode($result, true);
+        $versions = array_filter($versions, function ($v) use ($assetName) {
+          if (!isset($v['tag_name']) || !isset($v['assets'])) return false;
+          $filteredAssets = array_filter($v['assets'], function ($a) use ($assetName) {
+            return $a['name'] === $assetName;
+          });
+          $webAsset = array_pop($filteredAssets);
+          return isset($webAsset);
+        });
+        $choices = array_map(function ($v) {
+          return $v['tag_name'];
+        }, $versions);
         $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, (count($choices) - 1));
-        $chosenVersion = array_values(array_filter($versions, function($v) use ($chosenVersionName) { return $v["name"] == $chosenVersionName; }));
+        $this->info($chosenVersionName);
+        $chosenVersion = array_filter($versions, function($v) use ($chosenVersionName) { return $v["tag_name"] == $chosenVersionName; })[0];
+        $chosenAsset = array_values(array_filter($chosenVersion['assets'], function ($a) use ($assetName) {
+          return $a['name'] === $assetName;
+        }))[0];
+        $chosenVersionUrl = $chosenAsset['browser_download_url'];
+        $this->info($chosenVersionUrl);
+        
+        $zipPath = storage_path('temp/trellis-web.zip');
+        $this->info("Downloading to $zipPath...");
+        
+        $ch = curl_init( $chosenVersionUrl);
+        $fp = fopen($zipPath, 'w+');
 
-        $this->info($chosenVersion[0]["url"]);
-        $chosenVersionUrl = $chosenVersion[0]["url"];
-        $this->info("Downloading...");
-        curl_setopt($ch, CURLOPT_URL, $chosenVersionUrl);
-        curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 
         $bar = $this->output->createProgressBar(100);
@@ -70,7 +79,7 @@ class DownloadApp extends Command
             $this->progress($downloadSize, $downloaded, $bar);
         });
 
-        $rawFile = curl_exec($ch);
+        curl_exec($ch);
 
         if(curl_errno($ch)) {
             $this->error(curl_error($ch));
@@ -78,10 +87,9 @@ class DownloadApp extends Command
 
         $bar->finish();
 
-        $zipPath = storage_path('temp/trellis-app.zip');
-        file_put_contents($zipPath, $rawFile);
+        curl_close($ch);
+        fclose($fp);
 
-        $this->info("");
         $trellisAppDir = $this->ask('Where do you want to install the trellis web application?', '/var/www/trellis-app');
 
         $this->info("Extracting \"$chosenVersionName\" to \"$trellisAppDir\"...");
@@ -89,9 +97,10 @@ class DownloadApp extends Command
         $zip = new ZipArchive;
         $res = $zip->open($zipPath);
         if ($res === TRUE) {
-            $zip->extractTo($trellisAppDir);
+          $zip->extractTo($trellisAppDir);
         } else {
-            $this->error("Unable to open zip archive.");
+          $this->error("Unable to open zip archive.");
+          return;
         }
 
         unlink($zipPath);
@@ -105,11 +114,9 @@ class DownloadApp extends Command
   apiRoot: '$apiEndpoint'
 }\n";
 
-        file_put_contents($trellisAppDir . '/config.js', $configFile);
+        file_put_contents($trellisAppDir . '/www/config.js', $configFile);
 
-        curl_close($ch);
-        $this->info("");
-        $this->info("Done!");
+        $this->info("\nDone!");
         return 0;
     }
 

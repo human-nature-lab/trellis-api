@@ -52,3 +52,4 @@ laravel-worker.conf
 
 
 storage/*.sqlite.db
+trellis-app
