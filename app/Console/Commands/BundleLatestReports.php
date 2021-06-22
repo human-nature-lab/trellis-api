@@ -17,7 +17,9 @@ class BundleLatestReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:bundle:reports {study} {--location=exports : The location to save the export at} {--name=reports.zip : The filename to use}';
+    protected $signature = 'trellis:bundle:reports {study} 
+      {--location=exports : The location to save the export at} 
+      {--name=reports.zip : The filename to use}';
 
     /**
      * The console command description.
