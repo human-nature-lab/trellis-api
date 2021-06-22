@@ -4,6 +4,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use App\Models\Form;
+use App\Services\GeoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -224,6 +225,7 @@ class DashboardController extends Controller {
       'forms' => 'string',
       'conditionTags' => 'array',
       'respondents' => 'array',
+      'geos' => 'array',
       'users' => 'array',
       'min' => 'required|string',
       'max' => 'string',
@@ -308,6 +310,16 @@ class DashboardController extends Controller {
 
     if ($req->has('respondents')) {
       $surveys = $surveys->whereIn('respondent_id', $req->get('respondents'));
+    }
+
+    if ($req->has('geos')) {
+      $geoIds = GeoService::getNestedGeoIds($req->get('geos'));
+      $surveys = $surveys->whereIn('respondent_id', function ($q) use ($geoIds) {
+        $q->
+          select('respondent_id')->
+          from('respondent_geo')->
+          whereIn('geo_id', $geoIds);
+      });
     }
     
     $surveys = $surveys->get();

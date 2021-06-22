@@ -12,7 +12,8 @@ use Ramsey\Uuid\Uuid;
 use Exception;
 use Throwable;
 use ZipArchive;
-use Log;
+use DB;
+use Illuminate\Support\Facades\Log;
 
 class GeoService {
 
@@ -155,6 +156,22 @@ class GeoService {
     } else {
       throw new Exception('Unable to open zip file');
     }
+  }
+
+  
+  public static function getNestedGeoIds (array $geoIds, int $depth = 5) {
+    $ids = collect($geoIds);
+    Log::info($ids);
+    $d = 0;
+    do {
+      $geos = DB::table('geo')->select('id')->whereIn('parent_id', $ids)->get();
+      $ids = $ids->concat($geos->map(function ($g) {
+        return $g->id;
+      }));
+      $d++;
+    } while (count($geos) > 0 && $d < $depth);
+
+    return $ids;
   }
 
 }
