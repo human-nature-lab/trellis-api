@@ -35,14 +35,15 @@ class ImportUpload extends BaseCommand {
    * @return mixed
    */
   public function handle() {
-    $this->info("Starting import...");
-
     $uploadIds = $this->argument('upload');
 
-    if (count($uploadIds) === 0) {
+    $n = count($uploadIds);
+    $this->info("Starting import of $n uploads...");
+
+    if ($n !== 0) {
       $uploads = Upload::whereIn('id', $uploadIds)->where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
     } else {
-      $uploads = Upload::where('deleted_at', null)->where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
+      $uploads = Upload::where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
     }
 
     app()->configure('upload');   // save overhead by only loading config when needed
@@ -196,13 +197,6 @@ class ImportUpload extends BaseCommand {
       if (file_exists($from)) {
         // Move file to the uploads_failed directory
         rename($from, $to);
-      }
-    } finally {
-      $nextPendingUpload = $this->getFirstPendingUpload();
-      if ($nextPendingUpload == null) {
-        $this->info("No more uploads to process, sleeping.");
-      } else {
-        $this->processUpload($nextPendingUpload, $config);
       }
     }
   }

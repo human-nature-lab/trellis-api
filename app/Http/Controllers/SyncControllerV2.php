@@ -381,7 +381,7 @@ class SyncControllerV2 extends Controller {
 
     $first = true;
     Photo::whereNull('deleted_at')
-      ->chunk(200, function ($photos) use (&$first) {
+      ->chunk(1000, function ($photos) use (&$first) {
         foreach ($photos as $photo) {
           $fileName = storage_path() . '/respondent-photos/' . $photo->file_name;
           if (!file_exists($fileName)) {
