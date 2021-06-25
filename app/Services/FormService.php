@@ -14,7 +14,7 @@ use Throwable;
 
 class FormService {
 
-  public static function getAllStudyForms($studyId) {
+  public static function getAllStudyForms(String $studyId) {
     $forms = Form::where('study.id', $studyId)
       ->leftJoin('study_form', 'study_form.id', '=', 'form.id')
       ->join('study', 'study.id', '=', 'study_form.study_id')
@@ -23,7 +23,7 @@ class FormService {
     return $forms;
   }
 
-  public static function getAllStudyFormsPaginated($perPage, $studyId) {
+  public static function getAllStudyFormsPaginated($perPage, String $studyId) {
     $forms = Form::select('tt.translated_text AS name', 'f.version', 'f.updated_at', 'f.id')
       ->from('translation_text AS tt')
       ->join('form AS f', 'tt.translation_id', '=', 'f.name_translation_id')
@@ -35,14 +35,14 @@ class FormService {
     return $forms;
   }
 
-  public static function importFormAndAddToStudy($filePath, $formName, $studyId, $formType) {
+  public static function importFormAndAddToStudy(String $filePath, String $formName, String $studyId, String $formType) {
     $study = Study::find($studyId);
     $importedForm = self::importFormFromPath($filePath, $formName, $study->default_locale_id);
     self::createStudyForm($importedForm->form_master_id, $studyId, $formType);
     return $importedForm;
   }
 
-  public static function createStudyForm($formId, $studyId, $formType) {
+  public static function createStudyForm(String $formId, String $studyId, String $formType) {
     $studyForm = new StudyForm;
     $studyForm->id = Uuid::uuid4();
     $studyForm->study_id = $studyId;
@@ -67,7 +67,7 @@ class FormService {
     return $studyForm;
   }
 
-  public static function importFormFromPath($filePath, $formName, $localeId) {
+  public static function importFormFromPath(String $filePath, String $formName, String $localeId) {
     $oldQuestionIdToNewQuestionIdMap = []; // Used for follow up questions
 
     // Create the form
@@ -130,7 +130,7 @@ class FormService {
     return $importedForm;
   }
 
-  public static function createForm($formName, $localeId) {
+  public static function createForm(String $formName, String $localeId) {
     $newFormModel = null;
 
     try {
@@ -173,12 +173,8 @@ class FormService {
 
   /**
    * Creates both a form entry and a study_form entry within a transaction
-   * @param $formName
-   * @param $studyId
-   * @param $formType
-   * @return null
    */
-  public static function createFormWithStudyForm($formName, $studyId, $formType) {
+  public static function createFormWithStudyForm(String $formName, String $studyId, String $formType) {
     $form = null;
 
     DB::transaction(function () use ($formName, $studyId, $formType, &$form) {
