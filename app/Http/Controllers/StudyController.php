@@ -13,22 +13,19 @@ use App\Models\Study;
 use App\Models\StudyLocale;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class StudyController extends Controller {
 
-  public function getUsers (string $studyId) {
+  public function getUsers(string $studyId) {
     Validator::make([
       'study' => $studyId,
     ], [
       'study' => 'required|string|exists:study,id'
     ])->validate();
-    
+
     return User::whereIn('id', function ($q) use ($studyId) {
-      return $q->
-        select('user_id')->
-        from('user_study')->
-        where('study_id', $studyId)->
-        whereNull('deleted_at');
+      return $q->select('user_id')->from('user_study')->where('study_id', $studyId)->whereNull('deleted_at');
     })->get();
   }
 
@@ -46,7 +43,7 @@ class StudyController extends Controller {
     }
 
     //$studyModel = Study::find($id);
-    $studyModel = Study::with('locales')->find($id);
+    $studyModel = Study::with('locales', 'testStudy')->find($id);
 
     if ($studyModel === null) {
       return response()->json([
@@ -102,19 +99,21 @@ class StudyController extends Controller {
       ], $validator->statusCode());
     }
 
-    $studyModel = Study::with('defaultLocale', 'locales')->find($id);
-
-    if ($studyModel === null) {
-      return response()->json([
-        'msg' => 'URL resource not found'
-      ], Response::HTTP_NOT_FOUND);
-    }
-
-    $studyModel->fill($request->input());
-    $studyModel->save();
+    DB::transaction(function () use ($id, $request) {
+      $study = Study::find($id);
+      $testStudy = Study::find($study->test_study_id);
+      $study->fill($request->input());
+      $testStudy->fill([
+        'name' => $request->input('name') . ' TEST',
+        'photo_quality' => $request->input('photo_quality'),
+        'default_locale_id' => $request->input('default_locale_id'),
+      ]);
+      $study->save();
+      $testStudy->save();
+    });
 
     return response()->json([
-      'study' => $studyModel
+      'study' => Study::with('defaultLocale', 'locales', 'testStudy')->find($id)
     ], Response::HTTP_OK);
   }
 
@@ -151,22 +150,36 @@ class StudyController extends Controller {
       ], $validator->statusCode());
     }
 
-    $studyName = $request->input('name');
-    $studyPhotoQuality = $request->input('photo_quality');
-    $studyDefaultLocaleId = $request->input('default_locale_id');
+    $studyId = DB::transaction(function () use ($request, $studyService) {
 
-    $newStudyModel = new Study;
-    $studyId = Uuid::uuid4();
-    $newStudyModel->id = $studyId;
-    $newStudyModel->name = $studyName;
-    $newStudyModel->photo_quality = $studyPhotoQuality;
-    $newStudyModel->default_locale_id = $studyDefaultLocaleId;
-    $newStudyModel->save();
+      $studyName = $request->input('name');
+      $studyPhotoQuality = $request->input('photo_quality');
+      $studyDefaultLocaleId = $request->input('default_locale_id');
 
-    // Add the default locale ID to the study's locales
-    $studyService::addLocale($studyId, $studyDefaultLocaleId);
+      $testStudy = Study::create([
+        'id' => Uuid::uuid4(),
+        'name' => "$studyName TEST",
+        'photo_quality' => $studyPhotoQuality,
+        'default_locale_id' => $studyDefaultLocaleId,
+      ]);
 
-    $returnStudy = Study::with('defaultLocale', 'locales')->find($studyId);
+      $study = Study::create([
+        'id' => Uuid::uuid4(),
+        'name' => $studyName,
+        'photo_quality' => $studyPhotoQuality,
+        'default_locale_id' => $studyDefaultLocaleId,
+        'test_study_id' => $testStudy->id,
+      ]);
+
+      // Add the default locale ID to the study's locales
+      $studyService::addLocale($study->id, $studyDefaultLocaleId);
+      $studyService::addLocale($testStudy->id, $studyDefaultLocaleId);
+
+      return $study->id;
+    });
+
+
+    $returnStudy = Study::with('defaultLocale', 'locales', 'testStudy')->find($studyId);
 
     return response()->json([
       'study' => $returnStudy
@@ -189,18 +202,12 @@ class StudyController extends Controller {
       ], $validator->statusCode());
     }
 
-    $studyService::addLocale($studyId, $localeId);
+    DB::transaction(function () use ($studyId, $localeId, $studyService) {
+      $study = Study::with('testStudy')->find($studyId);
+      $studyService::addLocale($studyId, $localeId);
+      $studyService::addLocale($study->testStudy->id, $localeId);
+    });
 
-    /*
-        $study = Study::findOrFail($studyId);
-        $locale = Locale::findOrFail($localeId);
-        $studyLocale = new StudyLocale;
-        $studyLocale->id = Uuid::uuid4();
-        $studyLocale->study_id = $studyId;
-        $studyLocale->locale_id = $localeId;
-        $studyLocale->save();
-        //$study->locales()->save($locale);
-        */
     $studyModel = Study::with('locales')->find($studyId);
     return response()->json(
       ['study' => $studyModel],
@@ -224,11 +231,17 @@ class StudyController extends Controller {
       ], $validator->statusCode());
     }
 
-    $studyLocale = StudyLocale::where('study_id', $studyId)
-      ->where('locale_id', $localeId)
-      ->firstOrFail();
-
-    $studyLocale->delete();
+    DB::transaction(function () use ($studyId, $localeId) {
+      $study = Study::find($studyId);
+      $studyLocale = StudyLocale::where('study_id', $studyId)
+        ->where('locale_id', $localeId)
+        ->firstOrFail();
+      $studyLocale->delete();
+      $testStudyLocale = StudyLocale::where('study_id', $study->test_study_id)
+        ->where('locale_id', $localeId)
+        ->firstOrFail();
+      $testStudyLocale->delete();
+    });
 
     return response()->json(
       [],
