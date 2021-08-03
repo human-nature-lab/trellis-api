@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Validator;
+use Illuminate\Support\Facades\Validator;
 use Ramsey\Uuid\Uuid;
 use App\Models\User;
 use App\Models\UserStudy;
@@ -254,9 +254,13 @@ class UserController extends Controller
                 'msg' => "Can't determine user automagically"
             ], Response::HTTP_BAD_REQUEST);
         } else if ($user->role === 'ADMIN') {
-            return response()->json([
-                'studies' => Study::whereNull('deleted_at')->get()
-            ], Response::HTTP_OK);
+          $studies = Study::whereNull('deleted_at')->
+            whereNotNull('test_study_id')->
+            with('testStudy', 'locales')->
+            get();
+          return response()->json([
+              'studies' => $studies,
+          ], Response::HTTP_OK);
         }
         return response()->json([
             'studies' => $user->studies

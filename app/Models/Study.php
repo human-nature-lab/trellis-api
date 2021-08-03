@@ -71,6 +71,11 @@ class Study extends Model {
     return $this->hasOne('App\Models\Study', 'id', 'test_study_id');
   }
 
+  public function isProd(): bool {
+    return isset($this->test_study_id);
+  }
+          // Use the test study if we're trying to access a prod study
+
   /*
     public function delete()
     {

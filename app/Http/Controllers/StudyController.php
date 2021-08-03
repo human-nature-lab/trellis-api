@@ -29,7 +29,7 @@ class StudyController extends Controller {
     })->get();
   }
 
-  public function getStudy(Request $request, $id) {
+  public function getStudy($id) {
     $validator = Validator::make(
       ['studyId' => $id],
       ['studyId' => 'required|string|min:36']
@@ -56,12 +56,33 @@ class StudyController extends Controller {
     ], Response::HTTP_OK);
   }
 
+  public function getProdFromTest ($testStudyId) {
+    $validator = Validator::make(
+      ['testStudyId' => $testStudyId],
+      ['testStudyId' => 'required|string|min:36']
+    );
+
+    if ($validator->fails() === true) {
+      return response()->json([
+        'msg' => 'Validation failed',
+        'err' => $validator->errors()
+      ], $validator->statusCode());
+    }
+
+    $study = Study::where('test_study_id', $testStudyId)->with('locales', 'testStudy')->first();
+
+    return response()->json([
+      'study' => $study,
+    ], Response::HTTP_OK);
+  }
+
   public function getAllStudies(Request $request) {
     $user = $request->user();
     if ($user->role == "ADMIN") {
       return response()->json([
         'studies' => Study::whereNull('deleted_at')
-          ->with('locales', 'defaultLocale', 'parameters')
+          ->whereNotNull('test_study_id')
+          ->with('locales', 'defaultLocale', 'parameters', 'testStudy')
           ->get()
       ], Response::HTTP_OK);
     } else {
@@ -77,6 +98,7 @@ class StudyController extends Controller {
   public function getAllStudiesComplete() {
     return response()->json([
       'studies' => Study::whereNull('deleted_at')
+        ->whereNotNull('test_study_id')
         ->with('locales', 'defaultLocale', 'parameters')
         ->get()
     ], Response::HTTP_OK);
