@@ -130,20 +130,24 @@ class FormService {
     return $importedForm;
   }
 
-  public static function createForm(String $formName, String $localeId) {
+  public static function createFormWithTranslation (Translation $tr, String $formMasterId, int $version): Form {
+    
+  }
+
+  public static function createForm (String $formName, String $localeId): Form {
     $newFormModel = null;
 
     try {
       DB::beginTransaction();
+      $formId = Uuid::uuid4();
       $translationId = Uuid::uuid4();
       $translationTextId = Uuid::uuid4();
-      $formId = Uuid::uuid4()->toString();
-
+  
       // Create new Translation.
       $newTranslationModel = new Translation;
       $newTranslationModel->id = $translationId;
       $newTranslationModel->save();
-
+  
       // Create new TranslationText.
       $newTranslationTextModel = new TranslationText;
       $newTranslationTextModel->id = $translationTextId;
@@ -151,15 +155,14 @@ class FormService {
       $newTranslationTextModel->locale_id = $localeId;
       $newTranslationTextModel->translated_text = $formName;
       $newTranslationTextModel->save();
-
+  
       $formMasterId = $formId;
 
-      // Create new Form.
-      $newFormModel = Form::create([
+      $newFormModel =  Form::create([
         'id' => $formId,
         'form_master_id' => $formMasterId,
         'name_translation_id' => $translationId,
-        'version' => 0
+        'version' => 1
       ]);
 
       DB::commit();
@@ -182,6 +185,29 @@ class FormService {
       $form = self::createForm($formName, $study->default_locale_id);
       $studyForm = self::createStudyForm($form->id, $studyId, $formType);
     });
+
+    return $form;
+  }
+
+  /**
+   * Copy a form in the database
+   */
+  public static function copyForm (Form $form, int $version): Form {
+    $formId = Uuid::uuid4();
+    $form = Form::create([
+      'id' => $formId,
+      'form_master_id' => $form->form_master_id,
+      'name_translation_id' => $form->name_translation_id,
+      'published' => true,
+      'version' => $version,
+    ]);
+
+    $sections = [];
+    foreach ($form->sections as $section) {
+      $sections[] = SectionService::copySection($section);
+    }
+
+    $form->sections()->saveMany($sections);
 
     return $form;
   }

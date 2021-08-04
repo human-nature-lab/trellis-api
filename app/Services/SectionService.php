@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\Form;
 use App\Models\FormSection;
+use App\Models\QuestionGroupSkip;
 use App\Models\Section;
 use App\Models\Study;
 use App\Models\Translation;
 use App\Models\TranslationText;
+use app\Services\QuestionGroupService;
 use Ramsey\Uuid\Uuid;
-use DB;
+use Illuminate\Support\Facades\DB;
 
 class SectionService
 {
@@ -109,5 +111,18 @@ class SectionService
             ->find($sectionId);
 
         return $returnSection;
+    }
+
+    public static function copySection (Section $section): Section {
+      $newSection = Section::create([
+        'id' => Uuid::uuid4(),
+        'nameTranslation' => TranslationService::copyTranslation($section->nameTranslation());
+      ]);
+      $groups = [];
+      foreach ($section->questionGroups as $group) {
+        $groups[] = QuestionGroupService::copyQuestionGroup($group);
+      }
+      $newSection->questionGroups()->saveMany($groups);
+      return $newSection;
     }
 }

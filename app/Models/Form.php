@@ -61,4 +61,8 @@ class Form extends Model
             ->with('conditions');
     }
 
+    public function versions () {
+      return $this->hasMany('App\Models\Form', 'form_master_id', 'form_master_id');
+    }
+
 }

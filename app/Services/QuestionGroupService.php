@@ -6,7 +6,7 @@ use App\Models\QuestionGroup;
 use App\Models\Section;
 use App\Models\SectionQuestionGroup;
 use Ramsey\Uuid\Uuid;
-use DB;
+use Illuminate\Support\Facades\DB;
 
 class QuestionGroupService
 {
@@ -54,5 +54,17 @@ class QuestionGroupService
             ->find($questionGroupId);
 
         return $returnQuestionGroup;
+    }
+
+    public static function copyQuestionGroup (QuestionGroup $qg): QuestionGroup {
+      $newQg = QuestionGroup::create([
+        'id' => Uuid::uuid4(),
+      ]);
+      // $questions = [];
+      // foreach ($qg->questions as $question) {
+      //   $questions[] = QuestionService::copyQuestion($question);
+      // }
+      // // TODO: Save 
+      return $newQg;
     }
 }

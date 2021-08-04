@@ -19,6 +19,7 @@ class StudyForm extends Pivot
         'id',
         'study_id',
         'form_master_id',
+        'current_version_id',
         'census_type_id',
         'geo_type_id',
         'sort_order',
@@ -42,6 +43,10 @@ class StudyForm extends Pivot
 
     public function geoType () {
         return $this->belongsTo('App\Models\GeoType');
+    }
+
+    public function currentVersion () {
+      return $this->belongsTo('App\Models\Form', 'current_version_id');
     }
 
     /*
