@@ -360,17 +360,18 @@ class FormController extends Controller {
         'err' => $validator->errors()
       ], $validator->statusCode());
     }
+    
+    $studyForms = StudyForm::where('study_id', $studyId)->with('form', 'form.nameTranslation', 'form.skips')->get();
 
-    $study = Study::find($studyId);
-    $forms = Form::whereIn('id', function ($q) use ($study) {
-      $q->
-        select('form_master_id')->
-        from('study_form')->
-        whereIn('study_id', [$study->id, $study->test_study_id]);
-    })->with('nameTranslation', 'skips', 'studyForm', 'versions')->get();
+    // $forms = Form::whereIn('id', function ($q) use ($studyId) {
+    //   $q->
+    //     select('form_master_id')->
+    //     from('study_form')->
+    //     whereIn('study_id', [$studyId]);
+    // })->with('nameTranslation', 'skips', 'studyForm', 'versions')->get();
 
     return response()->json([
-      'forms' => $forms,
+      'forms' => $studyForms,
     ]);
   }
 
@@ -444,29 +445,41 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
 
-    $newForm = DB::transaction(function () use ($formId, $studyId) {
-      $form = Form::find($formId);
+    $testStudy = Study::find($studyId);
+    if ($testStudy->isProd()) {
+      return response()->json([
+        'msg' => 'Can only publish forms from test studies'
+      ], $validator->statusCode());
+    }
 
-      $studyForm = StudyForm::where('form_master_id', $form->form_master_id)->where('study_id', $studyId)->first();
+    $prodStudy = Study::where('test_study_id', $studyId)->first();
 
-      // Create a new study form if one doesn't exist for this master form yet
-      if (!isset($studyForm)) {
-        $studyForm = StudyForm::create([
-          'study_id' => $studyId,
-          'form_master_id' => $form->form_master_id
-        ]);
+    $newForm = DB::transaction(function () use ($formId, $testStudy, $prodStudy) {
+      $testForm = Form::with('nameTranslation', 'studyForm', 'sections')->find($formId);
+      
+      $testStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $testStudy->id)->first();
+      $prodStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $prodStudy->id)->first();
+
+      // Create a new prod StudyForm if one doesn't exist for this form yet
+      if (!isset($prodStudyForm)) {
+        $prodStudyForm = $testStudyForm->replicate(['id', 'study_id']);
+        $prodStudyForm->id = Uuid::uuid4();
+        $prodStudyForm->study_id = $prodStudy->id;
+      }
+      
+      // Get the latest version number
+      $currentVersion = 1;
+      $currentVersionForm = Form::find($prodStudyForm->current_version_id);
+      if (isset($currentVersionForm)) {
+        $currentVersion = $currentVersionForm->version;
       }
 
-      $currentVersion = $form->version;
-
-      $newForm = FormService::copyForm($form, $currentVersion);
-      $newForm->save();
-      Log::info(json_encode($newForm));
-      $studyForm->current_version_id = $newForm->id;
-      $studyForm->save();
-      $form->version += 1;
-      $form->save();
-      return Form::find($form->form_master_id)->with('nameTranslation', 'skips', 'studyForm', 'versions');
+      $newForm = FormService::copyForm($testForm, $currentVersion); 
+      $prodStudyForm->current_version_id = $newForm->id;
+      $prodStudyForm->save();
+      $testForm->version = $currentVersion + 1;
+      $testForm->save();
+      return Form::find($newForm->id)->with('nameTranslation', 'skips', 'studyForm', 'versions');
     });
 
     return response()->json($newForm);
@@ -496,7 +509,9 @@ class FormController extends Controller {
   }
 
   public function createForm(Request $request, $studyId) {
-    $validator = Validator::make(array_merge($request->all(), ['study_id' => $studyId]), [
+    $validator = Validator::make(array_merge($request->all(), [
+      'study_id' => $studyId
+    ]), [
       'name' => 'nullable|string',
       'study_id' => 'required|string|min:36|exists:study,id',
       'form_type' => 'integer|min:0|max:255'
@@ -538,6 +553,23 @@ class FormController extends Controller {
       'form' => $returnForm
     ], Response::HTTP_OK);
   }
+  
+  public function getVersions ($formMasterId) {
+    $validator = Validator::make(['form_id' => $formMasterId], [
+      'form_id' => 'required|exists:form,id'
+    ]);
+    if ($validator->fails()) {
+      return response()->json([
+        'msg' => 'Validation failed',
+        'err' => $validator->errors()
+      ], $validator->statusCode());
+    }
+
+    $versions = Form::where('form_master_id', $formMasterId)->get();
+    return response()->json([
+      'versions' => $versions,
+    ]);
+  }
 
   public function reorderForms(Request $request, $studyId) {
     // PATCH method for updating multiple study_form rows at once
@@ -548,7 +580,7 @@ class FormController extends Controller {
       'study_id' => 'required|string|min:36|exists:study,id'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -1049,9 +1081,11 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
 
-    $q = Form::where('is_published', 1)
-      ->whereIn('id', function ($sub) use ($studyId, $formTypeId) {
-        $sub->select('form_master_id')
+    $study = Study::find($studyId);
+    // $testStudy = Study::where('id', $study->test_study_id)->first();
+
+    $q = Form::whereIn('id', function ($sub) use ($studyId, $formTypeId) {
+        $sub->select('current_version_id')
           ->from('study_form')
           ->where('study_id', $studyId);
         if ($formTypeId !== null) {

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Form;
+use App\Models\FormSection;
 use App\Models\StudyForm;
 use App\Models\Study;
 use App\Models\TranslationText;
@@ -47,6 +48,7 @@ class FormService {
     $studyForm->id = Uuid::uuid4();
     $studyForm->study_id = $studyId;
     $studyForm->form_master_id = $formId;
+    $studyForm->current_version_id = $formId;
 
     $formTypeId = 1 * $formType;
     $maxSortOrder = DB::table('study_form')
@@ -130,11 +132,7 @@ class FormService {
     return $importedForm;
   }
 
-  public static function createFormWithTranslation (Translation $tr, String $formMasterId, int $version): Form {
-    
-  }
-
-  public static function createForm (String $formName, String $localeId): Form {
+  public static function createForm(String $formName, String $localeId): Form {
     $newFormModel = null;
 
     try {
@@ -142,12 +140,12 @@ class FormService {
       $formId = Uuid::uuid4();
       $translationId = Uuid::uuid4();
       $translationTextId = Uuid::uuid4();
-  
+
       // Create new Translation.
       $newTranslationModel = new Translation;
       $newTranslationModel->id = $translationId;
       $newTranslationModel->save();
-  
+
       // Create new TranslationText.
       $newTranslationTextModel = new TranslationText;
       $newTranslationTextModel->id = $translationTextId;
@@ -155,7 +153,7 @@ class FormService {
       $newTranslationTextModel->locale_id = $localeId;
       $newTranslationTextModel->translated_text = $formName;
       $newTranslationTextModel->save();
-  
+
       $formMasterId = $formId;
 
       $newFormModel =  Form::create([
@@ -192,23 +190,26 @@ class FormService {
   /**
    * Copy a form in the database
    */
-  public static function copyForm (Form $form, int $version): Form {
-    $formId = Uuid::uuid4();
-    $form = Form::create([
-      'id' => $formId,
-      'form_master_id' => $form->form_master_id,
-      'name_translation_id' => $form->name_translation_id,
-      'published' => true,
+  public static function copyForm(Form $form, int $version): Form {
+    $form = $form->replicate(['id', 'name_translation_id', 'version', 'is_published'])->fill([
+      'id' => Uuid::uuid4(),
+      'name_translation_id' => TranslationService::copyTranslation($form->nameTranslation)->id,
+      'is_published' => true,
       'version' => $version,
     ]);
+    $form->save();
 
-    $sections = [];
     foreach ($form->sections as $section) {
-      $sections[] = SectionService::copySection($section);
+      $section = SectionService::copySection($section);
+      $formSection = (new FormSection)->fill([
+        'id' => Uuid::uuid4(),
+        'form_master_id' => $form->id,
+        'section_id' => $section->id,
+      ]);
+      $section->save();
+      $formSection->save();
     }
 
-    $form->sections()->saveMany($sections);
-
-    return $form;
+    return Form::with('sections', 'nameTranslation')->find($form->id);
   }
 }

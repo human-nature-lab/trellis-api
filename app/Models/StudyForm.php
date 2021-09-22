@@ -34,7 +34,7 @@ class StudyForm extends Pivot
     }
 
     public function form () {
-        return $this->belongsTo('App\Models\Form', 'form_master_id');
+        return $this->belongsTo('App\Models\Form', 'current_version_id');
     }
 
     public function censusType () {

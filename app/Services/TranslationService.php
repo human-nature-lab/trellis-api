@@ -49,20 +49,17 @@ class TranslationService
         return $translationId;
     }
 
-  public function copyTranslation (Translation $t): Translation {
+  static public function copyTranslation (Translation $t): Translation {
     $newTranslation = Translation::create([
       'id' => Uuid::uuid4()
     ]);
-    $translations = [];
+    $newTranslation->save();
     foreach ($t->translationText as $tt) {
-      $translations[] = new TranslationText([
-        'id' => Uuid::uuid4(),
-        'translation_id' => $newTranslation->id,
-        'translated_text' => $tt->translated_text,
-        'locale_id' => $tt->locale_id,
-      ]);
+      $ntt = $tt->replicate(['id', 'translation_id']);
+      $ntt->id = Uuid::uuid4();
+      $ntt->translation_id = $newTranslation->id;
+      $ntt->save();
     }
-    $newTranslation->translationText()->insertMany($translations);
     return $newTranslation;
   }
 }

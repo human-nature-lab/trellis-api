@@ -34,7 +34,7 @@ class Form extends Model
     }
 
     public function studyForm() {
-        return $this->hasMany('App\Models\StudyForm', 'form_master_id')
+        return $this->hasMany('App\Models\StudyForm', 'form_master_id', 'form_master_id')
             ->whereNull('study_form.deleted_at')
             ->with('type');
     }
@@ -60,7 +60,7 @@ class Form extends Model
             ->withTimestamps()
             ->with('conditions');
     }
-
+    
     public function versions () {
       return $this->hasMany('App\Models\Form', 'form_master_id', 'form_master_id');
     }

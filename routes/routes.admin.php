@@ -21,6 +21,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   //* Form Controller Routes *//
   $router->get('study/{studyId}/form',                                        [                                         'uses' => 'FormController@getAllStudyForms']);
   $router->get('form/{id}',                                                   [                                         'uses' => 'FormController@getForm']);
+  $router->get('form/{id}/versions',                                          [                                         'uses' => 'FormController@getVersions']);
   $router->get('form',                                                        [                                         'uses' => 'FormController@getAllForms']);
   $router->get('study/{studyId}/forms',                                       [                                         'uses' => 'RespondentController@getRespondentStudyForms']);
   $router->post('study/{study_id}/form',                                      ['middleware' => 'requires:ADD_FORM',     'uses' => 'FormController@createForm']);
