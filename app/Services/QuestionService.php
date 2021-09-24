@@ -97,9 +97,22 @@ class QuestionService
         $p->save();
       }
 
+      foreach($question->assignConditionTags as $act) {
+        $a = $act->replicate()->fill([
+          'id' => Uuid::uuid4(),
+        ]);
+        $a->save();
+        $qa = $act->pivot->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'question_id' => $q->id,
+          'assign_condition_tag_id' => $a->id,
+        ]);
+        $qa->save();
+      }
+
       foreach($question->choices as $c) {
         $c = QuestionChoiceService::copyChoice($c);
-        $qc = (new QuestionChoice())->fill([
+        $qc = $c->pivot->replicate()->fill([
           'id' => Uuid::uuid4(),
           'choice_id' => $c->id,
           'question_id' => $q->id,

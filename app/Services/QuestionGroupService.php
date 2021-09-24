@@ -64,6 +64,25 @@ class QuestionGroupService {
       $q->question_group_id = $qg->id;
       $q->save();
     }
+    foreach ($qg->skips as $skip) {
+      $s = $skip->replicate()->fill([
+        'id' => Uuid::uuid4(),
+      ]);
+      $qgs = $skip->pivot->replicate()->fill([
+        'id' => Uuid::uuid4(),
+        'skip_id' => $s->id,
+        'question_group_id' => $qg->id,
+      ]);
+      $s->save();
+      $qgs->save();
+      foreach ($s->conditions as $cond) {
+        $c = $cond->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'skip_id' => $s->id,
+        ]);
+        $c->save();
+      }
+    }
     return $qg;
   }
 }

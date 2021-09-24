@@ -361,7 +361,7 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
     
-    $studyForms = StudyForm::where('study_id', $studyId)->with('form', 'form.nameTranslation', 'form.skips')->get();
+    $studyForms = StudyForm::where('study_id', $studyId)->with('form', 'form.nameTranslation', 'form.skips', 'form.versions')->get();
 
     // $forms = Form::whereIn('id', function ($q) use ($studyId) {
     //   $q->
@@ -467,17 +467,10 @@ class FormController extends Controller {
         $prodStudyForm->study_id = $prodStudy->id;
       }
       
-      // Get the latest version number
-      $currentVersion = 1;
-      $currentVersionForm = Form::find($prodStudyForm->current_version_id);
-      if (isset($currentVersionForm)) {
-        $currentVersion = $currentVersionForm->version;
-      }
-
-      $newForm = FormService::copyForm($testForm, $currentVersion); 
+      $newForm = FormService::copyForm($testForm, $testForm->version); 
       $prodStudyForm->current_version_id = $newForm->id;
       $prodStudyForm->save();
-      $testForm->version = $currentVersion + 1;
+      $testForm->version += 1;
       $testForm->save();
       return Form::find($newForm->id)->with('nameTranslation', 'skips', 'studyForm', 'versions');
     });

@@ -201,12 +201,11 @@ class FormService {
 
     foreach ($form->sections as $section) {
       $section = SectionService::copySection($section);
-      $formSection = (new FormSection)->fill([
+      $formSection = $section->pivot->replicate(['id', 'form_id', 'section_id'])->fill([
         'id' => Uuid::uuid4(),
-        'form_master_id' => $form->id,
+        'form_id' => $form->id,
         'section_id' => $section->id,
       ]);
-      $section->save();
       $formSection->save();
     }
 

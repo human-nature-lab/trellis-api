@@ -122,12 +122,12 @@ class SectionService
       $newSection->save();
       foreach ($section->questionGroups as $group) {
         $g = QuestionGroupService::copyQuestionGroup($group);
-        $sqg = SectionQuestionGroup::create([
+        $sqg = $group->pivot->replicate(['id', 'section_id', 'question_group_id'])->fill([
           'id' => Uuid::uuid4(),
           'section_id' => $newSection->id,
           'question_group_id' => $g->id,
         ]);
-        $g->save();
+        // $g->save();
         $sqg->save();
       }
       return $newSection;
