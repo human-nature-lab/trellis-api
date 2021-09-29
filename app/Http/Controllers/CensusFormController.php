@@ -40,6 +40,12 @@ class CensusFormController extends Controller {
             ->with('form')
             ->first();
 
+        if ($studyForm === null) {
+            return response()->json([
+                'form' => null
+            ], Response::HTTP_OK);
+        };
+
         $form = Form::where('form_master_id', $studyForm->form_master_id)
             ->where('is_published', 1)
             ->first();
