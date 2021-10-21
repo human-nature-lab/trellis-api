@@ -34,7 +34,7 @@ class Form extends Model
     }
 
     public function studyForm() {
-        return $this->hasMany('App\Models\StudyForm', 'form_master_id', 'form_master_id')
+        return $this->hasMany('App\Models\StudyForm', 'current_version_id', 'id')
             ->whereNull('study_form.deleted_at')
             ->with('type');
     }

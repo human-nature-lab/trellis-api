@@ -66,6 +66,10 @@ class Question extends Model
             ->with('condition');
     }
 
+    public function preloadActions () {
+      return $this->hasMany('App\Models\PreloadAction');
+    }
+
     /*
     public function delete()
     {

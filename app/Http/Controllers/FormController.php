@@ -56,7 +56,7 @@ class FormController extends Controller {
       ['id' => 'required|string|min:36|exists:form,id']
     );
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -107,7 +107,7 @@ class FormController extends Controller {
       'formId' => 'required|string|min:36|exists:form,id'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -171,7 +171,7 @@ class FormController extends Controller {
       'formType' => 'required|integer'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -217,7 +217,7 @@ class FormController extends Controller {
       'sort_order' => 'required|integer'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -354,7 +354,7 @@ class FormController extends Controller {
       'studyId' => 'required|string|min:36|exists:study,id'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -385,7 +385,7 @@ class FormController extends Controller {
       'name_translation_id' => 'nullable|string|min:36|exists:translation,id'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -429,6 +429,30 @@ class FormController extends Controller {
     ], Response::HTTP_OK);
   }
 
+  public function revertVersion (String $formMasterId, String $versionId) {
+    $validator = Validator::make([
+      'master_id' => $formMasterId,
+      'version_id' => $versionId,
+    ], [
+      'master_id' => 'string|min:36|exists:form,id',
+      'version_id' => 'string|min:36|exists:form,id',
+    ]);
+
+    if ($validator->fails()) {
+      return response()->json([
+        'msg' => $validator->errors(),
+      ], $validator->statusCode());
+    }
+
+    $studyForm = StudyForm::where('form_master_id', $formMasterId)->whereIn('study_id', function ($q) {
+      $q->select('id')->from('study')->whereNotNull('test_study_id');
+    })->first();
+
+    $studyForm->current_version_id = $versionId;
+    $studyForm->save();
+    return response()->json($studyForm);
+  }
+
   public function publishForm(String $studyId, String $formId) {
     $validator = Validator::make([
       'form_id' => $formId,
@@ -438,7 +462,7 @@ class FormController extends Controller {
       'study_id' => 'string|min:36|exists:study,id',
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -462,9 +486,10 @@ class FormController extends Controller {
 
       // Create a new prod StudyForm if one doesn't exist for this form yet
       if (!isset($prodStudyForm)) {
-        $prodStudyForm = $testStudyForm->replicate(['id', 'study_id']);
-        $prodStudyForm->id = Uuid::uuid4();
-        $prodStudyForm->study_id = $prodStudy->id;
+        $prodStudyForm = $testStudyForm->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'study_id' => $prodStudy->id,
+        ]);
       }
       
       $newForm = FormService::copyForm($testForm, $testForm->version); 
@@ -487,7 +512,7 @@ class FormController extends Controller {
       'studyId' => 'string|min:36|exists:study,id'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => $validator->errors()
       ], $validator->statusCode());
@@ -510,7 +535,7 @@ class FormController extends Controller {
       'form_type' => 'integer|min:0|max:255'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()
@@ -606,7 +631,7 @@ class FormController extends Controller {
             'study_id' => 'required|string|min:36|exists:study,id'
         ]);
 
-        if ($validator->fails() === true) {
+        if ($validator->fails()) {
             return response()->json([
                 'msg' => 'Validation failed',
                 'err' => $validator->errors()
@@ -648,7 +673,7 @@ class FormController extends Controller {
       'isPublished' => 'required|boolean:1'
     ]);
 
-    if ($validator->fails() === true) {
+    if ($validator->fails()) {
       return response()->json([
         'msg' => 'Validation failed',
         'err' => $validator->errors()

@@ -22,6 +22,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->get('study/{studyId}/form',                                        [                                         'uses' => 'FormController@getAllStudyForms']);
   $router->get('form/{id}',                                                   [                                         'uses' => 'FormController@getForm']);
   $router->get('form/{id}/versions',                                          [                                         'uses' => 'FormController@getVersions']);
+  $router->put('form/{formMasterId}/revert/{versionId}',                      ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@revertVersion']);
   $router->get('form',                                                        [                                         'uses' => 'FormController@getAllForms']);
   $router->get('study/{studyId}/forms',                                       [                                         'uses' => 'RespondentController@getRespondentStudyForms']);
   $router->post('study/{study_id}/form',                                      ['middleware' => 'requires:ADD_FORM',     'uses' => 'FormController@createForm']);
@@ -29,7 +30,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->delete('study/{study_id}/form/{form_id}',                          ['middleware' => 'requires:REMOVE_FORM',  'uses' => 'FormController@removeForm']);
   $router->put('study/{study_id}/form/{form_id}',                             ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateStudyForm']);
   $router->put('form/{id}',                                                   ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateForm']);
-  $router->post('study/{studyId}/form/{form_id}/publish',                               ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@publishForm']);
+  $router->post('study/{studyId}/form/{form_id}/publish',                     ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@publishForm']);
   $router->patch('study/{studyId}/forms/reorder',                             ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@reorderForms']);
   $router->get('study/{studyId}/form/{formId}/master/{formMasterId}/edit',    ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@editFormPrep']);
   $router->post('study/{studyId}/form/assign',                                ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@assignForm']);

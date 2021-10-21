@@ -46,7 +46,7 @@ class DashboardController extends Controller {
           from('study_form')->
           where('study_id', $studyId);
       })->
-      where('is_published', true)->
+      where('is_published', 1)->
       whereNull('deleted_at')->
       count();
     $res['respondents'] = DB::table('respondent')->
@@ -103,7 +103,6 @@ class DashboardController extends Controller {
       'study' => 'required|string|exists:study,id',
       'min' => 'required|string',
       'max' => 'string',
-      
     ])->validate();
 
     $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
@@ -238,18 +237,16 @@ class DashboardController extends Controller {
       $formIds = explode(",", $req->get('forms'));
       $forms = Form::whereIn('id', $formIds)->
         with('nameTranslation', 'studyForm')->
-        whereNull('deleted_at')->
-        get();
+        whereNull('deleted_at');
     } else {
       $forms = Form::whereIn('id', function ($q) use ($studyId) {
           $q->
-            select('form_master_id')->
+            select('current_version_id')->
             from('study_form')->
             where('study_id', $studyId)->
             whereNull('deleted_at');
         })->
-        with('nameTranslation', 'studyForm')->
-        whereNull('deleted_at');
+        with('nameTranslation', 'studyForm');
     }
 
     if ($req->get('onlyPublished')) {
@@ -258,22 +255,34 @@ class DashboardController extends Controller {
 
     $forms = $forms->get();
 
+    Log::info($forms->toJson());
+
     $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
     $min = $req->get('min');
     $max = $max->format('Y-m-d');
 
     $res = [];
 
+    $formIds = $forms->map(function ($f) { return $f->form_master_id; });
+    Log::info($formIds);
     $surveys = DB::table('survey')->
       selectRaw('form_id, date(created_at) date, count(*) n')->
       where('created_at', '>=', $min)->
       where('created_at', '<=', $max)->
-      where('study_id', $studyId)-> whereNull('deleted_at')->
+      where('study_id', $studyId)->
+      // whereIn('form_id', )->
+      whereNull('deleted_at')->
       orderBy('created_at')->
       groupBy(DB::raw('form_id, date(created_at)'));
     
+    // Limit to all versions of the given form
     if (count($forms)) {
-      $surveys = $surveys->whereIn('form_id', $forms->map(function ($f) { return $f->id; }));
+      $surveys = $surveys->whereIn('form_id', function ($q) use ($formIds) {
+        return $q->
+          select('id')->
+          from('form')->
+          whereIn('form_master_id', $formIds);
+      });
     }
 
     // Limit returned surveys to only specified users

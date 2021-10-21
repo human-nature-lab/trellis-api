@@ -120,6 +120,15 @@ class QuestionService
         $c->save();
         $qc->save();
       }
+
+      foreach($question->preloadActions as $p) {
+        $pa = $p->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'question_id' => $q->id,
+        ]);
+        $pa->save();
+      }
+
       return $q;
     }
 

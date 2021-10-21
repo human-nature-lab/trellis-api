@@ -55,9 +55,10 @@ class TranslationService
     ]);
     $newTranslation->save();
     foreach ($t->translationText as $tt) {
-      $ntt = $tt->replicate(['id', 'translation_id']);
-      $ntt->id = Uuid::uuid4();
-      $ntt->translation_id = $newTranslation->id;
+      $ntt = $tt->replicate()->fill([
+        'id' => Uuid::uuid4(),
+        'translation_id' => $newTranslation->id,
+      ]);
       $ntt->save();
     }
     return $newTranslation;
