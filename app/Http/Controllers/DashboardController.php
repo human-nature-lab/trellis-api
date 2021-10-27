@@ -46,7 +46,7 @@ class DashboardController extends Controller {
           from('study_form')->
           where('study_id', $studyId);
       })->
-      where('is_published', 1)->
+      where('is_published', true)->
       whereNull('deleted_at')->
       count();
     $res['respondents'] = DB::table('respondent')->
@@ -245,13 +245,12 @@ class DashboardController extends Controller {
             from('study_form')->
             where('study_id', $studyId)->
             whereNull('deleted_at');
-        })->
-        with('nameTranslation', 'studyForm');
+        });
     }
 
-    // if ($req->get('onlyPublished')) {
-    //   $forms = $forms->where('is_published', 1);
-    // }
+    if ($req->get('onlyPublished')) {
+      $forms = $forms->where('is_published', true);
+    }
 
     $forms = $forms->get();
 
@@ -331,19 +330,22 @@ class DashboardController extends Controller {
     }
     
     $surveys = $surveys->get();
+    Log::info(count($surveys));
 
     // Convert data into labels and counts
-    foreach ($forms as $form) {
-      $data = $surveys->filter(function ($s) use ($form) {return $s->fmid === $form->id;});
-      if (count($data) > 0) {
-        $res[$form->id] = [
-          'form' => $form,
+    foreach ($surveys as $survey) {
+      if (!isset($res[$survey->fmid])) {
+        $res[$survey->fmid] = [
+          'form' => Form::with('nameTranslation', 'studyForm')->find($survey->fmid),
           'data' => [
-            'labels' => $data->map(function ($d) { return $d->date; })->values(),
-            'data' => $data->map(function ($d) { return $d->n; })->values()
-          ]
+            'labels' => [],
+            'data' => [],
+          ],
         ];
       }
+      // append data
+      $res[$survey->fmid]['data']['data'][] = $survey->n;
+      $res[$survey->fmid]['data']['labels'][] = $survey->date;
     }
 
     return $res;
