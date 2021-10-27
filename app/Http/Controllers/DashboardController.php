@@ -239,9 +239,9 @@ class DashboardController extends Controller {
         with('nameTranslation', 'studyForm')->
         whereNull('deleted_at');
     } else {
-      $forms = Form::whereIn('id', function ($q) use ($studyId) {
+      $forms = Form::whereIn('form_master_id', function ($q) use ($studyId) {
           $q->
-            select('current_version_id')->
+            select('form_master_id')->
             from('study_form')->
             where('study_id', $studyId)->
             whereNull('deleted_at');
@@ -249,9 +249,9 @@ class DashboardController extends Controller {
         with('nameTranslation', 'studyForm');
     }
 
-    if ($req->get('onlyPublished')) {
-      $forms = $forms->where('is_published', 1);
-    }
+    // if ($req->get('onlyPublished')) {
+    //   $forms = $forms->where('is_published', 1);
+    // }
 
     $forms = $forms->get();
 
@@ -263,17 +263,16 @@ class DashboardController extends Controller {
 
     $res = [];
 
-    $formIds = $forms->map(function ($f) { return $f->form_master_id; });
+    $formIds = $forms->map(function ($f) { return $f->id; });
     Log::info($formIds);
     $surveys = DB::table('survey')->
-      selectRaw('form_id, date(created_at) date, count(*) n')->
+      selectRaw('(select form_master_id from form where id = form_id) fmid, date(created_at) date, count(*) n')->
       where('created_at', '>=', $min)->
       where('created_at', '<=', $max)->
       where('study_id', $studyId)->
-      // whereIn('form_id', )->
       whereNull('deleted_at')->
       orderBy('created_at')->
-      groupBy(DB::raw('form_id, date(created_at)'));
+      groupBy(DB::raw('fmid, date(created_at)'));
     
     // Limit to all versions of the given form
     if (count($forms)) {
@@ -281,7 +280,7 @@ class DashboardController extends Controller {
         return $q->
           select('id')->
           from('form')->
-          whereIn('form_master_id', $formIds);
+          whereIn('id', $formIds);
       });
     }
 
@@ -335,14 +334,16 @@ class DashboardController extends Controller {
 
     // Convert data into labels and counts
     foreach ($forms as $form) {
-      $data = $surveys->filter(function ($s) use ($form) {return $s->form_id === $form->id;});
-      $res[$form->id] = [
-        'form' => $form,
-        'data' => [
-          'labels' => $data->map(function ($d) { return $d->date; })->values(),
-          'data' => $data->map(function ($d) { return $d->n; })->values()
-        ]
-      ];
+      $data = $surveys->filter(function ($s) use ($form) {return $s->fmid === $form->id;});
+      if (count($data) > 0) {
+        $res[$form->id] = [
+          'form' => $form,
+          'data' => [
+            'labels' => $data->map(function ($d) { return $d->date; })->values(),
+            'data' => $data->map(function ($d) { return $d->n; })->values()
+          ]
+        ];
+      }
     }
 
     return $res;
