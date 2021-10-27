@@ -73,11 +73,19 @@ class MakeReports extends Command {
         if ($this->option('form')) {
           $formIds = [$this->option('form')];
         } else {
-          $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
-            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-          })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
-            return $item->id;
-          });
+          $formIds = Form::select('id')->
+            whereIn('form_master_id', function ($q) use ($studyId) {
+              $q->
+                select('form_master_id')->
+                from('study_form')->
+                where('study_id', $studyId);
+            })->
+            whereNull('deleted_at')->
+            where('is_published', true)->
+            get()->
+            map(function ($item) {
+              return $item->id;
+            });
         }
 
         $config = new \stdClass();
