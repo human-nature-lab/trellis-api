@@ -254,16 +254,12 @@ class DashboardController extends Controller {
 
     $forms = $forms->get();
 
-    Log::info($forms->toJson());
-
     $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
     $min = $req->get('min');
     $max = $max->format('Y-m-d');
 
-    $res = [];
 
     $formIds = $forms->map(function ($f) { return $f->id; });
-    Log::info($formIds);
     $surveys = DB::table('survey')->
       selectRaw('(select form_master_id from form where id = form_id) fmid, date(created_at) date, count(*) n')->
       where('created_at', '>=', $min)->
@@ -330,7 +326,7 @@ class DashboardController extends Controller {
     }
     
     $surveys = $surveys->get();
-    Log::info(count($surveys));
+    $res = [];
 
     // Convert data into labels and counts
     foreach ($surveys as $survey) {

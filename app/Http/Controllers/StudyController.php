@@ -25,7 +25,11 @@ class StudyController extends Controller {
     ])->validate();
 
     return User::whereIn('id', function ($q) use ($studyId) {
-      return $q->select('user_id')->from('user_study')->where('study_id', $studyId)->whereNull('deleted_at');
+      return $q->
+        select('user_id')->
+        from('user_study')->
+        where('study_id', $studyId)->
+        whereNull('deleted_at');
     })->get();
   }
 
