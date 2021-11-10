@@ -16,9 +16,9 @@ use App\Models\Study;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Queue\Job;
 // use Laravel\Lumen\Routing\DispatchesJobs;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Queue;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Ramsey\Uuid\Uuid;
 
 class MakeReports extends Command {
@@ -34,7 +34,7 @@ class MakeReports extends Command {
         $studyIds = $this->option('study');
 
         if (count($studyIds) === 0) {
-          $studyIds = DB::table('study')->select('id')->get()->map(function ($s) { return $s->id; });
+          $studyIds = DB::table('study')->select('id')->whereNull('deleted_at')->get()->map(function ($s) { return $s->id; });
         }
 
         $studyCount = count($studyIds);
