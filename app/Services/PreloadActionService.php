@@ -22,23 +22,16 @@ class PreloadActionService {
   private static $validActions = [
     'select-choice' => ['multiple_choice', 'multiple_select'],
     'other-choice-text' => ['multiple_choice', 'multiple_select'],
-    // 'dk-rf' => ['*'],
-    // 'dk-rf-val' => ['*'],
     'number-change' => ['decimal', 'integer'],
     'add-edge' => ['relationship'],
     'no-one' => ['relationship'],
     'add-roster-row' => 'roster',
-    // 'change-sort-order',
     'set-val' => ['text', 'text_area'],
     'add-geo' => ['geo'],
     'add-photo' => ['image'],
     'set-date' => ['year', 'year_month', 'year_month_day', 'year_month_day_time'],
     'set-text' => ['text', 'text_area'],
     'set-time' => ['time', 'year_month_day_time'],
-    // 'respondent-move',
-    // 'respondent-add-geo',
-    // 'other-respondent-added',
-    // 'select-no-one',
   ];
 
   /**
@@ -156,6 +149,9 @@ class PreloadActionService {
     return Geo::create($data);
   }
 
+  /**
+   * Get the geoType by id or name
+   */
   private static function getGeoType (Array $row): GeoType {
     $line = $row['line'];
     if (isset($row['location.type.id']) && $row['location.type.id'] !== null) {
