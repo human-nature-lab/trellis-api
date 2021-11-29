@@ -11,10 +11,8 @@ use App\Library\CsvFileReader;
 use App\Models\Geo;
 use App\Models\GeoType;
 use App\Models\Photo;
-use App\Models\Translation;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class PreloadActionService {
