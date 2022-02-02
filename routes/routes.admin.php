@@ -220,6 +220,10 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->get('study/{study_id}/dashboard/users',            [                                                         'uses' => 'DashboardController@getUsers']);
   $router->get('study/{study_id}/dashboard/geos',             [                                                         'uses' => 'DashboardController@getGeos']);
   $router->get('study/{study_id}/dashboard/forms',            [                                                         'uses' => 'DashboardController@getForms']);
+
+  //* Preload *//
+  $router->post('study/{study_id}/preload-actions',           ['middleware' => 'requires:IMPORT_RESPONDENTS',           'uses' => 'PreloadController@uploadPreloadActions']);
+  
   //* Group Tag Type Controller Routes *//
 // NOT USED   $router->delete('group_tag_type/{id}',                          'GroupTagTypeController@removeGroupTagType');
 // NOT USED   $router->get('group_tag_type',                                  'GroupTagTypeController@getAllGroupTagTypes');
