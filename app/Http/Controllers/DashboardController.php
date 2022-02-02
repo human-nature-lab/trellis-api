@@ -103,7 +103,6 @@ class DashboardController extends Controller {
       'study' => 'required|string|exists:study,id',
       'min' => 'required|string',
       'max' => 'string',
-      
     ])->validate();
 
     $max = $req->get('max') ? Carbon::parse($req->get('max')) : Carbon::today();
@@ -238,22 +237,19 @@ class DashboardController extends Controller {
       $formIds = explode(",", $req->get('forms'));
       $forms = Form::whereIn('id', $formIds)->
         with('nameTranslation', 'studyForm')->
-        whereNull('deleted_at')->
-        get();
+        whereNull('deleted_at');
     } else {
-      $forms = Form::whereIn('id', function ($q) use ($studyId) {
+      $forms = Form::whereIn('form_master_id', function ($q) use ($studyId) {
           $q->
             select('form_master_id')->
             from('study_form')->
             where('study_id', $studyId)->
             whereNull('deleted_at');
-        })->
-        with('nameTranslation', 'studyForm')->
-        whereNull('deleted_at');
+        });
     }
 
     if ($req->get('onlyPublished')) {
-      $forms = $forms->where('is_published', 1);
+      $forms = $forms->where('is_published', true);
     }
 
     $forms = $forms->get();
@@ -262,18 +258,25 @@ class DashboardController extends Controller {
     $min = $req->get('min');
     $max = $max->format('Y-m-d');
 
-    $res = [];
 
+    $formIds = $forms->map(function ($f) { return $f->id; });
     $surveys = DB::table('survey')->
-      selectRaw('form_id, date(created_at) date, count(*) n')->
+      selectRaw('(select form_master_id from form where id = form_id) fmid, date(created_at) date, count(*) n')->
       where('created_at', '>=', $min)->
       where('created_at', '<=', $max)->
-      where('study_id', $studyId)-> whereNull('deleted_at')->
+      where('study_id', $studyId)->
+      whereNull('deleted_at')->
       orderBy('created_at')->
-      groupBy(DB::raw('form_id, date(created_at)'));
+      groupBy(DB::raw('fmid, date(created_at)'));
     
+    // Limit to all versions of the given form
     if (count($forms)) {
-      $surveys = $surveys->whereIn('form_id', $forms->map(function ($f) { return $f->id; }));
+      $surveys = $surveys->whereIn('form_id', function ($q) use ($formIds) {
+        return $q->
+          select('id')->
+          from('form')->
+          whereIn('id', $formIds);
+      });
     }
 
     // Limit returned surveys to only specified users
@@ -323,17 +326,22 @@ class DashboardController extends Controller {
     }
     
     $surveys = $surveys->get();
+    $res = [];
 
     // Convert data into labels and counts
-    foreach ($forms as $form) {
-      $data = $surveys->filter(function ($s) use ($form) {return $s->form_id === $form->id;});
-      $res[$form->id] = [
-        'form' => $form,
-        'data' => [
-          'labels' => $data->map(function ($d) { return $d->date; })->values(),
-          'data' => $data->map(function ($d) { return $d->n; })->values()
-        ]
-      ];
+    foreach ($surveys as $survey) {
+      if (!isset($res[$survey->fmid])) {
+        $res[$survey->fmid] = [
+          'form' => Form::with('nameTranslation', 'studyForm')->find($survey->fmid),
+          'data' => [
+            'labels' => [],
+            'data' => [],
+          ],
+        ];
+      }
+      // append data
+      $res[$survey->fmid]['data']['data'][] = $survey->n;
+      $res[$survey->fmid]['data']['labels'][] = $survey->date;
     }
 
     return $res;

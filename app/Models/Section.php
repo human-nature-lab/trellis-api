@@ -42,7 +42,8 @@ class Section extends Model
             ->withPivot('section_id', 'question_group_order')
             ->whereNull('section_question_group.deleted_at')
             ->withTimestamps()
-            ->with('questions', 'skips');
+            ->with('questions', 'skips')
+            ->orderBy('section_question_group.question_group_order');
     }
 
     /*
