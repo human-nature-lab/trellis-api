@@ -20,6 +20,9 @@ class TokenMiddleware {
    */
   public function handle(Request $request, Closure $next) {
     $hash = $request->headers->get('X-Token');
+    if ($request->headers->has('Authorization')) {
+      $hash = substr($request->headers->get('Authorization'), strlen("bearer "));
+    }
     $token = Cache::get($hash);
     $tokenMinutes = (int)env('TOKEN_EXPIRE');
     if (!isset($token)) {

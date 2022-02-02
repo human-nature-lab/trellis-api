@@ -21,6 +21,9 @@ class UserMiddleware
     {
         $request->setUserResolver(function () use ($request) {
             $token = $request->headers->get('X-Token');
+            if ($request->headers->has('Authorization')) {
+              $token = substr($request->headers->get('Authorization'), strlen("bearer "));
+            }
             if($token === null){
                 return null;
             }

@@ -20,28 +20,28 @@ use App\Models\TranslationText;
 use App\Services\AssignConditionTagService;
 use App\Services\ConditionTagService;
 use App\Services\FormService;
-use App\Services\SectionService;
+use App\Services\QuestionChoiceService;
 use App\Services\QuestionGroupService;
 use App\Services\QuestionParameterService;
 use App\Services\QuestionService;
-use App\Services\QuestionChoiceService;
 use App\Services\QuestionTypeService;
+use App\Services\SectionService;
 use App\Services\SelfAdministeredSurveyService;
 use App\Services\SkipService;
 use App\Services\StudyService;
 use App\Services\TranslationService;
 use App\Services\TranslationTextService;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Lumen\Routing\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use League\Csv\Reader;
+use League\Flysystem\Adapter\Local;
+use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use Throwable;
-use League\Flysystem\Filesystem;
-use League\Flysystem\Adapter\Local;
-use League\Csv\Reader;
 
 class FormController extends Controller {
   /**
@@ -360,8 +360,22 @@ class FormController extends Controller {
         'err' => $validator->errors()
       ], $validator->statusCode());
     }
+
+    $study = Study::find($studyId);
+
+    $isProd = isset($study->test_study_id);
     
-    $studyForms = StudyForm::where('study_id', $studyId)->with('form', 'form.nameTranslation', 'form.skips', 'form.versions')->get();
+    $q = StudyForm::where('study_id', $studyId);
+    $q = $q->
+      with('form', 'form.nameTranslation', 'form.skips')->
+      with(['form.versions' => function($q) use ($isProd) {
+        if ($isProd) {
+          $q->where('is_published', 1);
+        }
+        return $q;
+      }]);
+
+    $studyForms = $q->get();
 
     // $forms = Form::whereIn('id', function ($q) use ($studyId) {
     //   $q->
@@ -492,7 +506,7 @@ class FormController extends Controller {
         ]);
       }
       
-      $newForm = FormService::copyForm($testForm, $testForm->version); 
+      $newForm = FormService::copyForm($testForm, $testForm->version);
       $prodStudyForm->current_version_id = $newForm->id;
       $prodStudyForm->save();
       $testForm->version += 1;
@@ -615,13 +629,7 @@ class FormController extends Controller {
       }
     });
 
-    $studyModel = Study::find($studyId);
-    $formModel = $studyModel->forms()->get();
-
-    return response()->json([
-      'msg' => Response::$statusTexts[Response::HTTP_OK],
-      'forms' => $formModel
-    ], Response::HTTP_OK);
+    return $this->getAllStudyForms($request, $studyId);
   }
 
   /*
