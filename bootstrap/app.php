@@ -115,9 +115,10 @@ $app->singleton(
 */
 
  $app->middleware([
-        App\Http\Middleware\CorsMiddleware::class,
-        // Illuminate\Session\Middleware\StartSession::class,
-        App\Http\Middleware\UserMiddleware::class
+    App\Http\Middleware\CorsMiddleware::class,
+    // App\Http\Middleware\MaintenanceMiddleware::class,
+    // Illuminate\Session\Middleware\StartSession::class,
+    App\Http\Middleware\UserMiddleware::class,
  ]);
 
  $app->routeMiddleware([
