@@ -1,7 +1,8 @@
 <?php
 
-$router->post('token',                                                                       'TokenController@createToken');     // Login
-$router->get('config',                                                                       'ConfigController@all');            // View server configuration
+$router->post('token',      'TokenController@createToken');             // Login
+$router->get('config',      'ConfigController@all');                    // View server configuration
+$router->get('maintenance', 'MaintenanceController@checkMaintenance');  // Check if server is in maintenance mode
 
 $router->group(['middleware' => 'token'], function () use ($router) {
 
