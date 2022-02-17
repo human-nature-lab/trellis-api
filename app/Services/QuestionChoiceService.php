@@ -2,98 +2,101 @@
 
 namespace app\Services;
 
-use App\Services\TranslationService;
-use App\Services\TranslationTextService;
 use App\Models\Choice;
 use App\Models\QuestionChoice;
 use App\Models\Translation;
 use App\Models\TranslationText;
 use Ramsey\Uuid\Uuid;
-use DB;
+use Illuminate\Support\Facades\DB;
 
-class QuestionChoiceService
-{
-    public static function createQuestionChoice($val, $text, $sortOrder, $localeId, $questionId)
-    {
-        $localeTag = DB::table('locale')->where('id', '=', $localeId)->locale_tag;
+class QuestionChoiceService {
 
-        $textLocaleArray = array(
-            $localeTag => $text
-        );
+  public static function copyChoice(Choice $c): Choice {
+    return $c->replicate(['id', 'choice_translation_id'])->fill([
+      'id' => Uuid::uuid4(),
+      'choice_translation_id' => TranslationService::copyTranslation($c->choiceTranslation)->id,
+    ]);
+  }
 
-        $newQuestionChoiceModel = self::createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId);
+  public static function createQuestionChoice($val, $text, $sortOrder, $localeId, $questionId) {
+    $localeTag = DB::table('locale')->where('id', '=', $localeId)->locale_tag;
 
-        return $newQuestionChoiceModel;
-    }
+    $textLocaleArray = array(
+      $localeTag => $text
+    );
 
-    public static function createTranslatedQuestionChoice($questionId, $choiceTranslationId, $val, $sortOrder) {
-        $questionChoiceId = Uuid::uuid4();
-        $choiceId = Uuid::uuid4();
+    $newQuestionChoiceModel = self::createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId);
 
-        $newQuestionChoiceModel = new QuestionChoice;
+    return $newQuestionChoiceModel;
+  }
 
-        DB::transaction(function () use ($val, $choiceTranslationId, $sortOrder, $questionId, $questionChoiceId, $choiceId, $newQuestionChoiceModel) {
-            $newChoiceModel = new Choice;
-            $newChoiceModel->id = $choiceId;
-            $newChoiceModel->choice_translation_id = $choiceTranslationId;
-            $newChoiceModel->val = $val;
-            $newChoiceModel->save();
+  public static function createTranslatedQuestionChoice($questionId, $choiceTranslationId, $val, $sortOrder) {
+    $questionChoiceId = Uuid::uuid4();
+    $choiceId = Uuid::uuid4();
 
-            $newQuestionChoiceModel->id = $questionChoiceId;
-            $newQuestionChoiceModel->question_id = $questionId;
-            $newQuestionChoiceModel->choice_id = $choiceId;
-            $newQuestionChoiceModel->sort_order = $sortOrder;
-            $newQuestionChoiceModel->save();
-        });
+    $newQuestionChoiceModel = new QuestionChoice;
 
-        return $newQuestionChoiceModel;
-    }
+    DB::transaction(function () use ($val, $choiceTranslationId, $sortOrder, $questionId, $questionChoiceId, $choiceId, $newQuestionChoiceModel) {
+      $newChoiceModel = new Choice;
+      $newChoiceModel->id = $choiceId;
+      $newChoiceModel->choice_translation_id = $choiceTranslationId;
+      $newChoiceModel->val = $val;
+      $newChoiceModel->save();
 
-    public static function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId)
-    {
-        $questionChoiceId = Uuid::uuid4();
-        $choiceId = Uuid::uuid4();
-        $translationId = Uuid::uuid4();
+      $newQuestionChoiceModel->id = $questionChoiceId;
+      $newQuestionChoiceModel->question_id = $questionId;
+      $newQuestionChoiceModel->choice_id = $choiceId;
+      $newQuestionChoiceModel->sort_order = $sortOrder;
+      $newQuestionChoiceModel->save();
+    });
+
+    return $newQuestionChoiceModel;
+  }
+
+  public static function createQuestionChoiceLocalized($val, $textLocaleArray, $sortOrder, $questionId) {
+    $questionChoiceId = Uuid::uuid4();
+    $choiceId = Uuid::uuid4();
+    $translationId = Uuid::uuid4();
+    $translationTextId = Uuid::uuid4();
+
+    $newQuestionChoiceModel = new QuestionChoice;
+
+    DB::transaction(function () use ($val, $textLocaleArray, $sortOrder, $questionId, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel) {
+      $newTranslationModel = new Translation;
+      $newTranslationModel->id = $translationId;
+      $newTranslationModel->save();
+
+      // TODO: move this function to TranslationTextService
+      foreach ($textLocaleArray as $localeTag => $translationText) {
         $translationTextId = Uuid::uuid4();
 
-        $newQuestionChoiceModel = new QuestionChoice;
+        $newTranslationTextModel = new TranslationText;
 
-        DB::transaction(function () use ($val, $textLocaleArray, $sortOrder, $questionId, $questionChoiceId, $choiceId, $translationId, $translationTextId, $newQuestionChoiceModel) {
-            $newTranslationModel = new Translation;
-            $newTranslationModel->id = $translationId;
-            $newTranslationModel->save();
+        $newTranslationTextModel->id = $translationTextId;
+        $newTranslationTextModel->translation_id = $translationId;
+        $newTranslationTextModel->locale_id = DB::table('locale')->where('language_tag', '=', $localeTag)->first()->id;
 
-            // TODO: move this function to TranslationTextService
-            foreach ($textLocaleArray as $localeTag => $translationText) {
-                $translationTextId = Uuid::uuid4();
+        $newTranslationTextModel->translated_text = $translationText;
+        $newTranslationTextModel->save();
+      }
 
-                $newTranslationTextModel = new TranslationText;
+      $newChoiceModel = new Choice;
+      $newChoiceModel->id = $choiceId;
+      $newChoiceModel->choice_translation_id = $translationId;
+      $newChoiceModel->val = $val;
+      $newChoiceModel->save();
 
-                $newTranslationTextModel->id = $translationTextId;
-                $newTranslationTextModel->translation_id = $translationId;
-                $newTranslationTextModel->locale_id = DB::table('locale')->where('language_tag', '=', $localeTag)->first()->id;
+      $newQuestionChoiceModel->id = $questionChoiceId;
+      $newQuestionChoiceModel->question_id = $questionId;
+      $newQuestionChoiceModel->choice_id = $choiceId;
+      $newQuestionChoiceModel->sort_order = $sortOrder;
+      $newQuestionChoiceModel->save();
 
-                $newTranslationTextModel->translated_text = $translationText;
-                $newTranslationTextModel->save();
-            }
+      // TODO: Should probably remove this 'text' field
+      $newQuestionChoiceModel->text = '';
+      $newQuestionChoiceModel->val = $val;
+    });
 
-            $newChoiceModel = new Choice;
-            $newChoiceModel->id = $choiceId;
-            $newChoiceModel->choice_translation_id = $translationId;
-            $newChoiceModel->val = $val;
-            $newChoiceModel->save();
-
-            $newQuestionChoiceModel->id = $questionChoiceId;
-            $newQuestionChoiceModel->question_id = $questionId;
-            $newQuestionChoiceModel->choice_id = $choiceId;
-            $newQuestionChoiceModel->sort_order = $sortOrder;
-            $newQuestionChoiceModel->save();
-
-            // TODO: Should probably remove this 'text' field
-            $newQuestionChoiceModel->text = '';
-            $newQuestionChoiceModel->val = $val;
-        });
-
-        return $newQuestionChoiceModel;
-    }
+    return $newQuestionChoiceModel;
+  }
 }

@@ -53,9 +53,13 @@ class DownloadApp extends Command
         $choices = array_map(function ($v) {
           return $v['tag_name'];
         }, $versions);
-        $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, (count($choices) - 1));
+
+
+        $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, 0);
         $this->info($chosenVersionName);
-        $chosenVersion = array_filter($versions, function($v) use ($chosenVersionName) { return $v["tag_name"] == $chosenVersionName; })[0];
+        $chosenVersions = array_filter($versions, function($v) use ($chosenVersionName) { return $v["tag_name"] == $chosenVersionName; });
+        $chosenVersion = array_pop($chosenVersions);
+        
         $chosenAsset = array_values(array_filter($chosenVersion['assets'], function ($a) use ($assetName) {
           return $a['name'] === $assetName;
         }))[0];

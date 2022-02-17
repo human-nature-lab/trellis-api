@@ -46,9 +46,14 @@ class BundleLatestReports extends Command
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
-        $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
+        $formIds = Form::select('id')->
+        whereIn('form_master_id', function ($q) use ($studyId) {
             $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-        })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
+        })->
+        whereNull('deleted_at')->
+        where('is_published', 1)->
+        get()->
+        map(function ($item) {
             return $item->id;
         });
 
@@ -93,11 +98,12 @@ class BundleLatestReports extends Command
         $zip  = new ZipArchive();
         $zip->open(storage_path($fullPath), ZipArchive::CREATE|ZipArchive::OVERWRITE);
         foreach($reports as $report){
-            foreach($report->files as $file) {
-                $zipName = $study->name . '_' . $report->type . '_export.csv';
-                $this->info("Adding ".$zipName." to the archive");
-                $zip->addFile(storage_path("app/".$file->file_name), $zipName);
-            }
+          foreach($report->files as $file) {
+            $zipName = $study->name . '_' . $report->type . '_export.csv';
+            $this->info("Adding ".$zipName." to the archive");
+            $realPath = storage_path("app/".$file->file_name);
+            $zip->addFile($realPath, $zipName);
+          }
         }
 
         foreach($formReports as $report){
@@ -106,9 +112,9 @@ class BundleLatestReports extends Command
             foreach($report->files as $file){
                 $nameTranslation = $form->nameTranslation;
                 $formName = $nameTranslation->translationText[0]->translated_text;
-                $zipName = $file->file_type."/".$formName.'_'.$file->file_type.'_export.csv';
-                $this->info("Adding ".$zipName." to the archive");
-                $zip->addFile(storage_path("app/".$file->file_name), $zipName);
+                $zipName = "forms/$formName/v$form->version/$file->file_type/$file->file_type"."_export.csv";
+                $this->info("Adding $zipName to the archive");
+                $zip->addFile(storage_path("app/$file->file_name"), $zipName);
             }
         }
 
