@@ -1,6 +1,6 @@
 <?php
 
-$router->group(['prefix' => '/builder', 'middleware' => ['token', 'requires:EDIT_FORM']], function () use ($router) {
+$router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_FORM']], function () use ($router) {
 
   //* Form Controller Routes *//
   $router->post('study/form/{formId}/section/import',                                 'FormController@importSection');
@@ -37,13 +37,13 @@ $router->group(['prefix' => '/builder', 'middleware' => ['token', 'requires:EDIT
   //* Question Condition Controller Routes *//
   $router->put('section/group/question/condition/logic',                                                  'ConditionController@editConditionLogic');
   $router->put('section/group/question/condition/scope',                                                  'ConditionController@editConditionScope');
-  $router->put('section/group/question/condition/tag',                                                      'ConditionController@createCondition');
+  $router->post('condition-tag',                                                      'ConditionController@createCondition');
   $router->get('section/group/question/condition/tag',                                                      'ConditionController@getAllConditions');
   $router->get('section/group/question/condition/tag/unique',                                        'ConditionController@getAllUniqueConditions');
-  $router->post('section/group/question/condition/tag/search',                                      'ConditionController@searchAllConditions');
-  $router->put('question/{question_id}/assign_condition_tag',                                                  'QuestionController@createAssignConditionTag');
-  $router->post('question/{question_id}/assign_condition_tag',                                                'QuestionController@updateAssignConditionTag');
-  $router->delete('section/group/question/condition/{id}',                                              'ConditionController@deleteAssignConditionTag');
+  $router->get('section/group/question/condition/tag/search',                                      'ConditionController@searchAllConditions');
+  $router->post('question/{question_id}/assign_condition_tag',                                                  'QuestionController@createAssignConditionTag');
+  $router->put('question/{question_id}/assign_condition_tag',                                                'QuestionController@updateAssignConditionTag');
+  $router->delete('condition/{id}',                                              'ConditionController@deleteAssignConditionTag');
 
   //* Skip Controller Routes *//
   $router->put('section/group/{group_id}/skip/',                                 'SkipController@createQuestionGroupSkip');
@@ -55,35 +55,31 @@ $router->group(['prefix' => '/builder', 'middleware' => ['token', 'requires:EDIT
   $router->delete('{form_id}/skip/{skip_id}',                                    'SkipController@deleteFormSkip');
 
   //* Question Controller Routes *//
-  $router->post('section/group/{group_id}/question/',                             'QuestionController@createQuestion');
-  $router->put('section/group/{group_id}/question/{question_id}',                 'QuestionController@moveQuestion');
+  $router->post('group/{group_id}/question/',                             'QuestionController@createQuestion');
+  $router->put('group/{group_id}/question/{question_id}',                 'QuestionController@moveQuestion');
   $router->delete('question/{question_id}',                        'QuestionController@removeQuestion');
-  $router->get('question/{question_id}',                           'QuestionController@getQuestion');
+  // $router->get('question/{question_id}',                           'QuestionController@getQuestion');
   $router->put('question/{question_id}',                           'QuestionController@updateQuestion');
   $router->patch('section/group/questions',                                      'QuestionController@updateQuestions');
   $router->patch('section/group/question/choices',                               'QuestionController@updateChoices');
 
   //* Question Type Controller Routers *//
-  $router->put('question/type',                                                       'QuestionTypeController@createQuestionType');
-  $router->delete('question/type/{question_type_id}',                                 'QuestionTypeController@removeQuestionType');
-  $router->get('question/type/{question_type_id}',                                    'QuestionTypeController@getQuestionType');
-  $router->get('question/type',                                                       'QuestionTypeController@getAllQuestionTypes');
-  $router->post('question/type/{question_type_id}',                                   'QuestionTypeController@updateQuestionType');
+  $router->get('question/types',                                                       'QuestionTypeController@getAllQuestionTypes');
 
   //* Question Choice Controller Routes *//
-  $router->put('section/group/question/{question_id}/choice',                    'QuestionChoiceController@createNewQuestionChoice');
-  $router->delete('section/group/question/choice/{question_choice_id}',          'QuestionChoiceController@removeQuestionChoice');
-  $router->delete('section/group/question/{question_id}/choice/{choice_id}',     'QuestionChoiceController@removeChoice');
-  $router->get('section/group/question/choice/{choice_id}',                      'QuestionChoiceController@getQuestionChoice');
+  $router->post('question/{question_id}/choice',                    'QuestionChoiceController@createNewQuestionChoice');
+  $router->delete('choice/{question_choice_id}',          'QuestionChoiceController@removeQuestionChoice');
+  $router->delete('question/{question_id}/choice/{choice_id}',     'QuestionChoiceController@removeChoice');
+  $router->get('question/choice/{choice_id}',                      'QuestionChoiceController@getQuestionChoice');
   $router->get('{form_id}/section/group/question/choice/locale/{locale_id}',     'QuestionChoiceController@getAllQuestionChoices');
-  $router->post('section/group/question/choice/{choice_id}',                     'QuestionChoiceController@updateQuestionChoice');
-  $router->post('section/group/question/{question_id}/choices',                  'QuestionChoiceController@updateQuestionChoices');
+  $router->put('choice/{choice_id}',                     'QuestionChoiceController@updateQuestionChoice');
+  $router->put('question/{question_id}/choices',                  'QuestionChoiceController@updateQuestionChoices');
 
   //* Question Param Controller Routes *//
-  $router->post('section/group/question/{question_id}/type/numeric',             'QuestionParamController@updateQuestionNumeric');
-  $router->post('section/group/question/{question_id}/type/multiple',            'QuestionController@updateQuestionTypeMultiple');
-  $router->post('section/group/question/{question_id}/type/datetime',            'QuestionParamController@updateQuestionDateTime');
+  $router->put('question/{question_id}/type/numeric',             'QuestionParamController@updateQuestionNumeric');
+  $router->put('question/{question_id}/type/multiple',            'QuestionController@updateQuestionTypeMultiple');
+  $router->put('question/{question_id}/type/datetime',            'QuestionParamController@updateQuestionDateTime');
   $router->get('parameter/types',                                                'QuestionParamController@getParameterTypes');
-  $router->post('section/group/question/{question_id}/parameter',                'QuestionParamController@createOrUpdateParameter');
+  $router->post('question/{question_id}/parameter',                'QuestionParamController@createOrUpdateParameter');
   $router->delete('parameter/{parameter_id}',                                         'QuestionParamController@deleteQuestionParameter');
 });

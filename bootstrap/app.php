@@ -172,6 +172,7 @@ $app->router->group([
     require __DIR__.'/../routes/routes.survey.php';
     require __DIR__.'/../routes/routes.sync.php';
     require __DIR__.'/../routes/routes.demo.php';
+    require __DIR__.'/../routes/routes.builder.php';
 });
 
 return $app;
