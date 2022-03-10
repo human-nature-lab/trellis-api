@@ -54,13 +54,14 @@ class QuestionGroupService {
     return $returnQuestionGroup;
   }
 
-  public static function copyQuestionGroup(QuestionGroup $qg): QuestionGroup {
+  public static function copyQuestionGroup(QuestionGroup $qg, Array &$questionMap): QuestionGroup {
     $qg = $qg->replicate(['id', 'questions'])->fill([
       'id' => Uuid::uuid4(),
     ]);
     $qg->save();
     foreach ($qg->questions as $question) {
       $q = QuestionService::copyQuestion($question);
+      $questionMap[$question->id] = $q->id;
       $q->question_group_id = $qg->id;
       $q->save();
     }

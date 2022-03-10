@@ -114,14 +114,14 @@ class SectionService
         return $returnSection;
     }
 
-    public static function copySection (Section $section): Section {
+    public static function copySection (Section $section, Array &$questionMap): Section {
       $newSection = $section->replicate(['id', 'nameTranslation'])->fill([
         'id' => Uuid::uuid4(),
         'name_translation_id' => TranslationService::copyTranslation($section->nameTranslation)->id,
       ]);
       $newSection->save();
       foreach ($section->questionGroups as $group) {
-        $g = QuestionGroupService::copyQuestionGroup($group);
+        $g = QuestionGroupService::copyQuestionGroup($group, $questionMap);
         $sqg = $group->pivot->replicate(['id', 'section_id', 'question_group_id'])->fill([
           'id' => Uuid::uuid4(),
           'section_id' => $newSection->id,
