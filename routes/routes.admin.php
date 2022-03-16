@@ -1,7 +1,8 @@
 <?php
 
-$router->post('token',                                                                       'TokenController@createToken');     // Login
-$router->get('config',                                                                       'ConfigController@all');            // View server configuration
+$router->post('token',      'TokenController@createToken');             // Login
+$router->get('config',      'ConfigController@all');                    // View server configuration
+$router->get('maintenance', 'MaintenanceController@checkMaintenance');  // Check if server is in maintenance mode
 
 $router->group(['middleware' => 'token'], function () use ($router) {
 
@@ -21,6 +22,8 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   //* Form Controller Routes *//
   $router->get('study/{studyId}/form',                                        [                                         'uses' => 'FormController@getAllStudyForms']);
   $router->get('form/{id}',                                                   [                                         'uses' => 'FormController@getForm']);
+  $router->get('form/{id}/versions',                                          [                                         'uses' => 'FormController@getVersions']);
+  $router->put('form/{formMasterId}/revert/{versionId}',                      ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@revertVersion']);
   $router->get('form',                                                        [                                         'uses' => 'FormController@getAllForms']);
   $router->get('study/{studyId}/forms',                                       [                                         'uses' => 'RespondentController@getRespondentStudyForms']);
   $router->post('study/{study_id}/form',                                      ['middleware' => 'requires:ADD_FORM',     'uses' => 'FormController@createForm']);
@@ -28,8 +31,8 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->delete('study/{study_id}/form/{form_id}',                          ['middleware' => 'requires:REMOVE_FORM',  'uses' => 'FormController@removeForm']);
   $router->put('study/{study_id}/form/{form_id}',                             ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateStudyForm']);
   $router->put('form/{id}',                                                   ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@updateForm']);
-  $router->put('form/{form_master_id}/publish',                               ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@publishForm']);
-  $router->patch('study/{studyId}/forms/reorder',                              ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@reorderForms']);
+  $router->post('study/{studyId}/form/{form_id}/publish',                     ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@publishForm']);
+  $router->patch('study/{studyId}/forms/reorder',                             ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@reorderForms']);
   $router->get('study/{studyId}/form/{formId}/master/{formMasterId}/edit',    ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@editFormPrep']);
   $router->post('study/{studyId}/form/assign',                                ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@assignForm']);
   $router->post('study/form/{formId}/section/import',                         ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@importSection']);
@@ -218,6 +221,10 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->get('study/{study_id}/dashboard/users',            [                                                         'uses' => 'DashboardController@getUsers']);
   $router->get('study/{study_id}/dashboard/geos',             [                                                         'uses' => 'DashboardController@getGeos']);
   $router->get('study/{study_id}/dashboard/forms',            [                                                         'uses' => 'DashboardController@getForms']);
+
+  //* Preload *//
+  $router->post('study/{study_id}/preload-actions',           ['middleware' => 'requires:IMPORT_RESPONDENTS',           'uses' => 'PreloadController@uploadPreloadActions']);
+  
   //* Group Tag Type Controller Routes *//
 // NOT USED   $router->delete('group_tag_type/{id}',                          'GroupTagTypeController@removeGroupTagType');
 // NOT USED   $router->get('group_tag_type',                                  'GroupTagTypeController@getAllGroupTagTypes');

@@ -4,11 +4,15 @@ namespace app\Services;
 
 use App\Services\TranslationService;
 use App\Services\TranslationTextService;
+use App\Services\QuestionChoiceService;
+use App\Services\QuestionParameterService;
 use App\Models\Question;
+use App\Models\QuestionChoice;
 use App\Models\Translation;
 use App\Models\TranslationText;
 use Ramsey\Uuid\Uuid;
-use DB;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class QuestionService
 {
@@ -80,7 +84,55 @@ class QuestionService
         return $returnQuestion;
     }
 
-    public function createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName)
+    static public function copyQuestion (Question $question): Question {
+      $q = $question->replicate(['id', 'questionTranslation'])->fill([
+        'id'=> Uuid::uuid4(),
+        'questionTranslation' => TranslationService::copyTranslation($question->questionTranslation),
+      ]);
+      $q->save();
+      
+      foreach($question->questionParameters as $p) {
+        $p = QuestionParameterService::copyQuestionParameter($p);
+        $p->question_id = $q->id;
+        $p->save();
+      }
+
+      foreach($question->assignConditionTags as $act) {
+        $a = $act->replicate()->fill([
+          'id' => Uuid::uuid4(),
+        ]);
+        $a->save();
+        $qa = $act->pivot->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'question_id' => $q->id,
+          'assign_condition_tag_id' => $a->id,
+        ]);
+        $qa->save();
+      }
+
+      foreach($question->choices as $c) {
+        $c = QuestionChoiceService::copyChoice($c);
+        $qc = $c->pivot->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'choice_id' => $c->id,
+          'question_id' => $q->id,
+        ]);
+        $c->save();
+        $qc->save();
+      }
+
+      foreach($question->preloadActions as $p) {
+        $pa = $p->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'question_id' => $q->id,
+        ]);
+        $pa->save();
+      }
+
+      return $q;
+    }
+
+    public static function createQuestionLocalized($textLocaleArray, $questionTypeId, $questionGroupId, $varName)
     {
         $newQuestionModel = new Question;
         $questionId = Uuid::uuid4();
@@ -98,8 +150,8 @@ class QuestionService
 
                 $newTranslationTextModel->id = $translationTextId;
                 $newTranslationTextModel->translation_id = $translationId;
-                \Log::info('$localeTag: ' . $localeTag);
-                \Log::info('$translationText: ' . $translationText);
+                Log::info('$localeTag: ' . $localeTag);
+                Log::info('$translationText: ' . $translationText);
                 $newTranslationTextModel->locale_id = DB::table('locale')->where('language_tag', '=', $localeTag)->first()->id;
 
                 $newTranslationTextModel->translated_text = $translationText;

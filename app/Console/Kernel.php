@@ -44,6 +44,7 @@ class Kernel extends ConsoleKernel
     Commands\CleanReports::class,
     Commands\StudySnapshot::class,
     Commands\SyncSqliteSchema::class,
+    Commands\Maintenance::class,
 
     // overrides:   //TODO take this out if switched to Laravel
     Commands\MakeModel::class,

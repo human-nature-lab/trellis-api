@@ -16,9 +16,9 @@ use App\Models\Study;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Queue\Job;
 // use Laravel\Lumen\Routing\DispatchesJobs;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Queue;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Ramsey\Uuid\Uuid;
 
 class MakeReports extends Command {
@@ -34,7 +34,7 @@ class MakeReports extends Command {
         $studyIds = $this->option('study');
 
         if (count($studyIds) === 0) {
-          $studyIds = DB::table('study')->select('id')->get()->map(function ($s) { return $s->id; });
+          $studyIds = DB::table('study')->select('id')->whereNull('deleted_at')->get()->map(function ($s) { return $s->id; });
         }
 
         $studyCount = count($studyIds);
@@ -73,11 +73,19 @@ class MakeReports extends Command {
         if ($this->option('form')) {
           $formIds = [$this->option('form')];
         } else {
-          $formIds = Form::select('id')->whereIn('id', function ($q) use ($studyId) {
-            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-          })->whereNull('deleted_at')->where('is_published', true)->get()->map(function ($item) {
-            return $item->id;
-          });
+          $formIds = Form::select('id')->
+            whereIn('form_master_id', function ($q) use ($studyId) {
+              $q->
+                select('form_master_id')->
+                from('study_form')->
+                where('study_id', $studyId);
+            })->
+            whereNull('deleted_at')->
+            where('is_published', true)->
+            get()->
+            map(function ($item) {
+              return $item->id;
+            });
         }
 
         $config = new \stdClass();

@@ -54,3 +54,5 @@ composer.phar
 
 storage/*.sqlite.db
 trellis-app
+*.zip
+

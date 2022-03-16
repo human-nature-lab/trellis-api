@@ -51,6 +51,7 @@ $router->group([
         $router->get('respondents/search',                      'RespondentController@searchRespondentsByStudyId');
         $router->get('respondents',                             'RespondentController@getAllRespondentsByStudyId');
         $router->get('/',                                       'StudyController@getStudy');
+        $router->get('prod',                                    'StudyController@getProdFromTest');
         $router->get('respondent/{r_id}/surveys',               'SurveyController@getRespondentStudySurveys');
         $router->post('respondent',                             'RespondentController@createStudyRespondent');
         $router->get('forms/published',                         'FormController@getPublishedForms');

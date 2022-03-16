@@ -34,7 +34,7 @@ class Form extends Model
     }
 
     public function studyForm() {
-        return $this->hasMany('App\Models\StudyForm', 'form_master_id')
+        return $this->hasMany('App\Models\StudyForm', 'current_version_id', 'id')
             ->whereNull('study_form.deleted_at')
             ->with('type');
     }
@@ -44,10 +44,11 @@ class Form extends Model
         return $this
             ->belongsToMany('App\Models\Section', 'form_section')
             ->using('App\Models\FormSection')
-            ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id')
+            ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id', 'randomize_follow_up')
             ->whereNull('form_section.deleted_at')
             ->withTimestamps()
-            ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation');
+            ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation')
+            ->orderBy('form_section.sort_order');
     }
 
     public function skips()
@@ -58,7 +59,12 @@ class Form extends Model
             ->withPivot('form_id')
             ->whereNull('form_skip.deleted_at')
             ->withTimestamps()
-            ->with('conditions');
+            ->with('conditions')
+            ->orderBy('precedence');
+    }
+    
+    public function versions () {
+      return $this->hasMany('App\Models\Form', 'form_master_id', 'form_master_id');
     }
 
 }
