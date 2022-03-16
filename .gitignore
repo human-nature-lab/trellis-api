@@ -49,6 +49,7 @@ Temporary Items
 
 laravel-queue-worker.conf
 laravel-worker.conf
+composer.phar
 
 
 storage/*.sqlite.db
