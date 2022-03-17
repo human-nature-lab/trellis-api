@@ -390,7 +390,6 @@ class QuestionController extends Controller
                 'id' => $questionGroupId
         ]), [
                 'id' => 'required|string|min:36|exists:question_group,id',
-                'translated_text' => 'required|string|min:1',
                 'var_name' => 'required|string|min:1',
                 'question_type_id' => 'required|string|min:36|exists:question_type,id'
         ]);
@@ -436,7 +435,7 @@ class QuestionController extends Controller
             return response()->json([
                 'msg' => 'Validation failed',
                 'err' => $validator->errors()
-            ]);
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $act = new AssignConditionTag;
@@ -479,12 +478,12 @@ class QuestionController extends Controller
             ]);
         }
 
-        $act = AssignConditionTag::with('condition')->find($request->input('id'));
+        $act = AssignConditionTag::find($request->input('id'));
 
         if ($act === null) {
             return response()->json([
                 'msg' => 'Assign condition tag not found.'
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         if ($request->has('logic')) {
@@ -495,6 +494,7 @@ class QuestionController extends Controller
             $act->scope = $request->input('scope');
         }
 
+        $condition = null;
         if ($request->has('condition')) {
             $condition = $request->input('condition');
             if (array_key_exists('id', $condition)) {
@@ -502,15 +502,15 @@ class QuestionController extends Controller
                 $act->condition_tag_id = $condition['id'];
             } else {
                 // new condition
-                $newConditionTag = $conditionTagService->createConditionTag($condition['name']);
-                $act->condition_tag_id = $newConditionTag->id;
+                $condition = $conditionTagService->createConditionTag($condition['name']);
+                $act->condition_tag_id = $condition->id;
             }
         }
 
         $act->save();
 
         return response()->json([
-            'assign_condition_tag' => $act
+            'assign_condition_tag' => AssignConditionTag::with('condition')->find($act->id),
         ], Response::HTTP_OK);
     }
 }

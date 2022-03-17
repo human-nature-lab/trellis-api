@@ -346,9 +346,10 @@ class SkipController extends Controller
 
 
 
-    public function createQuestionGroupSkip(Request $request)
+    public function createQuestionGroupSkip(Request $request, String $questionGroupId)
     {
         $validator = Validator::make(array_merge($request->all(), [
+          'question_group_id' => $questionGroupId,
         ]), [
             'show_hide' => 'required|boolean',
             'any_all' => 'required|boolean',
@@ -364,13 +365,12 @@ class SkipController extends Controller
             ], $validator->statusCode());
         };
 
-//		$skipPrecedenceModel = Skip::select('skip.precedence');
-
         $newSkipModel = new Skip;
         $newSkipModelId = Uuid::uuid4();
-        $questionGroupId = $request->input('question_group_id');
+        $conditions = $request->input('conditions') ?: [];
+        $questionGroupSkipId = Uuid::uuid4();
 
-        DB::transaction(function () use ($request, $newSkipModel, $newSkipModelId, $questionGroupId) {
+        DB::transaction(function () use ($request, $newSkipModel, &$newSkipModelId, $questionGroupId, $conditions, $questionGroupSkipId) {
             $newSkipModel->id = $newSkipModelId;
             $newSkipModel->show_hide = $request->input('show_hide');
             $newSkipModel->any_all = $request->input('any_all');
@@ -379,12 +379,12 @@ class SkipController extends Controller
 
             $newQuestionGroupSkip = new QuestionGroupSkip;
 
-            $newQuestionGroupSkip->id = Uuid::uuid4();
+            $newQuestionGroupSkip->id = $questionGroupSkipId;
             $newQuestionGroupSkip->question_group_id = $questionGroupId;
             $newQuestionGroupSkip->skip_id = $newSkipModelId;
             $newQuestionGroupSkip->save();
 
-            foreach ($request->input('conditions') as $condition) {
+            foreach ($conditions as $condition) {
                 $newSkipConditionTag = new SkipConditionTag;
 
                 $newSkipConditionTag->id = Uuid::uuid4();
@@ -400,11 +400,11 @@ class SkipController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         };
 
-        //$returnSkipModel = Skip::find($newSkipModelId)->with('conditions')->get();
-        $returnSkipsModel = QuestionGroup::find($questionGroupId)->skips()->get();
+        $returnSkipModel = QuestionGroupSkip::with('skip')->find($questionGroupSkipId);
+        // $returnSkipsModel = QuestionGroup::find($questionGroupId)->skips()->get();
 
         return response()->json([
-            'skips' => $returnSkipsModel
+          'question_group_skip' => $returnSkipModel,
         ], Response::HTTP_OK);
     }
 

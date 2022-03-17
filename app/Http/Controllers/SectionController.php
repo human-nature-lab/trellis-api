@@ -177,7 +177,6 @@ class SectionController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
             'formId' => $formId]), [
             'formId' => 'required|string|min:36|exists:form,id',
-            'translated_text' => 'required|string|min:1'
         ]);
 
         if ($validator->fails() === true) {
@@ -189,7 +188,7 @@ class SectionController extends Controller
 
         $returnSection = $sectionService->createSection(
             $formId,
-            $request->input('translated_text'),
+            '',
             $request->input('sort_order')
         );
 

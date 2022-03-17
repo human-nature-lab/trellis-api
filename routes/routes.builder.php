@@ -16,10 +16,10 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->put('translation/{translation_id}/text',                                   'TranslationTextController@createTranslationText');
 
   //* Question Group Controller Routes *//
-  $router->get('section/group/{group_id}',                                       'QuestionGroupController@getQuestionGroup');
-  $router->delete('section/group/{group_id}',                                    'QuestionGroupController@removeQuestionGroup');
+  $router->get('group/{group_id}',                                       'QuestionGroupController@getQuestionGroup');
+  $router->delete('group/{group_id}',                                    'QuestionGroupController@removeQuestionGroup');
   $router->post('section/{section_id}/group',                                    'QuestionGroupController@createQuestionGroup');
-  $router->put('section/group/{group_id}',                                       'QuestionGroupController@updateQuestionGroup');
+  $router->put('group/{group_id}',                                       'QuestionGroupController@updateQuestionGroup');
   $router->put('section-group/{id}',                                             'QuestionGroupController@updateSectionQuestionGroup');
 
   //* Section Controller Routes *//
@@ -46,13 +46,11 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->delete('condition/{id}',                                              'ConditionController@deleteAssignConditionTag');
 
   //* Skip Controller Routes *//
-  $router->put('section/group/{group_id}/skip/',                                 'SkipController@createQuestionGroupSkip');
-  $router->post('section/group/skip/{id}',                                       'SkipController@updateSkip');
-  $router->delete('section/group/skip/{id}',                                     'SkipController@deleteQuestionGroupSkip');
-
-  $router->post('{form_id}/skip',                                                'SkipController@createFormSkip');
-  $router->put('skip/{skip_id}',                                                      'SkipController@updateSkip');
-  $router->delete('{form_id}/skip/{skip_id}',                                    'SkipController@deleteFormSkip');
+  $router->post('group/{group_id}/skip/',                                       'SkipController@createQuestionGroupSkip');
+  $router->put('skip/{id}',                                                     'SkipController@updateSkip');
+  $router->delete('group/skip/{id}',                                                  'SkipController@deleteQuestionGroupSkip');
+  $router->post('{form_id}/skip',                                               'SkipController@createFormSkip');
+  $router->delete('{form_id}/skip/{skip_id}',                                   'SkipController@deleteFormSkip');
 
   //* Question Controller Routes *//
   $router->post('group/{group_id}/question/',                             'QuestionController@createQuestion');
