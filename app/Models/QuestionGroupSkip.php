@@ -21,4 +21,10 @@ class QuestionGroupSkip extends Pivot
         'updated_at',
         'deleted_at'
     ];
+
+    public function skip () {
+      return $this
+        ->belongsTo('App\Models\Skip')
+        ->with('conditions');
+    }
 }
