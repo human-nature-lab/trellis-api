@@ -200,7 +200,7 @@ class SkipController extends Controller
 
         $conditions = $request->input('conditions') ?: $request->input('condition_tags');
 
-        if ($validator->fails() === true || is_null($conditions) || count($conditions) === 0) {
+        if ($validator->fails()) {
             return response()->json([
                 'msg' => 'Validation failed',
                 'err' => $validator->errors()
@@ -214,6 +214,7 @@ class SkipController extends Controller
             $skipModel->show_hide = $request->input('show_hide');
             $skipModel->any_all = $request->input('any_all');
             $skipModel->precedence = $request->input('precedence');
+            $skipModel->custom_logic = $request->input('custom_logic');
             $skipModel->save();
 
             foreach ($conditions as $newCondition) {
