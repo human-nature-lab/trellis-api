@@ -21,9 +21,10 @@ class Skip extends Model
         'show_hide',
         'any_all',
         'precedence',
+        'custom_logic',
         'created_at',
         'updated_at',
-        'deleted_at'
+        'deleted_at',
     ];
 
     public function conditions()
