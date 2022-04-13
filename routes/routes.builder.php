@@ -32,7 +32,7 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
 
 
   //* Form Section Controller Routes *//
-  $router->post('form_section/{form_section_id}',                                     'FormSectionController@updateFormSection');
+  $router->put('form_section/{form_section_id}',                                     'FormSectionController@updateFormSection');
 
   //* Question Condition Controller Routes *//
   $router->put('section/group/question/condition/logic',                                                  'ConditionController@editConditionLogic');
