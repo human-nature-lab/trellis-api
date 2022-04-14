@@ -66,12 +66,13 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
 
   //* Question Choice Controller Routes *//
   $router->post('question/{question_id}/choice',                    'QuestionChoiceController@createNewQuestionChoice');
-  $router->delete('choice/{question_choice_id}',          'QuestionChoiceController@removeQuestionChoice');
-  $router->delete('question/{question_id}/choice/{choice_id}',     'QuestionChoiceController@removeChoice');
-  $router->get('question/choice/{choice_id}',                      'QuestionChoiceController@getQuestionChoice');
-  $router->get('{form_id}/section/group/question/choice/locale/{locale_id}',     'QuestionChoiceController@getAllQuestionChoices');
-  $router->put('choice/{choice_id}',                     'QuestionChoiceController@updateQuestionChoice');
-  $router->put('question/{question_id}/choices',                  'QuestionChoiceController@updateQuestionChoices');
+  $router->delete('choice/{question_choice_id}',                    'QuestionChoiceController@removeQuestionChoice');
+  $router->delete('question/{question_id}/choice/{choice_id}',      'QuestionChoiceController@removeChoice');
+  $router->get('question/choice/{choice_id}',                       'QuestionChoiceController@getQuestionChoice');
+  $router->put('choice/{choice_id}',                                'QuestionChoiceController@updateQuestionChoice');
+  $router->put('question/{question_id}/choices',                    'QuestionChoiceController@updateQuestionChoices');
+  $router->put('question/choice/{question_choice_id}/add',          'QuestionChoiceController@addExistingQuestionChoice');
+  $router->put('question/choice/{question_choice_id}/move',         'QuestionChoiceController@moveQuestionChoice');
 
   //* Question Param Controller Routes *//
   $router->put('question/{question_id}/type/numeric',             'QuestionParamController@updateQuestionNumeric');
