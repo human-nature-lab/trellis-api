@@ -424,7 +424,7 @@ class QuestionChoiceController extends Controller {
     ], Response::HTTP_OK);
   }
 
-  public function moveQuestionChoice(Request $request, String $id) {
+  public function updateQuestionChoice2(Request $request, String $id) {
     $validator = Validator::make(
       array_merge($request->all(), ['id' => $id]),
       [
@@ -442,64 +442,48 @@ class QuestionChoiceController extends Controller {
     }
 
     DB::transaction(function () use ($id, $request) {
+      $qc = QuestionChoice::find($id);
       $questionChoices = QuestionChoice::where('question_id', $request->input('question_id'))->where('id', '<>', $id)->orderBy('sort_order')->get();
 
+      // clamp the sort order
       $newIndex = $request->input('sort_order');
       if ($newIndex > count($questionChoices)) {
         $newIndex = count($questionChoices) - 1;
+      } else if ($newIndex < 0) {
+        $newIndex = 0;
       }
 
-      // Reorder the existing question choices one at a time
-      for ($i = 0; $i < count($questionChoices); $i++) {
-        if ($i < $request->input('sort_order')) {
-          $questionChoices[$i]->sort_order = $i;
-        } else {
-          $questionChoices[$i]->sort_order = $i + 1;
-        }
-        $questionChoices[$i]->save();
-      }
+      if ($request->input('question_id') !== $qc->question_id) {
+        // We moved the choice to a new question
+        // Reorder the existing question choices
+        DB::table('question_choice')->where('question_id', $request->input('question_id'))->where('sort_order', '>=', $request->input('sort_order'))->update(['sort_order' => DB::raw('sort_order + 1')]);
 
-      QuestionChoice::where('id', $request->input('id'))->update([
-          'sort_order' => $request->input('sort_order'),
-        ]);
-    });
-
-    return response()->json([
-      "msg" => "success",
-    ], Response::HTTP_OK);
-  }
-
-  public function addExistingQuestionChoice(Request $request, String $id) {
-    $validator = Validator::make(
-      array_merge($request->all(), ['id' => $id]),
-      [
-        'id' => 'required|string|exists:question_choice,id',
-        'question_id' => 'required|string|exists:question,id',
-        'sort_order' => 'required|integer',
-      ]
-    );
-
-    if ($validator->fails()) {
-      return response()->json([
-        "msg" => 'validation failed',
-        'err' => $validator->errors(),
-      ], Response::HTTP_BAD_REQUEST);
-    }
-
-
-    DB::transaction(function () use ($request) {
-      // Reorder the existing question choices
-      DB::table('question_choice')->where('question_id', $request->input('question_id'))->where('sort_order', '>=', $request->input('sort_order'))->update(['sort_order' => DB::raw('sort_order + 1')]);
-
-      // Update the new question choice 
-      QuestionChoice::where('id', $request->input('id'))->update([
+        // Update the new question choice 
+        QuestionChoice::where('id', $request->input('id'))->update([
           'question_id' => $request->input('question_id'),
           'sort_order' => $request->input('sort_order'),
         ]);
+      } else {
+        // We moved the choice within the same question
+        // Reorder the existing question choices one at a time
+        for ($i = 0; $i < count($questionChoices); $i++) {
+          if ($i < $request->input('sort_order')) {
+            $questionChoices[$i]->sort_order = $i;
+          } else {
+            $questionChoices[$i]->sort_order = $i + 1;
+          }
+          $questionChoices[$i]->save();
+        }
+
+        QuestionChoice::where('id', $request->input('id'))->update([
+          'sort_order' => $request->input('sort_order'),
+        ]);
+      }  
     });
 
     return response()->json([
       "msg" => "success",
     ], Response::HTTP_OK);
   }
+
 }

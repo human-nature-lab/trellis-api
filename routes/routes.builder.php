@@ -16,18 +16,18 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->put('translation/{translation_id}/text',                                   'TranslationTextController@createTranslationText');
 
   //* Question Group Controller Routes *//
-  $router->get('group/{group_id}',                                       'QuestionGroupController@getQuestionGroup');
-  $router->delete('group/{group_id}',                                    'QuestionGroupController@removeQuestionGroup');
+  $router->get('group/{group_id}',                                               'QuestionGroupController@getQuestionGroup');
+  $router->delete('group/{group_id}',                                            'QuestionGroupController@removeQuestionGroup');
   $router->post('section/{section_id}/group',                                    'QuestionGroupController@createQuestionGroup');
-  $router->put('group/{group_id}',                                       'QuestionGroupController@updateQuestionGroup');
-  $router->put('section-group/{id}',                                             'QuestionGroupController@updateSectionQuestionGroup');
+  $router->put('group/{group_id}',                                               'QuestionGroupController@updateQuestionGroup');
+  $router->put('section-question-group/{id}',                                    'SectionQuestionGroupController@updateSectionQuestionGroup');
 
   //* Section Controller Routes *//
   $router->get('section/{section_id}',                                           'SectionController@getSection');
   $router->delete('section/{section_id}',                                        'SectionController@removeSection');
-  $router->put('section/{section_id}',                                          'SectionController@updateSection');
+  $router->put('section/{section_id}',                                           'SectionController@updateSection');
   $router->get('{form_id}/section/locale/{locale_id}',                           'SectionController@getAllSections');
-  $router->post('{form_id}/section',                                              'SectionController@createSection');
+  $router->post('{form_id}/section',                                             'SectionController@createSection');
   $router->patch('sections',                                                     'SectionController@updateSections');
 
 
@@ -39,8 +39,6 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->put('section/group/question/condition/scope',                                                  'ConditionController@editConditionScope');
   $router->post('condition-tag',                                                      'ConditionController@createCondition');
   $router->get('section/group/question/condition/tag',                                                      'ConditionController@getAllConditions');
-  $router->get('section/group/question/condition/tag/unique',                                        'ConditionController@getAllUniqueConditions');
-  $router->get('section/group/question/condition/tag/search',                                      'ConditionController@searchAllConditions');
   $router->post('question/{question_id}/assign_condition_tag',                                                  'QuestionController@createAssignConditionTag');
   $router->put('question/{question_id}/assign_condition_tag',                                                'QuestionController@updateAssignConditionTag');
   $router->delete('condition/{id}',                                              'ConditionController@deleteAssignConditionTag');
@@ -53,13 +51,13 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->delete('{form_id}/skip/{skip_id}',                                   'SkipController@deleteFormSkip');
 
   //* Question Controller Routes *//
-  $router->post('group/{group_id}/question/',                             'QuestionController@createQuestion');
-  $router->put('group/{group_id}/question/{question_id}',                 'QuestionController@moveQuestion');
-  $router->delete('question/{question_id}',                        'QuestionController@removeQuestion');
-  // $router->get('question/{question_id}',                           'QuestionController@getQuestion');
-  $router->put('question/{question_id}',                           'QuestionController@updateQuestion');
-  $router->patch('section/group/questions',                                      'QuestionController@updateQuestions');
-  $router->patch('section/group/question/choices',                               'QuestionController@updateChoices');
+  $router->post('group/{group_id}/question/',                                     'QuestionController@createQuestion');
+  $router->put('group/{group_id}/question/{question_id}',                         'QuestionController@moveQuestion');
+  $router->delete('question/{question_id}',                                       'QuestionController@removeQuestion');
+  // $router->get('question/{question_id}',                                       'QuestionController@getQuestion');
+  $router->put('question/{question_id}',                                          'QuestionController@updateQuestion');
+  $router->patch('section/group/questions',                                       'QuestionController@updateQuestions');
+  $router->patch('section/group/question/choices',                                'QuestionController@updateChoices');
 
   //* Question Type Controller Routers *//
   $router->get('question/types',                                                       'QuestionTypeController@getAllQuestionTypes');
@@ -71,13 +69,9 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->get('question/choice/{choice_id}',                       'QuestionChoiceController@getQuestionChoice');
   $router->put('choice/{choice_id}',                                'QuestionChoiceController@updateQuestionChoice');
   $router->put('question/{question_id}/choices',                    'QuestionChoiceController@updateQuestionChoices');
-  $router->put('question/choice/{question_choice_id}/add',          'QuestionChoiceController@addExistingQuestionChoice');
-  $router->put('question/choice/{question_choice_id}/move',         'QuestionChoiceController@moveQuestionChoice');
+  $router->put('question/choice/{question_choice_id}',              'QuestionChoiceController@updateQuestionChoice2');
 
   //* Question Param Controller Routes *//
-  $router->put('question/{question_id}/type/numeric',             'QuestionParamController@updateQuestionNumeric');
-  $router->put('question/{question_id}/type/multiple',            'QuestionController@updateQuestionTypeMultiple');
-  $router->put('question/{question_id}/type/datetime',            'QuestionParamController@updateQuestionDateTime');
   $router->get('parameter/types',                                                'QuestionParamController@getParameterTypes');
   $router->post('question/{question_id}/parameter',                'QuestionParamController@createOrUpdateParameter');
   $router->delete('parameter/{parameter_id}',                                         'QuestionParamController@deleteQuestionParameter');

@@ -5,13 +5,10 @@ namespace App\Http\Controllers;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Ramsey\Uuid\Uuid;
-use Validator;
-use App\Models\Section;
 use App\Models\QuestionGroup;
-use App\Models\SectionQuestionGroup;
 use App\Services\QuestionGroupService;
-use DB;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class QuestionGroupController extends Controller
 {
@@ -125,34 +122,33 @@ class QuestionGroupController extends Controller
     public function updateQuestionGroup(Request $request, $id)
     {
         $validator = Validator::make(array_merge($request->all(), [
-                'id' => $id
+          'id' => $id
         ]), [
-                'id' => 'required|string|min:36'
+          'id' => 'required|string|min:36'
         ]);
 
         if ($validator->fails() === true) {
-            return response()->json([
-                    'msg' => 'Validation failed',
-                    'err' => $validator->errors()
-            ], $validator->statusCode());
+          return response()->json([
+            'msg' => 'Validation failed',
+            'err' => $validator->errors()
+          ], $validator->statusCode());
         }
 
         $questionGroupModel = QuestionGroup::find($id);
 
         if ($questionGroupModel === null) {
-            return response()->json([
-                    'msg' => 'URL resource not found'
-            ], Response::HTTP_NOT_FOUND);
+          return response()->json([
+            'msg' => 'URL resource not found'
+          ], Response::HTTP_NOT_FOUND);
         }
 
         $questionGroupModel->fill($request->input());
         $questionGroupModel->save();
 
         return response()->json([
-                'msg' => Response::$statusTexts[Response::HTTP_OK]
+          'msg' => Response::$statusTexts[Response::HTTP_OK]
         ], Response::HTTP_OK);
     }
-
 
     public function updateSectionQuestionGroups(Request $request)
     {

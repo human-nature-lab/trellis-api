@@ -9,17 +9,15 @@ use App\Models\Question;
 use App\Models\QuestionAssignConditionTag;
 use App\Models\QuestionParameter;
 use App\Models\TranslationText;
-use App\Models\Translation;
 use App\Services\ConditionTagService;
 use App\Services\QuestionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use App\Http\Requests;
 use App\Http\Controllers\Controller;
 use Ramsey\Uuid\Uuid;
-use Validator;
-use DB;
-use Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class QuestionController extends Controller
 {
@@ -245,12 +243,10 @@ class QuestionController extends Controller
 
     public function updateQuestion(Request $request, $questionId)
     {
-        $validator = Validator::make(array_merge($request->all(), [
-            'id' => $questionId
-        ]), [
-            'id' => 'required|string|min:36|exists:question,id',
+        $validator = Validator::make($request->all(), [
             'question_type_id' => 'string|min:36|exists:question_type,id',
-            'var_name' => 'required|string|min:1'
+            'var_name' => 'required|string|min:1',
+            'question_group_id' => 'string|min:36|exists:question_group,id',
         ]);
 
         if ($validator->fails() === true) {
@@ -268,9 +264,34 @@ class QuestionController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $questionModel->var_name = $request->input("var_name");
-        $questionModel->question_type_id = $request->input("question_type_id");
-        $questionModel->save();
+        DB::transaction(function () use ($questionModel, $request, $questionId) {
+          $changedSortOrder = $questionModel->sort_order !== $request->input('sort_order');
+          $changedQuestionGroup = $questionModel->question_group_id !== $request->input('question_group_id');
+
+          $questionModel->var_name = $request->input("var_name");
+          $questionModel->question_type_id = $request->input("question_type_id");
+          $questionModel->sort_order = $request->input('sort_order');
+          $questionModel->question_group_id = $request->input('question_group_id');
+          $questionModel->save();
+
+          if ($changedSortOrder || $changedQuestionGroup) {
+            $questions = Question::where('question_group_id', $request->input('question_group_id'))->
+              where('id', '<>', $questionId)->
+              orderBy('sort_order')->
+              get();
+
+            // Reorder the existing question choices one at a time
+            for ($i = 0; $i < count($questions); $i++) {
+              if ($i < $request->input('sort_order')) {
+                $questions[$i]->sort_order = $i;
+              } else {
+                $questions[$i]->sort_order = $i + 1;
+              }
+              $questions[$i]->save();
+            }
+          }
+        });
+        
 
         return response()->json([
             'msg' => Response::$statusTexts[Response::HTTP_OK]
