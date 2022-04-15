@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use App\Models\QuestionGroup;
 use App\Models\SectionQuestionGroup;
-use App\Services\QuestionGroupService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
