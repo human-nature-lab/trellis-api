@@ -208,9 +208,10 @@ class SkipController extends Controller
         };
 
 
-        $skipModel = Skip::find($skipId);
 
-        DB::transaction(function () use ($request, $skipModel, $skipId, $conditions) {
+        DB::transaction(function () use ($request, $skipId, $conditions) {
+            $skipModel = Skip::find($skipId);
+
             $skipModel->show_hide = $request->input('show_hide');
             $skipModel->any_all = $request->input('any_all');
             $skipModel->precedence = $request->input('precedence');
