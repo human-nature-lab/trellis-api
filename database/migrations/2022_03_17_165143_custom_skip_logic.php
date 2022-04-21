@@ -7,7 +7,7 @@ use Illuminate\Database\Migrations\Migration;
 class CustomSkipLogic extends Migration {
   public function up() {
     Schema::table('skip', function (Blueprint $table) {
-      $table->string('custom_logic')->nullable();
+      $table->text('custom_logic')->nullable();
     });
   }
 
