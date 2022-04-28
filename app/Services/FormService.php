@@ -209,6 +209,24 @@ class FormService {
       $formSection->save();
     }
 
-    return Form::with('sections', 'nameTranslation')->find($form->id);
+    foreach ($form->skips as $skip) {
+      $skip = $skip->replicate(['id'])->fill(['id' => Uuid::uuid4()]);
+      $skip->save();
+      $formSkip = $skip->pivot->replicate(['id', 'form_id', 'skip_id'])->fill([
+        'id' => Uuid::uuid4(),
+        'form_id' => $form->id,
+        'skip_id' => $skip->id,
+      ]);
+      $formSkip->save();
+      foreach ($skip->conditions as $cond) {
+        $c = $cond->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'skip_id' => $skip->id,
+        ]);
+        $c->save();
+      }
+    }
+
+    return Form::with('sections', 'nameTranslation', 'skips')->find($form->id);
   }
 }
