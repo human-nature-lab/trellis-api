@@ -79,11 +79,13 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study/{studyId}/respondent-photo/import',        ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@importRespondentPhotos']);
   $router->post('study/{study_id}/respondent-tag/import',         ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'ConditionTagController@importRespondentConditionTags']);
   $router->post('study/{study_id}/respondent-geo/import',         ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentGeoController@importRespondentGeos']);
+  
   $router->post('respondent-preload-data/import',                 ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@preloadRespondentData']);
   $router->get('respondent/{study_id}/count',                     ['middleware' => 'requires:VIEW_RESPONDENTS',         'uses' => 'RespondentController@getRespondentCountByStudyId']);
   $router->get('respondent/{study_id}/search',                    ['middleware' => 'requires:VIEW_RESPONDENTS',         'uses' => 'RespondentController@searchRespondentsByStudyId']);
   $router->put('respondent',                                      ['middleware' => 'requires:ADD_RESPONDENT',           'uses' => 'RespondentController@createRespondent']);
   $router->delete('respondent/{id}',                              ['middleware' => 'requires:REMOVE_RESPONDENT',        'uses' => 'RespondentController@removeRespondent']);
+  $router->post('respondent/{respondent_id}/photos',              ['middleware' => 'requires:ADD_RESPONDENT_PHOTO',     'uses' => 'RespondentController@addPhoto']);
   $router->post('respondent/{respondent_id}/photos',              ['middleware' => 'requires:ADD_RESPONDENT_PHOTO',     'uses' => 'RespondentController@addPhoto']);
   $router->delete('respondent/{respondent_id}/photo/{photo_id}',  ['middleware' => 'requires:REMOVE_RESPONDENT_PHOTO',  'uses' => 'RespondentController@removeRespondentPhoto']);
   // NOT USED $router->post('respondent/{id}',                                [                                                     'uses' => 'RespondentController@updateRespondent']);
@@ -92,6 +94,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   //* Translation Controller Routes *//
   $router->get('translation/{translation_id}/text/{text_id}',     [                                                     'uses' => 'TranslationTextController@getTranslationText']);
   $router->delete('translation/{translation_id}',                 ['middleware' => 'requires:REMOVE_TRANSLATION',       'uses' => 'TranslationController@removeTranslation']);
+  
   $router->delete('translation/{translation_id}/text/{text_id}',  ['middleware' => 'requires:EDIT_TRANSLATION',         'uses' => 'TranslationTextController@removeTranslationText']);
   $router->post('translation/{translation_id}/text/{text_id}',    ['middleware' => 'requires:EDIT_TRANSLATION',         'uses' => 'TranslationTextController@updateTranslationText']);
   $router->get('translation/{translation_id}/text',               [                                                     'uses' => 'TranslationTextController@getAllTranslationText']);
@@ -103,12 +106,13 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->group(['middleware' => 'requires:EDIT_FORM'], function () use ($router) {
 
     //* Question Group Controller Routes *//
-    $router->get('form/section/group/{group_id}/question/',                                                                       'QuestionGroupController@getQuestionGroup');
+    $router->get('form/section/group/{group_id}',                                                                                 'QuestionGroupController@getQuestionGroup');
     $router->delete('form/section/group/{group_id}',                                                                              'QuestionGroupController@removeQuestionGroup');
-    $router->get('form/{form_id}/section/group/locale/{locale_id}',                                                               'QuestionGroupController@getAllQuestionGroups');
-    $router->put('form/section/{section_id}/group/question',                                                                      'QuestionGroupController@createQuestionGroup');
-    $router->post('form/section/group/{group_id}/question/',                                                                      'QuestionGroupController@updateQuestionGroup');
-    $router->patch('form/section/groups',                                                                                         'QuestionGroupController@updateSectionQuestionGroups');
+    // $router->get('form/{form_id}/section/group',                                                                                 'QuestionGroupController@getAllQuestionGroups');
+    $router->post('form/section/{section_id}/group',                                                                              'QuestionGroupController@createQuestionGroup');
+    $router->put('form/section/group/{group_id}',                                                                                 'QuestionGroupController@updateQuestionGroup');
+    $router->put('form/section-group/{id}',                                                                                       'QuestionGroupController@updateSectionQuestionGroup');
+    // $router->patch('form/section/groups',                                                                                         'QuestionGroupController@updateSectionQuestionGroups');
 
     //* Section Controller Routes *//
     $router->get('form/section/{section_id}',                                                                                     'SectionController@getSection');
@@ -133,10 +137,10 @@ $router->group(['middleware' => 'token'], function () use ($router) {
     $router->delete('form/section/group/question/condition/{id}',                                                                 'ConditionController@deleteAssignConditionTag');
 
     //* Skip Controller Routes *//
-    $router->put('form/section/group/skip/',                                                                                      'SkipController@createQuestionGroupSkip');
+    $router->put('form/section/group/{group_id}/skip/',                                                                           'SkipController@createQuestionGroupSkip');
     $router->post('form/section/group/skip/{id}',                                                                                 'SkipController@updateSkip');
     $router->delete('form/section/group/skip/{id}',                                                                               'SkipController@deleteQuestionGroupSkip');
-    $router->get('form/section/group/skip/',                                                                                      'SkipController@getAllQuestionGroupSkips');
+    // $router->get('form/section/group/skip/',                                                                                      'SkipController@getAllQuestionGroupSkips');
 
     $router->post('form/{form_id}/skip',                                                                                          'SkipController@createFormSkip');
     $router->put('skip/{skip_id}',                                                                                                'SkipController@updateSkip');

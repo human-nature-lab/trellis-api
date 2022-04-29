@@ -85,9 +85,10 @@ class QuestionService
     }
 
     static public function copyQuestion (Question $question): Question {
-      $q = $question->replicate(['id', 'questionTranslation'])->fill([
+      $t = TranslationService::copyTranslation($question->questionTranslation);
+      $q = $question->replicate(['id', 'question_translation_id'])->fill([
         'id'=> Uuid::uuid4(),
-        'questionTranslation' => TranslationService::copyTranslation($question->questionTranslation),
+        'question_translation_id' => $t->id,
       ]);
       $q->save();
       
@@ -98,11 +99,11 @@ class QuestionService
       }
 
       foreach($question->assignConditionTags as $act) {
-        $a = $act->replicate()->fill([
+        $a = $act->replicate(['id'])->fill([
           'id' => Uuid::uuid4(),
         ]);
         $a->save();
-        $qa = $act->pivot->replicate()->fill([
+        $qa = $act->pivot->replicate(['id', 'question_id', 'assign_condition_tag_id'])->fill([
           'id' => Uuid::uuid4(),
           'question_id' => $q->id,
           'assign_condition_tag_id' => $a->id,
@@ -112,7 +113,7 @@ class QuestionService
 
       foreach($question->choices as $c) {
         $c = QuestionChoiceService::copyChoice($c);
-        $qc = $c->pivot->replicate()->fill([
+        $qc = $c->pivot->replicate(['id', 'choice_id', 'question_id'])->fill([
           'id' => Uuid::uuid4(),
           'choice_id' => $c->id,
           'question_id' => $q->id,
@@ -122,7 +123,7 @@ class QuestionService
       }
 
       foreach($question->preloadActions as $p) {
-        $pa = $p->replicate()->fill([
+        $pa = $p->replicate(['id', 'question_id'])->fill([
           'id' => Uuid::uuid4(),
           'question_id' => $q->id,
         ]);

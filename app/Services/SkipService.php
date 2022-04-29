@@ -9,7 +9,7 @@ use Ramsey\Uuid\Uuid;
 
 class SkipService
 {
-    public static function createSkip($questionGroupId, $showHide, $anyAll, $precedence)
+    public static function createSkip($questionGroupId, $showHide, $anyAll, $precedence, $customLogic)
     {
         $skipId = Uuid::uuid4();
         $skip = new Skip;
@@ -18,6 +18,7 @@ class SkipService
         $skip->show_hide = $showHide;
         $skip->any_all = $anyAll;
         $skip->precedence = $precedence;
+        $skip->custom_logic = $customLogic;
 
         $skip->save();
 

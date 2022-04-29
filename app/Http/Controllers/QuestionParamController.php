@@ -35,7 +35,7 @@ class QuestionParamController extends Controller
         if($questionModel === null){
             return response()->json([
                 'msg' => 'Question id is not valid'
-            ], Response::HTTP_NOT_FOUND);
+            ], Response::HTTP_BAD_REQUEST);
         }
 
 
@@ -59,7 +59,7 @@ class QuestionParamController extends Controller
         if($parameterModel === null){
             return response()->json([
                 'msg' => "Parameter name is invalid"
-            ], Response::HTTP_NOT_FOUND);
+            ], Response::HTTP_BAD_REQUEST);
         }
 
 

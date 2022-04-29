@@ -342,6 +342,7 @@ CREATE TABLE `parameter` (
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
+,  `type` varchar(255) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
 );
 CREATE TABLE `permission` (
@@ -681,6 +682,7 @@ CREATE TABLE `skip` (
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
+,  `custom_logic` text COLLATE BINARY
 ,  PRIMARY KEY (`id`)
 );
 CREATE TABLE `skip_condition_tag` (

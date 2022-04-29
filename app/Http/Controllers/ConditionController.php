@@ -126,9 +126,6 @@ class ConditionController extends Controller
         $validator = Validator::make(array_merge($request->all(), [
         ]), [
             'tag' => 'required|string|min:1',
-            'logic' => 'required|string|min:1',
-            'scope' => 'required|string|min:1',
-            'questions.*.id' => 'string|min:36|exists:question,id'
         ]);
 
 
@@ -139,45 +136,13 @@ class ConditionController extends Controller
             ], $validator->statusCode());
         };
 
-        $newAssignConditionTagModel = new AssignConditionTag;
-
-        DB::transaction(function () use ($request, $newAssignConditionTagModel) {
-            $conditionTagId = Uuid::uuid4();
-            $assignConditionTagId = Uuid::uuid4();
-
-            $newConditionTagModel = new ConditionTag;
-
-            $newConditionTagModel->id = $conditionTagId;
-            $newConditionTagModel->name = $request->input('tag');
-            $newConditionTagModel->save();
-
-            $newAssignConditionTagModel->id = $assignConditionTagId;
-            $newAssignConditionTagModel->condition_tag_id = $conditionTagId;
-            $newAssignConditionTagModel->logic = $request->input('logic');
-            $newAssignConditionTagModel->scope = $request->input('scope');
-
-            $newAssignConditionTagModel->save();
-
-            foreach ($request->input('questions') as $question) {
-                $questionAssignConditionTagId = Uuid::uuid4();
-
-                $newQuestionAssignConditionTagModel = new QuestionAssignConditionTag;
-
-                $newQuestionAssignConditionTagModel->id = $questionAssignConditionTagId;
-                $newQuestionAssignConditionTagModel->question_id = $question['id'];
-                $newQuestionAssignConditionTagModel->assign_condition_tag_id = $assignConditionTagId;
-                $newQuestionAssignConditionTagModel->save();
-            }
-        });
-
-        if ($newAssignConditionTagModel === null) {
-            return response()->json([
-                'msg' => 'Condition creation failed.'
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        };
+        $condition = new ConditionTag;
+        $condition->id = Uuid::uuid4();
+        $condition->name = $request->input('tag');
+        $condition->save();
 
         return response()->json([
-            'condition' => $newAssignConditionTagModel
+            'condition' => $condition,
         ], Response::HTTP_OK);
     }
 

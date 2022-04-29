@@ -101,7 +101,7 @@ class FormService {
         $importedQuestionGroup = QuestionGroupService::createQuestionGroup($importedSection["id"], $questionGroupSortOrder);
 
         foreach ($questionGroupObject["skips"] as $skipObject) {
-          $importedSkip = SkipService::createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"]);
+          $importedSkip = SkipService::createSkip($importedQuestionGroup["id"], $skipObject["show_hide"], $skipObject["any_all"], $skipObject["precedence"], $skipObject['custom_logic']);
 
           foreach ($skipObject["conditions"] as $skipConditionTagObject) {
             SkipService::createSkipConditionTag($importedSkip["id"], $skipConditionTagObject["condition_tag_name"]);
@@ -217,6 +217,24 @@ class FormService {
       $formSection->save();
     }
 
-    return Form::with('sections', 'nameTranslation')->find($form->id);
+    foreach ($form->skips as $skip) {
+      $skip = $skip->replicate(['id'])->fill(['id' => Uuid::uuid4()]);
+      $skip->save();
+      $formSkip = $skip->pivot->replicate(['id', 'form_id', 'skip_id'])->fill([
+        'id' => Uuid::uuid4(),
+        'form_id' => $form->id,
+        'skip_id' => $skip->id,
+      ]);
+      $formSkip->save();
+      foreach ($skip->conditions as $cond) {
+        $c = $cond->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'skip_id' => $skip->id,
+        ]);
+        $c->save();
+      }
+    }
+
+    return Form::with('sections', 'nameTranslation', 'skips')->find($form->id);
   }
 }

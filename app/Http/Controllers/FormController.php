@@ -493,7 +493,7 @@ class FormController extends Controller {
     $prodStudy = Study::where('test_study_id', $studyId)->first();
 
     $newForm = DB::transaction(function () use ($formId, $testStudy, $prodStudy) {
-      $testForm = Form::with('nameTranslation', 'studyForm', 'sections')->find($formId);
+      $testForm = Form::with('nameTranslation', 'studyForm', 'sections', 'skips')->find($formId);
       
       $testStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $testStudy->id)->first();
       $prodStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $prodStudy->id)->first();
@@ -1107,7 +1107,7 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
 
-    $study = Study::find($studyId);
+    // $study = Study::find($studyId);
     // $testStudy = Study::where('id', $study->test_study_id)->first();
 
     $q = Form::whereIn('id', function ($sub) use ($studyId, $formTypeId) {

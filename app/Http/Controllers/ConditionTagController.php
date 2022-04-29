@@ -61,7 +61,7 @@ class ConditionTagController extends Controller {
         ]);
 
 	    if ($validator->fails()) {
-	        return rsponse()->json([
+	        return response()->json([
 	            'msg' => $validator->errors()
             ], $validator->statusCode());
         }
