@@ -34,7 +34,7 @@ class StudySnapshot extends BaseCommand {
   private $snapshotService;
   private $ignoredTables = [];
   private $specialTables = ['config'];
-  private $surveyTables = ['datum', 'question_datum', 'action', 'survey_condition_tag', 'section_condition_tag', 'edge'];
+  private $surveyTables = ['datum', 'question_datum', 'action', 'survey_condition_tag', 'section_condition_tag'];
 
   public function handle(SnapshotService $ss) {
     $this->snapshotService = $ss;
@@ -247,24 +247,25 @@ class StudySnapshot extends BaseCommand {
             $this->copyQuery('action', $q);
           });
         });
-        $this->time('copying incomplete data from edge table', function () {
-          $this->mainConn->transaction(function () {
-            $q = $this->mainConn->
-              table('edge')->
-              whereIn('id', function ($q) {
-                return $q->
-                  select('edge_id')->
-                  from('datum')->
-                  whereIn('survey_id', function ($q) {
-                    return $q->
-                      select('id')->
-                      from('survey')->
-                      whereNull('completed_at');
-                  });
-              });
-            $this->copyQuery('edge', $q);
-          });
-        });
+        // This affected preload actions so we're just copying the edge table as-is instead.
+        // $this->time('copying incomplete data from edge table', function () {
+        //   $this->mainConn->transaction(function () {
+        //     $q = $this->mainConn->
+        //       table('edge')->
+        //       whereIn('id', function ($q) {
+        //         return $q->
+        //           select('edge_id')->
+        //           from('datum')->
+        //           whereIn('survey_id', function ($q) {
+        //             return $q->
+        //               select('id')->
+        //               from('survey')->
+        //               whereNull('completed_at');
+        //           });
+        //       });
+        //     $this->copyQuery('edge', $q);
+        //   });
+        // });
       }
 
       $this->sqliteConn->statement('PRAGMA foreign_keys = ON;');

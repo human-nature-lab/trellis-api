@@ -199,13 +199,21 @@ class FormService {
     ]);
     $form->save();
 
-    foreach ($form->sections as $section) {
-      $section = SectionService::copySection($section);
-      $formSection = $section->pivot->replicate(['id', 'form_id', 'section_id'])->fill([
+    // Stores a map of all of the previous question ids to the new counterparts
+    $questionMap = [];
+
+    foreach ($form->sections as $oldSection) {
+      $section = SectionService::copySection($oldSection, $questionMap);
+      $formSectionData = [
         'id' => Uuid::uuid4(),
         'form_id' => $form->id,
         'section_id' => $section->id,
-      ]);
+      ];
+      $fs = $oldSection->formSections[0];
+      if (isset($fs->follow_up_question_id)) {
+        $formSectionData['follow_up_question_id'] = $questionMap[$fs->follow_up_question_id];
+      }
+      $formSection = $fs->replicate(['id', 'form_id', 'section_id', 'follow_up_question_id'])->fill($formSectionData);
       $formSection->save();
     }
 
