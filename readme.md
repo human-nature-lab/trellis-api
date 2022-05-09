@@ -206,7 +206,7 @@ server {
   listen 443 ssl http2;
   server_name {yourdomainname.com};
 
-  root        /var/www/trellis-app;
+  root        /var/www/trellis-app/www;
   access_log  /var/log/nginx/app-access.log;
   error_log   /var/log/nginx/app-error.log;
 
