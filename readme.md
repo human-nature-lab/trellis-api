@@ -132,7 +132,7 @@ $ cd /var/www/trellis-api
 $ cp .env.example .env 
 $ nano .env
 ```
-Modify the `DB_USERNAME` and `DB_PASSWORD` lines to match the database user you created above then press CTRL-X and Y to
+Modify the `DB_USERNAME` and `DB_PASSWORD` lines to match the database user you created above. Set the `APP_KEY` to a random value. See [generating random strings](https://unix.stackexchange.com/a/306107/143436). When done editing use CTRL-X and Y to
 save and exit.
 
 ### Change the permissions of the storage directory
