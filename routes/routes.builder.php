@@ -52,6 +52,7 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
 
   //* Question Controller Routes *//
   $router->post('group/{group_id}/question/',                                     'QuestionController@createQuestion');
+  $router->post('group/{group_id}/question/{question_id}/duplicate',               'QuestionController@duplicateQuestion');
   $router->put('group/{group_id}/question/{question_id}',                         'QuestionController@moveQuestion');
   $router->delete('question/{question_id}',                                       'QuestionController@removeQuestion');
   // $router->get('question/{question_id}',                                       'QuestionController@getQuestion');
