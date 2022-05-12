@@ -44,7 +44,7 @@ class Form extends Model
         return $this
             ->belongsToMany('App\Models\Section', 'form_section')
             ->using('App\Models\FormSection')
-            ->withPivot('sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id', 'randomize_follow_up')
+            ->withPivot('id', 'sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id', 'randomize_follow_up')
             ->whereNull('form_section.deleted_at')
             ->withTimestamps()
             ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation')

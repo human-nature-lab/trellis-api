@@ -4,6 +4,7 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
 
   //* Form Controller Routes *//
   $router->post('study/form/{formId}/section/import',                                 'FormController@importSection');
+  $router->get('study/{study_id}/sections',                                           'SectionController@getStudyFormSections');
 
   //* Translation Controller Routes *//
   $router->get('translation/{translation_id}/text/{text_id}',                         'TranslationTextController@getTranslationText');
@@ -26,13 +27,14 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->get('section/{section_id}',                                           'SectionController@getSection');
   $router->delete('section/{section_id}',                                        'SectionController@removeSection');
   $router->put('section/{section_id}',                                           'SectionController@updateSection');
-  $router->get('{form_id}/section/locale/{locale_id}',                           'SectionController@getAllSections');
+  // $router->get('{form_id}/section/locale/{locale_id}',                           'SectionController@getAllSections');
   $router->post('{form_id}/section',                                             'SectionController@createSection');
   $router->patch('sections',                                                     'SectionController@updateSections');
 
 
   //* Form Section Controller Routes *//
-  $router->put('form_section/{form_section_id}',                                     'FormSectionController@updateFormSection');
+  $router->put('form_section/{form_section_id}',                                      'FormSectionController@updateFormSection');
+  $router->post('form/{form_id}/section/{section_id}',                                'FormController@linkSection');
 
   //* Question Condition Controller Routes *//
   $router->put('section/group/question/condition/logic',                                                  'ConditionController@editConditionLogic');
