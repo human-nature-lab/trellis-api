@@ -2,19 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SectionQuestionGroup;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Ramsey\Uuid\Uuid;
-use Validator;
-use DB;
-use App\Models\Form;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Models\Section;
+use App\Models\StudyForm;
 use App\Models\FormSection;
-use App\Models\Study;
-use App\Models\Translation;
-use App\Models\TranslationText;
 use App\Services\SectionService;
 
 class SectionController extends Controller
@@ -47,35 +42,27 @@ class SectionController extends Controller
         );
     }
 
-    public function getAllSections(Request $request, $formId, $localeId)
+    public function getStudyFormSections($studyId)
     {
-        $validator = Validator::make(array_merge($request->all(), [
-                'formId' => $formId,
-                'localeId' => $localeId
-        ]), [
-                'formId' => 'required|string|min:36|exists:form,id',
-                'localeId' => 'required|string|min:36|exists:locale,id'
+        $validator = Validator::make( [
+          'studyId' => $studyId,
+        ], [
+          'studyId' => 'required|string|min:36|exists:study,id',
         ]);
 
         if ($validator->fails() === true) {
-            return response()->json([
-                    'msg' => 'Validation failed',
-                    'err' => $validator->errors()
-            ], $validator->statusCode());
+          return response()->json([
+            'msg' => 'Validation failed',
+            'err' => $validator->errors(),
+          ], $validator->statusCode());
         }
 
-        $sectionModel = Section::select('section.id', 'tt.translated_text AS text', 'fs.sort_order AS sort_order')
-                    ->join('form_section AS fs', 'fs.section_id', '=', 'section.id')
-                    ->join('translation_text AS tt', 'tt.translation_id', '=', 'section.name_translation_id')
-                    ->where('fs.form_id', $formId)
-                    ->where('tt.locale_id', $localeId)
-                    ->orderBy('fs.sort_order', 'asc')
-                    ->get();
+        $forms = StudyForm::with('form.nameTranslation', 'form.sections.nameTranslation')->where('study_id', $studyId)->get();
 
-        return response()->json(
-            ['sections' => $sectionModel
-            ], Response::HTTP_OK
-        );
+
+        return response()->json([
+          'study_forms' => $forms,
+        ], Response::HTTP_OK);
     }
 
     public function updateSection(Request $request, $sectionId)
@@ -142,11 +129,11 @@ class SectionController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function removeSection($section_id)
+    public function removeSection($formSectionId)
     {
         $validator = Validator::make(
-            ['id' => $section_id],
-            ['id' => 'required|string|min:36|exists:section,id']
+            ['id' => $formSectionId],
+            ['id' => 'required|string|min:36|exists:form_section,id']
         );
 
         if ($validator->fails() === true) {
@@ -156,7 +143,7 @@ class SectionController extends Controller
             ], $validator->statusCode());
         };
 
-        $sectionModel = Section::find($section_id);
+        $sectionModel = FormSection::find($formSectionId);
 
         if ($sectionModel === null) {
             return response()->json([

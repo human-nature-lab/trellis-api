@@ -70,6 +70,33 @@ class FormController extends Controller {
     ], Response::HTTP_OK);
   }
 
+
+  public function linkSection ($formId, $sectionId) {
+    $data = [
+      'form_id' => $formId,
+      'section_id' => $sectionId,
+    ];
+    $validator = Validator::make($data, [
+      'form_id' => 'required|string|exists:form,id',
+      'section_id' => 'required|string|exists:section,id',
+    ]);
+
+    if ($validator->fails()) {
+      return response()->json([
+        'msg' => $validator->errors(),
+      ], $validator->statusCode());
+    }
+
+    $data['id'] = Uuid::uuid4();
+    $formSection = (new FormSection)->fill($data);
+    $formSection->save();
+
+    return response()->json([
+      'form_section' => $formSection,
+      'section' => Section::with('questionGroups', 'nameTranslation')->find($sectionId),
+    ]);
+  }
+
   /**
    * Get the structure of the form. This is loosely defined as everything that is required to navigate the form, but not
    * display it.
