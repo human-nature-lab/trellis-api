@@ -193,12 +193,25 @@ class InterviewDataController
             },[]);
             $questionIds = array_keys($questionIdToQuestionDatumMap);
 
-            $sectionQuery = Question::whereIn('id', $questionIds)
-                ->select('question.id',
-                    DB::raw('(select `form_section`.`sort_order` from `form_section` where `form_section`.`section_id` in 
-                    (select `section_question_group`.`section_id` from `section_question_group` where `section_question_group`.`question_group_id` = question.question_group_id)) as sort_order'));
+            $formId = DB::selectOne('select form_id from survey where id in (select survey_id from interview where id = ?)', [$interviewId])->form_id;
+            $sectionQuery = DB::table('question')
+              ->select('question.id')
+              ->selectSub(function ($q) use ($formId) {
+                $q->select('sort_order')
+                  ->from('form_section')
+                  ->where('form_id', $formId)
+                  ->whereIn('section_id', function ($q) {
+                    $q->select('section_id')
+                      ->from('section_question_group')
+                      ->whereRaw('question_group_id = question.question_group_id');
+                  })
+                  ->whereNull('deleted_at');
+              }, 'sort_order')
+              ->whereIn('id', $questionIds);
+            
+            $sectionSortOrders = $sectionQuery->get();
 
-            $questionIdInsertOrderMap = $sectionQuery->get()->reduce(function ($map, $r) {
+            $questionIdInsertOrderMap = $sectionSortOrders->reduce(function ($map, $r) {
                 $map[$r->id] = $r->sort_order;
                 return $map;
             }, []);
