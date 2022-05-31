@@ -235,6 +235,6 @@ class FormService {
       }
     }
 
-    return Form::with('sections', 'nameTranslation', 'skips')->find($form->id);
+    return Form::with('sections', 'nameTranslation', 'skips', 'sections.questionGroups', 'sections.nameTranslation', 'sections.formSections.repeatPromptTranslation')->find($form->id);
   }
 }

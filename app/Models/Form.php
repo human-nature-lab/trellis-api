@@ -47,7 +47,7 @@ class Form extends Model
             ->withPivot('id', 'sort_order', 'is_repeatable', 'max_repetitions', 'repeat_prompt_translation_id', 'randomize_follow_up')
             ->whereNull('form_section.deleted_at')
             ->withTimestamps()
-            ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation')
+            // ->with('questionGroups', 'nameTranslation', 'formSections.repeatPromptTranslation')
             ->orderBy('form_section.sort_order');
     }
 

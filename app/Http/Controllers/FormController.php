@@ -63,7 +63,7 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
 
-    $formModel = Form::with('sections', 'nameTranslation', 'versions')->find($id);
+    $formModel = Form::with('sections', 'nameTranslation', 'versions', 'sections.questionGroups', 'sections.nameTranslation', 'sections.formSections.repeatPromptTranslation')->find($id);
 
     return response()->json([
       'form' => $formModel
@@ -119,7 +119,12 @@ class FormController extends Controller {
     }
 
     // TODO: This could be a custom query that returns a more 'bare bones' response without the fluff
-    $form = Form::with('sections')->find($formId);
+    $form = Form::with(
+      'sections',
+      'sections.questionGroups',
+      'sections.nameTranslation',
+      'sections.formSections.repeatPromptTranslation'
+    )->find($formId);
 
     return response()->json([
       'structure' => $form
@@ -225,7 +230,13 @@ class FormController extends Controller {
     }
     $studyModel = Study::find($studyId);
     $returnForm = $studyModel->forms()->find($importedForm->id);
-    $formObject = Form::with('sections', 'nameTranslation')->find($importedForm->id);
+    $formObject = Form::with(
+      'sections',
+      'nameTranslation',
+      'sections.questionGroups',
+      'sections.nameTranslation',
+      'sections.formSections.repeatPromptTranslation'
+    )->find($importedForm->id);
     return response()->json(
       [
         'importedForm' => $returnForm,
@@ -520,7 +531,7 @@ class FormController extends Controller {
     $prodStudy = Study::where('test_study_id', $studyId)->first();
 
     $newForm = DB::transaction(function () use ($formId, $testStudy, $prodStudy) {
-      $testForm = Form::with('nameTranslation', 'studyForm', 'sections', 'skips')->find($formId);
+      $testForm = Form::with('nameTranslation', 'studyForm', 'sections', 'skips', 'sections.questionGroups', 'sections.nameTranslation', 'sections.formSections.repeatPromptTranslation')->find($formId);
       
       $testStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $testStudy->id)->first();
       $prodStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $prodStudy->id)->first();

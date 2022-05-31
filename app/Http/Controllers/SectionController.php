@@ -57,8 +57,7 @@ class SectionController extends Controller
           ], $validator->statusCode());
         }
 
-        $forms = StudyForm::with('form.nameTranslation', 'form.sections.nameTranslation')->where('study_id', $studyId)->get();
-
+        $forms = StudyForm::with(['form.nameTranslation', 'form.sections.nameTranslation'])->where('study_id', $studyId)->get();
 
         return response()->json([
           'study_forms' => $forms,
