@@ -191,6 +191,7 @@ class FormService {
    * Copy a form in the database
    */
   public static function copyForm(Form $form, int $version): Form {
+    $oldFormId = $form->id;
     $form = $form->replicate(['id', 'name_translation_id', 'version', 'is_published'])->fill([
       'id' => Uuid::uuid4(),
       'name_translation_id' => TranslationService::copyTranslation($form->nameTranslation)->id,
@@ -209,7 +210,19 @@ class FormService {
         'form_id' => $form->id,
         'section_id' => $section->id,
       ];
-      $fs = $oldSection->formSections[0];
+
+      // Find the specific form section that matches the old form
+      $fs = null;
+      foreach ($oldSection->formSections as $fSection) {
+        if ($fSection->form_id === $oldFormId) {
+          $fs = $fSection;
+        }
+      }
+      if (!isset($fs)) {
+        throw new \Exception("unable to find valid form section");
+      }
+
+      // $fs = $oldSection->formSections[0];
       if (isset($fs->follow_up_question_id)) {
         $formSectionData['follow_up_question_id'] = $questionMap[$fs->follow_up_question_id];
       }
