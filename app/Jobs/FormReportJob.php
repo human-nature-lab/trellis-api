@@ -270,7 +270,7 @@ class FormReportJob extends Job
         } else if (isset($datum->geo)) {
             return ReportService::translationToText($datum->geo->nameTranslation, $localeId);
         } else if (isset($datum->edge)) {
-            return $datum->edge->target_respondent_id;
+            return $datum->edge->id;
         } else if (isset($datum->photo)) {
             // TODO: Store photos meta data here
             return $datum->photo->file_name;
