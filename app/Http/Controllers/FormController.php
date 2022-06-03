@@ -528,6 +528,8 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
 
+    set_time_limit(0);
+
     $prodStudy = Study::where('test_study_id', $studyId)->first();
 
     $newForm = DB::transaction(function () use ($formId, $testStudy, $prodStudy) {

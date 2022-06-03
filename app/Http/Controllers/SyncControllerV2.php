@@ -171,6 +171,7 @@ class SyncControllerV2 extends Controller {
   }
 
   public function generateSnapshot() {
+    set_time_limit(0);
     $exitCode = Artisan::call('trellis:study:snapshot --quick-check --no-completed-data');
 
     if ($exitCode == 1) {
@@ -196,6 +197,8 @@ class SyncControllerV2 extends Controller {
         'msg' => $validator->errors(),
       ], Response::HTTP_BAD_REQUEST);
     }
+
+    set_time_limit(0);
 
     $uploads = $request->input('uploads', []);
     $ids = implode(' ', $uploads);
