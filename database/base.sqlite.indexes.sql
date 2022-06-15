@@ -79,6 +79,7 @@ CREATE INDEX "idx_preload_preload_study_id_foreign" ON "preload" (`study_id`);
 CREATE INDEX "idx_preload_preload_last_question_id_foreign" ON "preload" (`last_question_id`);
 CREATE INDEX "idx_edge_fk__edge_source_respondent_id__respondent_idx" ON "edge" (`source_respondent_id`);
 CREATE INDEX "idx_edge_fk__edge_target_respondent_id__respondent_idx" ON "edge" (`target_respondent_id`);
+CREATE INDEX "idx_edge_idx_edge_note" ON "edge" (`note`);
 CREATE INDEX "idx_form_section_fk__form_section__form_idx" ON "form_section" (`form_id`);
 CREATE INDEX "idx_form_section_fk__form_section__section_idx" ON "form_section" (`section_id`);
 CREATE INDEX "idx_form_section_fk__form_section_repeat_prompt__translation_idx" ON "form_section" (`repeat_prompt_translation_id`);

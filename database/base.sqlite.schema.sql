@@ -170,6 +170,7 @@ CREATE TABLE `edge` (
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
+,  `note` varchar(255) NOT NULL
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `fk__edge_list_source__respondent` FOREIGN KEY (`source_respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ,  CONSTRAINT `fk__edge_list_target__respondent` FOREIGN KEY (`target_respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
