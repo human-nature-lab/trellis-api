@@ -12,7 +12,7 @@ class AddNoteToEdge extends Migration {
    */
   public function up() {
     Schema::table('edge', function (Blueprint $table) {
-      $table->string('note')->index('idx_edge_note');
+      $table->string('note')->nullable()->index('idx_edge_note');
     });
   }
 
