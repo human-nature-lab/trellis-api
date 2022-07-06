@@ -10,8 +10,12 @@ use Error;
 use Illuminate\Support\Collection;
 use ZipArchive;
 use App\Console\Commands\BaseCommand;
+use App\Library\Hook;
 use App\Models\Upload;
+use App\Services\HookService;
 use App\Services\SnapshotService;
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class StudySnapshot extends BaseCommand {
 
@@ -44,10 +48,56 @@ class StudySnapshot extends BaseCommand {
     $this->schemaFile = config('snapshot.sqliteSchema');
     $this->indexFile = config('snapshot.sqliteIndex');
     $this->ignoredTables = config('snapshot.ignoredTables');
+
+    try {
+      $this->time('pre-hooks', function () {
+        return $this->runPreHooks();
+      });
+    } catch (Exception $e) {
+      Log::error($e);
+      return 1;
+    } 
     
     $this->time('snapshot', function () {
       $this->runIt();
     });
+
+    try {
+      $this->time('post-hooks', function () {
+        return $this->runPostHooks();
+      });
+    } catch (Exception $e) {
+      Log::error($e);
+      return 1;
+    }  
+  }
+
+  private function runPreHooks () {
+    $hookService = new HookService();
+    $files = $hookService->getPreSnapshotHooks();
+    Log::info("running pre-snapshot hooks:", $files);
+    foreach ($files as $file) {
+      $hook = new Hook($file);
+      $code = $hook->run();
+      if ($code !== 0) {
+        return $code;
+      }
+    }
+    return 0;
+  }
+
+  private function runPostHooks () {
+    $hookService = new HookService();
+    $files = $hookService->getPostSnapshotHooks();
+    Log::info("running post-snapshot hooks:", $files);
+    foreach ($files as $file) {
+      $hook = new Hook($file);
+      $code = $hook->run();
+      if ($code !== 0) {
+        return $code;
+      }
+    }
+    return 0;
   }
 
   private function runIt () {
