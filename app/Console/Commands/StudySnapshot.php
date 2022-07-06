@@ -41,9 +41,6 @@ class StudySnapshot extends BaseCommand {
   private $surveyTables = ['datum', 'question_datum', 'action', 'survey_condition_tag', 'section_condition_tag'];
 
   public function handle(SnapshotService $ss) {
-
-
-
     $this->snapshotService = $ss;
     set_time_limit(0);
     app()->configure('temp');

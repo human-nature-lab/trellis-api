@@ -3,7 +3,7 @@ Trellis exposes a few hooks that can execute bash commands. Add a hook by placin
 
 ## Hooks
 ### PreSnapshot
-Runs before the snapshot is executed.
+Runs before the snapshot is executed. No inputs are sent to the hook.
 
 ### PostSnapshot
-Runs after the snapshot has been created.
+Runs after the snapshot has been created. No inputs are sent to the hook.

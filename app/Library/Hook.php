@@ -24,8 +24,9 @@ class Hook {
     $code = $p->run();
     $output = $p->getOutput();
     $errOutput = $p->getErrorOutput();
-    Log::debug("output $output $errOutput");
-    Log::info("code $this->script $code");
+    Log::debug("output $output");
+    Log::debug("errOutput $errOutput");
+    Log::debug("code $this->script $code");
     if ($code !== 0) {
       throw new Exception($errOutput);
     }
