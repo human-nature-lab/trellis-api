@@ -14,12 +14,14 @@ use App\Services\RespondentService;
 use App\Services\GeoService;
 use App\Services\FormService;
 use App\Services\ConditionTagService;
+use App\Services\StudyService;
 use Log;
 use Ramsey\Uuid\Uuid;
 
 class DemoService {
 
     public function makeDemoUser (UserConfirmation $confirmation, $role) {
+      $studyService = new StudyService();
       $user = new User;
       $user->id = Uuid::uuid4();
       $user->password = $confirmation->password;
@@ -29,19 +31,29 @@ class DemoService {
       $user->role_id = $role;
       $user->save();
 
-      $study = new Study;
-      $study->id = Uuid::uuid4();
-      $study->name = ucwords($user->username . ' Study');
-      $study->default_locale_id = Locale::where('language_name', 'like', 'english')->first()->id;
-      $study->save();
+      $studyName = ucwords($user->username . ' Study');
+      $studyPhotoQuality = 75;
+      $studyDefaultLocaleId = Locale::where('language_name', 'like', 'english')->first()->id;
+      $testStudy = Study::create([
+        'id' => Uuid::uuid4(),
+        'name' => "$studyName TEST",
+        'photo_quality' => $studyPhotoQuality,
+        'default_locale_id' => $studyDefaultLocaleId,
+      ]);
+
+      $study = Study::create([
+        'id' => Uuid::uuid4(),
+        'name' => $studyName,
+        'photo_quality' => $studyPhotoQuality,
+        'default_locale_id' => $studyDefaultLocaleId,
+        'test_study_id' => $testStudy->id,
+      ]);
+
+      // Add the default locale ID to the study's locales
+      $studyService::addLocale($study->id, $studyDefaultLocaleId);
+      $studyService::addLocale($testStudy->id, $studyDefaultLocaleId);
 
       Log::debug("Created study: $study->name");
-
-      $studyLocale = new StudyLocale;
-      $studyLocale->id = Uuid::uuid4();
-      $studyLocale->locale_id = $study->default_locale_id;
-      $studyLocale->study_id = $study->id;
-      $studyLocale->save();
 
       $userStudy = new UserStudy;
       $userStudy->id = Uuid::uuid4();
