@@ -3,7 +3,6 @@ CREATE INDEX "idx_geo_photo_fk__geo_photo__photo_idx" ON "geo_photo" (`photo_id`
 CREATE INDEX "idx_respondent_name_respondent_name_respondent_id_foreign" ON "respondent_name" (`respondent_id`);
 CREATE INDEX "idx_respondent_name_respondent_name_locale_id_foreign" ON "respondent_name" (`locale_id`);
 CREATE INDEX "idx_respondent_name_respondent_name_previous_respondent_name_id_foreign" ON "respondent_name" (`previous_respondent_name_id`);
-CREATE INDEX "idx_respondent_name_rn_name_idx" ON "respondent_name" (`name`);
 CREATE INDEX "idx_respondent_group_tag_fk__respondent_group__respondent_idx" ON "respondent_group_tag" (`respondent_id`);
 CREATE INDEX "idx_respondent_group_tag_fk__respondent_group__group_idx" ON "respondent_group_tag" (`group_tag_id`);
 CREATE INDEX "idx_translation_text_fk__translation_text__translation_idx" ON "translation_text" (`translation_id`);
@@ -32,8 +31,6 @@ CREATE INDEX "idx_study_parameter_study_parameter_parameter_id_foreign" ON "stud
 CREATE INDEX "idx_respondent_geo_respondent_geo_geo_id_foreign" ON "respondent_geo" (`geo_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_respondent_id_foreign" ON "respondent_geo" (`respondent_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_previous_respondent_geo_id_foreign" ON "respondent_geo" (`previous_respondent_geo_id`);
-CREATE INDEX "idx_respondent_geo_res_geo_is_current_idx" ON "respondent_geo" (`is_current`);
-CREATE INDEX "idx_respondent_geo_res_geo_res_id_is_current_idx" ON "respondent_geo" (`respondent_id`,`is_current`);
 CREATE INDEX "idx_question_assign_condition_tag_fk__question_assign_condition_tag__question_idx" ON "question_assign_condition_tag" (`question_id`);
 CREATE INDEX "idx_question_assign_condition_tag_fk__question_assign_condition_tag__assign_condition_tag_idx" ON "question_assign_condition_tag" (`assign_condition_tag_id`);
 CREATE INDEX "idx_respondent_fill_respondent_fill_respondent_id_foreign" ON "respondent_fill" (`respondent_id`);
