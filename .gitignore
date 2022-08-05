@@ -56,3 +56,5 @@ storage/*.sqlite.db
 trellis-app
 *.zip
 
+hooks.json
+hooks.yaml

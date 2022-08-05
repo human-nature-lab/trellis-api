@@ -10,7 +10,6 @@ use Error;
 use Illuminate\Support\Collection;
 use ZipArchive;
 use App\Console\Commands\BaseCommand;
-use App\Library\Hook;
 use App\Models\Upload;
 use App\Services\HookService;
 use App\Services\SnapshotService;
@@ -51,7 +50,7 @@ class StudySnapshot extends BaseCommand {
 
     try {
       $this->time('pre-hooks', function () {
-        return $this->runPreHooks();
+        Log::info($this->runPreHooks());
       });
     } catch (Exception $e) {
       Log::error($e);
@@ -64,7 +63,7 @@ class StudySnapshot extends BaseCommand {
 
     try {
       $this->time('post-hooks', function () {
-        return $this->runPostHooks();
+        Log::info($this->runPostHooks());
       });
     } catch (Exception $e) {
       Log::error($e);
@@ -74,30 +73,26 @@ class StudySnapshot extends BaseCommand {
 
   private function runPreHooks () {
     $hookService = new HookService();
-    $files = $hookService->getPreSnapshotHooks();
-    Log::info("running pre-snapshot hooks:", $files);
-    foreach ($files as $file) {
-      $hook = new Hook($file);
-      $code = $hook->run();
-      if ($code !== 0) {
-        return $code;
-      }
+    $hooks = $hookService->getPreSnapshotHooks();
+    Log::info("running pre-snapshot hooks:", $hooks);
+    $results = [];
+    foreach ($hooks as $hook) {
+      $hook->setup();
+      $results[$hook->def['id']] = $hook->run();
     }
-    return 0;
+    return $results;
   }
 
   private function runPostHooks () {
     $hookService = new HookService();
-    $files = $hookService->getPostSnapshotHooks();
-    Log::info("running post-snapshot hooks:", $files);
-    foreach ($files as $file) {
-      $hook = new Hook($file);
-      $code = $hook->run();
-      if ($code !== 0) {
-        return $code;
-      }
+    $hooks = $hookService->getPostSnapshotHooks();
+    Log::info("running post-snapshot hooks:", $hooks);
+    $results = [];
+    foreach ($hooks as $hook) {
+      $hook->setup();
+      $results[$hook->def['id']] = $hook->run();
     }
-    return 0;
+    return $results;
   }
 
   private function runIt () {

@@ -31,6 +31,7 @@ return [
       'upload',
       'upload_log',
       'user_confirmation',
+      'hook',
     ],
 
 ];

@@ -229,6 +229,10 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   //* Preload *//
   $router->post('study/{study_id}/preload-actions',           ['middleware' => 'requires:IMPORT_RESPONDENTS',           'uses' => 'PreloadController@uploadPreloadActions']);
   
+  $router->get('hooks/geo/{geoId}',                           [                                                         'uses' => 'HookController@geoHookStatuses']);
+  $router->post('hooks/geo/{geoId}/{hookId}',                 ['middleware' => 'requires:ADD_SNAPSHOT',                 'uses' => 'HookController@runGeoHook']);
+  $router->get('hooks/respondent/{respondentId}',             [                                                         'uses' => 'HookController@respondentHookStatuses']);
+  $router->post('hooks/respondent/{respondentId}/{hookId}',   ['middleware' => 'requires:ADD_SNAPSHOT',                 'uses' => 'HookController@runRespondentHook']);
   //* Group Tag Type Controller Routes *//
 // NOT USED   $router->delete('group_tag_type/{id}',                          'GroupTagTypeController@removeGroupTagType');
 // NOT USED   $router->get('group_tag_type',                                  'GroupTagTypeController@getAllGroupTagTypes');
