@@ -17,6 +17,9 @@ class Hook {
     $this->binary = $binary;
     $this->args = $args;
     $this->cwd = $cwd;
+    if (is_null($this->cwd)) {
+      $this->cwd = dirname(__FILE__) . '/../../';
+    }
   }
 
   public function setEnv(string $key, string $val) {
