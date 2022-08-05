@@ -99,8 +99,11 @@ class HookService {
         if (isset($def['args'])) {
           $hook->args = $def['args'];
         }
-        if (isset($def['env'])) {
-          $hook->setEnv($def['env']);
+        // if (isset($def['env'])) {
+        //   $hook->setEnv($def['env']);
+        // }
+        if (isset($def['cwd'])) {
+          $hook->cwd = $def['cwd'];
         }
         $hook->def = $def;
         $results[$def['id']] = $hook;
