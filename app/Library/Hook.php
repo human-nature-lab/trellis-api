@@ -3,7 +3,6 @@
 namespace App\Library;
 
 use Exception;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
 class Hook {
@@ -36,13 +35,8 @@ class Hook {
     } else {
       $args = [$this->binary];
     }
-
     $args = array_merge($args, $this->args);
-    
     $env = array_merge(getEnv(), $this->env);
-    Log::debug($args);
-    Log::debug($env);
-    Log::debug("cwd $this->cwd");
     $this->p = new Process($args, $this->cwd, $env);
     return $this;
   }
@@ -59,8 +53,6 @@ class Hook {
     if ($code !== 0) {
       throw new Exception($errOutput);
     }
-    Log::debug("output $output");
-    Log::debug("errOutput $errOutput");
     return $output;
   }
 

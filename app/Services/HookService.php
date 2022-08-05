@@ -25,7 +25,6 @@ class HookService {
     }
     $d = file_get_contents($path);
     $res = Yaml::parse($d);
-    Log::info($res);
     foreach($res as $key => $val) {
       if (!in_array($key, ['preSnapshot', 'postSnapshot', 'geo', 'respondent'])) {
         throw new Exception("invalid key in hooks config: $key");
