@@ -28,7 +28,7 @@ class SnapshotService {
     $ignored = array_merge($this->ignoredTables, $this->dataTables, $this->staticTables);
     $tables = $this->getSnapshotTables($ignored);
     if (!$quickCheck) {
-      $tables = array_merge($tables, $this->dataTables);
+      $tables = array_merge($tables, $this->dataTables, ['upload']);
     }
     $times = [];
     foreach ($tables as $table) {
