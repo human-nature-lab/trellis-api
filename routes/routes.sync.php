@@ -12,6 +12,7 @@ $router->group(['prefix' => 'sync'], function () use ($router) {
 
     $router->get('syncv2/authenticate',                                                                     'SyncControllerV2@authenticate');
     $router->get('syncv2/snapshot',                                                                         'SyncControllerV2@getSnapshotInfo');
+    $router->get('server-time',                                                                             'SyncControllerV2@getServerTime');
     $router->get('snapshot/{snapshot_id}/file_size',                                                        'SyncControllerV2@getSnapshotFileSize');
     $router->get('snapshot/{snapshot_id}/download',     ['middleware' => 'requires:CAN_DOWNLOAD', 'uses' => 'SyncControllerV2@downloadSnapshot']);
 

@@ -43,6 +43,12 @@ class SyncControllerV2 extends Controller {
     return response()->json([], Response::HTTP_OK);
   }
 
+  public function getServerTime () {
+    return response()->json([
+      'time' => Carbon::now()
+    ]);
+  }
+
   public function getSnapshotFileSize(Request $request, $deviceId, $snapshotId) {
     $validator = Validator::make(array_merge($request->all(), [
       'id' => $snapshotId
