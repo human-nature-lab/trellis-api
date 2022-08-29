@@ -166,16 +166,16 @@ class StudySnapshot extends BaseCommand {
     $hasChanged = false;
     // First check if there has been an upload since the last snapshot creation
     $latestSnapshot = Snapshot::where('deleted_at',null)
-        ->orderBy('created_at', 'desc')
+        ->orderBy('updated_at', 'desc')
         ->first();
 
-    $this->info("latestSnapshot: " . $latestSnapshot['created_at']);
+    $this->info("latestSnapshot: " . $latestSnapshot['updated_at']);
 
     $latestUpload = Upload::where('deleted_at', null)
         ->where('status', 'SUCCESS')
         ->orderBy('updated_at', 'desc')
         ->first();
-    $this->info("latestUpload: " . $latestUpload['created_at']);
+    $this->info("latestUpload: " . $latestUpload['updated_at']);
 
     if ($latestSnapshot == null) {
         // Always create a new snapshot if the snapshot table is empty
@@ -183,9 +183,9 @@ class StudySnapshot extends BaseCommand {
         $this->info("No snapshot found, always create snapshot.");
     } else if ($latestUpload != null) {
         // Otherwise, create a snapshot if there is a newer upload than the latest snapshot
-        $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['created_at']));
-        $this->info("unix timestamp of latestUpload: " . strtotime($latestUpload['created_at']));
-        $hasChanged = (strtotime($latestSnapshot['created_at']) < strtotime($latestUpload['created_at']));
+        $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['updated_at']));
+        $this->info("unix timestamp of latestUpload: " . strtotime($latestUpload['updated_at']));
+        $hasChanged = (strtotime($latestSnapshot['updated_at']) < strtotime($latestUpload['updated_at']));
         $this->info("latestSnapshot older than latestUpload?: " . (($hasChanged) ? "true" : "false"));
     }
 
@@ -203,9 +203,9 @@ class StudySnapshot extends BaseCommand {
       $this->info("latestUpdateQuery: " . $q->toSql());
       $latestUpdate = $q->first();
       $latestUpdateTime = $latestUpdate->latest_update_time;
-      $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['created_at']));
+      $this->info("unix timestamp of latestSnapshot: " . strtotime($latestSnapshot['updated_at']));
       $this->info("unix timestamp of latestUpdate: " . strtotime($latestUpdate->latest_update_time));
-      $snapshotCreationNeeded =  ( ($latestUpdateTime == null) || (strtotime($latestSnapshot['created_at']) < strtotime($latestUpdateTime)) );
+      $snapshotCreationNeeded =  ( ($latestUpdateTime == null) || (strtotime($latestSnapshot['updated_at']) < strtotime($latestUpdateTime)) );
       $this->info("latestSnapshot older than latestUpdate?: " . (($snapshotCreationNeeded) ? "true" : "false"));
     }
     
