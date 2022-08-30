@@ -360,15 +360,17 @@ class SyncControllerV2 extends Controller {
     $adapter = new Local(storage_path() . '/respondent-photos');
     $filesystem = new Filesystem($adapter);
     $exists = $filesystem->has($fileName);
-
+  
     if (!$exists) {
       return response()->json([], Response::HTTP_NOT_FOUND);
     }
-
-    $image = $filesystem->read($fileName);
-    $mimetype = $filesystem->getMimetype($fileName);
-
-    return response()->make($image, Response::HTTP_OK, ['content-type' => $mimetype]);
+  
+    $file = storage_path() . '/respondent-photos/' . $fileName;
+    $headers = array(
+      'Content-Type: image/jpeg',
+      'Content-Length: ' . filesize($file),
+    );
+    return response()->download($file, $fileName, $headers);
   }
 
   public function listMissingImages($deviceId) {
