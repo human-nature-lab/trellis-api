@@ -101,7 +101,7 @@ class EdgeReportJob extends Job
                 'question_datum.survey_id'
             );
         foreach ($q->cursor() as $edge) {
-          // $edge = json_decode(json_encode($edge), true);
+          $edge = json_decode(json_encode($edge), true);
           $dk = 'dk_rf';
           if (!is_null($edge[$dk])) {
               $edge[$dk] = $edge[$dk] === 1 ? 'Dont_know': 'Refused';
