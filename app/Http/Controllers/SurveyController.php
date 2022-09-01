@@ -110,7 +110,7 @@ class SurveyController extends Controller {
 
         $q = Survey::where('respondent_id', $respondentId)
             ->where('study_id', $studyId)
-            ->with('interviews');
+            ->with('interviews', 'form');
 
         Log::debug($q->toSql());
 
