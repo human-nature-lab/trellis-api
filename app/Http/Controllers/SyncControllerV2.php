@@ -266,7 +266,7 @@ class SyncControllerV2 extends Controller {
     $fileName = $request->get('fileName');
     $uploadPath = storage_path() . '/uploads-pending';
 
-    if (!$request->file('file')->isValid()) {
+    if (!$request->file('file')->isValid() || trim($fileName) === '') {
       return response()->json([
         'msg' => 'Upload failed.',
       ], Response::HTTP_BAD_REQUEST);
@@ -274,7 +274,10 @@ class SyncControllerV2 extends Controller {
 
     $file->move($uploadPath, $fileName);
 
-    return response()->json([], Response::HTTP_OK);
+    return response()->json([
+      'uploadPath' => $uploadPath,
+      'fileName' => $fileName,
+    ], Response::HTTP_OK);
   }
 
   public function uploadImage(Request $request, $deviceId) {
