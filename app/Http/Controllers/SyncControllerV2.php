@@ -83,6 +83,10 @@ class SyncControllerV2 extends Controller {
 
 
   public function downloadSnapshot(Request $request, $deviceId, $snapshotId) {
+    return $this->doSnapshotDownload($request, $snapshotId);
+  }
+
+  private function doSnapshotDownload (Request $request, $snapshotId) {
     $validator = Validator::make(array_merge($request->all(), [
       'id' => $snapshotId
     ]), [
@@ -103,6 +107,8 @@ class SyncControllerV2 extends Controller {
         'err' => $validator->errors()
       ], $validator->statusCode());
     }
+
+    Log::info($request->header());
 
     $adapter = new Local(storage_path() . '/snapshot');
     $filesystem = new Filesystem($adapter);
@@ -291,6 +297,18 @@ class SyncControllerV2 extends Controller {
     $file->move($uploadPath, $fileName);
 
     return response()->json([], Response::HTTP_OK);
+  }
+
+  public function getLatestSnapshot () {
+    $latestSnapshot = Snapshot::where('deleted_at', null)
+      ->orderBy('created_at', 'desc')
+      ->first();
+
+    return response()->json($latestSnapshot, Response::HTTP_OK);
+  }
+
+  public function tokenSnapshotDownload (Request $request, $snapshotId) {
+    return $this->doSnapshotDownload($request, $snapshotId);
   }
 
   public function getSnapshotInfo(Request $request, $deviceId) {

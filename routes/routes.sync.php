@@ -7,6 +7,8 @@ $router->group(['prefix' => 'sync'], function () use ($router) {
   //**************************//
   $router->get('heartbeat',                                                                                 'SyncControllerV2@heartbeat');
   $router->post('device',                    ['middleware' => 'basic-auth|requires:ADD_DEVICE',   'uses' => 'DeviceController@createDevice']);
+  $router->get('snapshot/latest',                       ['middleware' => 'token',                 'uses' => 'SyncControllerV2@getLatestSnapshot']);
+  $router->get('snapshot/download/{snapshot_id}',       ['middleware' => 'token',                 'uses' => 'SyncControllerV2@tokenSnapshotDownload']);
 
   $router->group(['prefix' => 'device/{device_id}', 'middleware' => ['device', 'basic-auth']], function ($router) {
 
