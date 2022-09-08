@@ -79,17 +79,22 @@ return [
             ]
         ],
 
-        'mysql_simulated' => [
+        'mysql_snapshot' => [
             'driver'    => 'mysql',
             'host'      => env('DB_HOST', 'localhost'),
             'port'      => env('DB_PORT', '3306'),
-            'database'  => env('DB_DATABASE', 'homestead') . '_simulated',
+            'database'  => env('DB_DATABASE', 'homestead'),
             'username'  => env('DB_USERNAME', 'homestead'),
             'password'  => env('DB_PASSWORD', ''),
             'charset'   => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix'    => '',
             'strict'    => false,
+            'version'   => '5.7.2', // required to prevent: 1235 This version of MySQL doesn't yet support 'multiple triggers with the same action time and event for one table'
+            'options' => [
+              'PDO::ATTR_TIMEOUT' => 0,
+              'PDO::MYSQL_ATTR_USE_BUFFERED_QUERY' => false,
+            ]
         ],
 
         'pgsql' => [
@@ -113,10 +118,11 @@ return [
             'prefix'   => '',
         ],
 
-        'snapshot' => [
+        'sqlite_snapshot' => [
           'driver'   => 'sqlite',
           'database' => storage_path('snapshot.sqlite.db'),
           'prefix'   => '',
+          'foreign_key_constraints' => true,
           'options' => [
             'PDO::ATTR_TIMEOUT' => 0,
           ]
