@@ -211,4 +211,28 @@ class SurveyController extends Controller {
             'survey' => $survey
         ], Response::HTTP_OK);
     }
+
+    public function uncompleteSurvey (String $surveyId) {
+      $surveyId = urldecode($surveyId);
+
+        $validator = Validator::make([
+            'surveyId' => $surveyId
+        ], [
+            'surveyId' => 'required|string|min:36|exists:survey,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $survey = Survey::find($surveyId);
+        $survey->completed_at = null;
+        $survey->save();
+
+        return response()->json([
+            'survey' => $survey
+        ], Response::HTTP_OK);
+    }
 }

@@ -40,6 +40,7 @@ $router->group([
     $router->get('survey/{s_id}',                               'SurveyController@getSurveyById');
     $router->post('survey/{s_id}/interview',                    'InterviewController@createInterview');
     $router->post('survey/{survey_id}/complete',                'SurveyController@completeSurvey');
+    $router->post('survey/{survey_id}/uncomplete',              'SurveyController@uncompleteSurvey');
     $router->get('locale/{id}',                                 'LocaleController@getLocale');
 
     // Study routes
