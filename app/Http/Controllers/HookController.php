@@ -66,6 +66,8 @@ class HookController extends Controller {
       $instanceId = Uuid::uuid4();
     }
 
+    set_time_limit(0);
+
     // Place our record in the DB
     $h = DB::transaction(function () use ($instanceId, $geoId, $hook) {
       $h = new Hook();
