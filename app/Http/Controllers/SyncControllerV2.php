@@ -108,8 +108,6 @@ class SyncControllerV2 extends Controller {
       ], $validator->statusCode());
     }
 
-    Log::info($request->header());
-
     $adapter = new Local(storage_path() . '/snapshot');
     $filesystem = new Filesystem($adapter);
     $exists = $filesystem->has($snapshot->file_name);
@@ -185,6 +183,14 @@ class SyncControllerV2 extends Controller {
         [],
         Response::HTTP_INTERNAL_SERVER_ERROR
       );
+    } else if ($exitCode == 2) {
+      return response()->json([
+        'msg' => 'Snapshot is currently running'
+      ], Response::HTTP_LOCKED);
+    } else if ($exitCode === 3) {
+      return response()->json([
+        'msg' => 'Snapshot is already up to date'
+      ], Response::HTTP_OK);
     } else {
       return response()->json(
         [],
@@ -214,9 +220,13 @@ class SyncControllerV2 extends Controller {
 
     if ($res === 0) {
       return response()->json(
-        [],
+        ['msg' => 'Uploads processed successfully'],
         Response::HTTP_OK
       );
+    } else if ($res == 2) {
+      return response()->json([
+        'msg' => 'Uploads already being processed'
+      ], Response::HTTP_LOCKED);
     } else {
       return response()->json([
         'msg' => 'Unable to process uploads'
