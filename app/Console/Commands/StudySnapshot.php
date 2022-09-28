@@ -16,6 +16,7 @@ use App\Services\SnapshotService;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
+
 class StudySnapshot extends BaseCommand {
 
   protected $signature = 'trellis:study:snapshot
@@ -25,7 +26,8 @@ class StudySnapshot extends BaseCommand {
     {--skip-foreign}
     {--no-indices}
     {--force}
-    {--no-completed-data}';
+    {--no-inaccessible-data}
+    {--vacuum}';
 
   protected $description = 'Take all of the data related to a study and put it into a sqlite database for syncing';
 
@@ -37,7 +39,8 @@ class StudySnapshot extends BaseCommand {
   private $snapshotService;
   private $ignoredTables = [];
   private $specialTables = ['config'];
-  private $surveyTables = ['datum', 'question_datum', 'action', 'survey_condition_tag', 'section_condition_tag'];
+  private $customTables = ['action'];
+  private $surveyTables = ['datum', 'question_datum', 'survey_condition_tag', 'section_condition_tag'];
 
   public function handle(SnapshotService $ss) {
     $this->snapshotService = $ss;
@@ -96,7 +99,7 @@ class StudySnapshot extends BaseCommand {
   }
 
   private function runIt () {
-    $sqliteLocation = config('database.connections.snapshot.database');
+    $sqliteLocation = config('database.connections.sqlite_snapshot.database');
 
     if (!$this->option('force')) {
       $isOutdated = $this->time('checking for database changes', function () {
@@ -224,8 +227,8 @@ class StudySnapshot extends BaseCommand {
       }
       $f = fopen($sqliteLocation, 'c+');
       fclose($f);
-      $this->sqliteConn = DB::connection('snapshot');
-      $this->mainConn = DB::connection();
+      $this->sqliteConn = DB::connection('sqlite_snapshot');
+      $this->mainConn = DB::connection('mysql_snapshot');
 
       $tables = $this->getTables();
 
@@ -237,7 +240,7 @@ class StudySnapshot extends BaseCommand {
 
     $this->sqliteConn->statement('PRAGMA synchronous = OFF;');
     $this->sqliteConn->statement('PRAGMA journal_mode = OFF;');
-
+    $this->sqliteConn->statement('PRAGMA foreign_keys = OFF;');
 
     $this->time('Copying data', function () use ($tables) {
       // $this->sqliteConn->statement('PRAGMA foreign_keys = OFF;');
@@ -257,7 +260,7 @@ class StudySnapshot extends BaseCommand {
         });
       });
 
-      if ($this->option('no-completed-data')) {
+      if ($this->option('no-inaccessible-data')) {
         $ts = ['question_datum', 'datum', 'survey_condition_tag', 'section_condition_tag'];
         foreach ($ts as $table) {
           $this->time("copying incomplete data from $table table", function () use ($table) {
@@ -292,6 +295,41 @@ class StudySnapshot extends BaseCommand {
             $this->copyQuery('action', $q);
           });
         });
+
+        // $this->sqliteConn->statement('PRAGMA foreign_keys = ON;');
+        
+
+        // $this->time('copying incomplete data from preload_action table', function () {
+        //   $this->mainConn->transaction(function () {
+        //     $q = $this->mainConn->
+        //       table('preload_action')->
+        //       whereNull('deleted_at')->
+        //       whereIn('question_id', function ($q) {
+        //         return $q->
+        //         select('id')->
+        //         from('question')->
+        //         whereNull('deleted_at')->
+        //         whereIn('question_group_id', function ($q) {
+        //           return $q->
+        //           select('question_group_id')->
+        //           from('section_question_group')->
+        //           whereIn('section_id', function ($q) {
+        //             return $q->
+        //             select('section_id')->
+        //             from('form_section')->
+        //             whereNull('deleted_at')->
+        //             whereIn('form_id', function ($q) {
+        //               return $q->
+        //               select('current_version_id')->
+        //               from('study_form')->
+        //               whereNull('deleted_at');
+        //             });
+        //         });
+        //       });
+        //     });
+        //     $this->copyQuery('preload_action', $q, false, false, 100);
+        //   });
+        // });
         // This affected preload actions so we're just copying the edge table as-is instead.
         // $this->time('copying incomplete data from edge table', function () {
         //   $this->mainConn->transaction(function () {
@@ -312,8 +350,6 @@ class StudySnapshot extends BaseCommand {
         //   });
         // });
       }
-
-      $this->sqliteConn->statement('PRAGMA foreign_keys = ON;');
     });
 
     // Create indices
@@ -322,6 +358,36 @@ class StudySnapshot extends BaseCommand {
         if (!$this->sqliteConn->unprepared(file_get_contents($this->indexFile))) {
           throw new Error('Unable to create indexes');
         }
+      });
+    }
+
+    $this->sqliteConn->statement('PRAGMA foreign_keys = ON;');
+
+    $this->time('removing unused data', function () {
+      $deleteUnusedPreloadActions = "
+        delete from preload_action 
+        where id not in (select preload_action_id from action where preload_action_id is not null)
+        and question_id not in (
+          select id from question where deleted_at is null and question_group_id in (
+            select question_group_id from section_question_group
+            where deleted_at is null and section_id in (
+              select section_id from form_section where deleted_at is null and form_id in (
+                select current_version_id from study_form
+                where deleted_at is null
+              )
+            )
+          )
+        )";
+      $deleted = $this->sqliteConn->delete($deleteUnusedPreloadActions);
+      $this->info("deleted $deleted rows from preload_action table");
+    });
+
+    if ($this->option('vacuum')) {
+      $this->time('vacuuming', function () {
+        $sizeBefore = $this->getSqliteSize();
+        $this->sqliteConn->statement('vacuum');
+        $delta = $sizeBefore - $this->getSqliteSize();
+        $this->info("reduced size by $delta bytes");
       });
     }
 
@@ -357,8 +423,23 @@ class StudySnapshot extends BaseCommand {
     return $arr;
   }
 
-  private function copyQuery (string $table, $q, bool $preOrdered = false) {
+  private function getSqliteSize(): int {
+    $sqliteConnected = isset($this->sqliteConn);
+    if ($sqliteConnected) {
+      $this->sqliteConn->disconnect();
+    }
+    $res = filesize(config('database.connections.sqlite_snapshot.database'));
+    if ($sqliteConnected) {
+      $this->sqliteConn->reconnect();
+    }
+    return $res === false ? 0 : $res;
+  }
+
+  private function copyQuery (string $table, $q, bool $preOrdered = false, bool $chunked = true, int $chunkSize = 0) {
     $c = 0;
+    if ($chunkSize === 0) {
+      $chunkSize = $this->option('chunk-size');
+    }
 
     $copier = function ($rows) use ($table, &$c) {
       $insertRows = $this->stdObjsToArrs($rows);
@@ -368,11 +449,27 @@ class StudySnapshot extends BaseCommand {
       $c += count($insertRows);
     };
 
-    if (!$preOrdered) {
-      $q->chunkById($this->option('chunk-size'), $copier);
+    if ($chunked) {
+      if (!$preOrdered) {
+        $q->chunkById($chunkSize, $copier);
+      } else {
+        $q->chunk($chunkSize, $copier);
+      }
     } else {
-      $q->chunk($this->option('chunk-size'), $copier);
+      // Insert with a single cursor instead
+      $chunk = [];
+      foreach($q->cursor() as $item) {
+        array_push($chunk, $item);
+        if (count($chunk) === $chunkSize) {
+          $copier($chunk);
+          $chunk = [];
+        }
+      }
+      if (count($chunk) > 0) {
+        $copier($chunk);
+      }
     }
+
     
     $this->info("Copied $c rows into $table");
   }
@@ -386,8 +483,10 @@ class StudySnapshot extends BaseCommand {
     foreach ($tablesQuery as $raw) {
       $table = array_values(get_object_vars($raw))[0];
       $shouldInclude = !in_array($table, $this->ignoredTables) && 
-        !in_array($table, $this->specialTables) && 
-        (!$this->option('no-completed-data') || !in_array($table, $this->surveyTables));
+      !in_array($table, $this->specialTables) && 
+      (!$this->option('no-inaccessible-data') || !in_array($table, $this->surveyTables) &&
+      !in_array($table, $this->customTables)
+      );
       if ($shouldInclude) {
         array_push($tables, $table);
       }

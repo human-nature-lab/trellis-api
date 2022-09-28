@@ -38,6 +38,7 @@ class Hook {
     $args = array_merge($args, $this->args);
     $env = array_merge(getEnv(), $this->env);
     $this->p = new Process($args, $this->cwd, $env);
+    $this->p->setTimeout(null);
     return $this;
   }
 

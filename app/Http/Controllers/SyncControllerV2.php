@@ -178,7 +178,7 @@ class SyncControllerV2 extends Controller {
 
   public function generateSnapshot() {
     set_time_limit(0);
-    $exitCode = Artisan::call('trellis:study:snapshot --quick-check --no-completed-data');
+    $exitCode = Artisan::call('trellis:study:snapshot --quick-check --no-inaccessible-data --vacuum');
 
     if ($exitCode == 1) {
       return response()->json(

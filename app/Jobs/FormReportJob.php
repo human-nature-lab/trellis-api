@@ -166,7 +166,7 @@ class FormReportJob extends Job
                 'survey.*',
                 'rg.id as rg_id',
                 'rg.geo_id as current_location_id',
-                'tt.translated_text as current_location_name',
+                'tt.translated_text as current_location_name'
             );
 
         $batchSize = 400;

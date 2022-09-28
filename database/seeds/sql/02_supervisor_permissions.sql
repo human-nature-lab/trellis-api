@@ -1,5 +1,5 @@
 insert ignore into role_permission (`role_id`, `permission_id`, `value`) values
-    ('supervisor', 'REMOVE_RESPONDENTS', 1),
+    ('supervisor', 'REMOVE_RESPONDENT', 1),
     ('supervisor', 'ADD_RESPONDENT', 1),
     ('supervisor', 'ADD_OTHER_RESPONDENT', 1),
     ('supervisor', 'CHANGE_RESPONDENT_GEO_CURRENT', 1),
