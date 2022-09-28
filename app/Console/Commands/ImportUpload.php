@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 use SplFileObject;
 use App\Models\UploadLog;
 use App\Models\Upload;
+use App\Library\FileMutex;
 use Illuminate\Support\Facades\DB;
 use ZipArchive;
 
@@ -35,6 +36,18 @@ class ImportUpload extends BaseCommand {
    * @return mixed
    */
   public function handle() {
+    $this->mut = new FileMutex(storage_path('locks/uploads', 5 * 60 * 1000));
+
+    if ($this->mut->isLocked()) {
+      $this->error('uploads already running');
+      return 2;
+    }
+    return $this->mut->do(function () {
+      return $this->do();
+    });
+  }
+
+  function do () {
     $uploadIds = $this->argument('upload');
 
     $n = count($uploadIds);

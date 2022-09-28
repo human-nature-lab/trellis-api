@@ -10,6 +10,7 @@ use Error;
 use Illuminate\Support\Collection;
 use ZipArchive;
 use App\Console\Commands\BaseCommand;
+use App\Library\FileMutex;
 use App\Models\Upload;
 use App\Services\HookService;
 use App\Services\SnapshotService;
@@ -33,6 +34,7 @@ class StudySnapshot extends BaseCommand {
 
   private $schemaFile = '';
   private $indexFile = '';
+  private $mut;
 
   private $sqliteConn;
   private $mainConn;
@@ -51,6 +53,33 @@ class StudySnapshot extends BaseCommand {
     $this->indexFile = config('snapshot.sqliteIndex');
     $this->ignoredTables = config('snapshot.ignoredTables');
 
+    $this->mut = new FileMutex(storage_path('locks/snapshot'), 30 * 60 * 1000);
+    if ($this->mut->isLocked()) {
+      $this->error('snapshot already running');
+      Log::error('snapshot already running');
+      return 2;
+    }
+
+    return $this->mut->do(function () {
+      return $this->do();
+    });
+  }
+
+  private function do () {
+
+    if (!$this->option('force')) {
+      $isOutdated = $this->time('checking for database changes', function () {
+        return $this->snapshotService->snapshotIsOutdated();
+      });
+  
+      if ($isOutdated) {
+        $this->info('A new snapshot needs to be created!');
+      } else {
+        $this->info('The latest snapshot matches current database');
+        return 3;
+      }
+    }
+    
     try {
       $this->time('pre-hooks', function () {
         Log::info($this->runPreHooks());
@@ -59,7 +88,7 @@ class StudySnapshot extends BaseCommand {
       Log::error($e);
       return 1;
     } 
-    
+
     $this->time('snapshot', function () {
       $this->runIt();
     });
@@ -72,6 +101,7 @@ class StudySnapshot extends BaseCommand {
       Log::error($e);
       return 1;
     }  
+
   }
 
   private function runPreHooks () {
@@ -100,19 +130,6 @@ class StudySnapshot extends BaseCommand {
 
   private function runIt () {
     $sqliteLocation = config('database.connections.sqlite_snapshot.database');
-
-    if (!$this->option('force')) {
-      $isOutdated = $this->time('checking for database changes', function () {
-        return $this->snapshotService->snapshotIsOutdated();
-      });
-  
-      if ($isOutdated) {
-        $this->info('A new snapshot needs to be created!');
-      } else {
-        $this->info('The latest snapshot matches current database');
-        return;
-      }
-    }
 
     $this->time('cleaning old snapshots', function () {
       $this->cleanOldSnapshots();
