@@ -180,16 +180,16 @@ class SyncControllerV2 extends Controller {
 
     if ($exitCode == 1) {
       return response()->json(
-        [],
+        ['translation' => 'snapshot_failure'],
         Response::HTTP_INTERNAL_SERVER_ERROR
       );
     } else if ($exitCode == 2) {
       return response()->json([
-        'msg' => 'Snapshot is currently running'
+        'translation' => 'snapshot_running'
       ], Response::HTTP_LOCKED);
     } else if ($exitCode === 3) {
       return response()->json([
-        'msg' => 'Snapshot is already up to date'
+        'translation' => 'snapshot_up_to_date'
       ], Response::HTTP_OK);
     } else {
       return response()->json(
@@ -220,16 +220,16 @@ class SyncControllerV2 extends Controller {
 
     if ($res === 0) {
       return response()->json(
-        ['msg' => 'Uploads processed successfully'],
+        ['translation' => 'uploads_processed'],
         Response::HTTP_OK
       );
     } else if ($res == 2) {
       return response()->json([
-        'msg' => 'Uploads already being processed'
+        'translation' => 'uploads_running'
       ], Response::HTTP_LOCKED);
     } else {
       return response()->json([
-        'msg' => 'Unable to process uploads'
+        'translation' => 'uploads_process_failure'
       ], Response::HTTP_BAD_REQUEST);
     }
   }
