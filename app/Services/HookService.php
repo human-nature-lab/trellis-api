@@ -45,23 +45,11 @@ class HookService {
   }
 
   public function getPreSnapshotHooks() {
-    $hookRoot = dirname(__FILE__) . '/../../hooks/PreSnapshot';
-    $files = $this->getDirScripts($hookRoot);
-    $hooks = [];
-    foreach ($files as $file) {
-      $hooks[] = new Hook('bash', [$file]);
-    }
-    return $hooks;
+    return [];
   }
 
   public function getPostSnapshotHooks() {
-    $hookRoot = dirname(__FILE__) . '/../../hooks/PostSnapshot';
-    $files = $this->getDirScripts($hookRoot);
-    $hooks = [];
-    foreach ($files as $file) {
-      $hooks[] = new Hook('bash', [$file]);
-    }
-    return $hooks;
+    return [];
   }
 
   public function getRespondentHooks() {

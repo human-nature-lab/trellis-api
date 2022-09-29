@@ -131,15 +131,11 @@ class FormReportJob extends Job
                         $match = $choice->val === $qp->val;
                         if ($match) {
                             array_push($otherChoiceIds, $choice->id);
-                            Log::info("$question->var_name has other parameter of $choice->val");
                         }
                     }
                 }
             }
             $question->other_choice_ids = $otherChoiceIds;
-            if (count($otherChoiceIds) > 0) {
-                Log::info($otherChoiceIds);
-            }
         }
 
         $this->makeHeaders($questions);
