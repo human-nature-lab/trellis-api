@@ -496,7 +496,7 @@ class StudySnapshot extends BaseCommand {
     $tables = [];
 
     // Laravel 6 add Schema::allTables() type method that abstracts this
-    $tablesQuery = DB::select('SHOW TABLES');
+    $tablesQuery = DB::select('show full tables where Table_type = "BASE TABLE"');
     foreach ($tablesQuery as $raw) {
       $table = array_values(get_object_vars($raw))[0];
       $shouldInclude = !in_array($table, $this->ignoredTables) && 
