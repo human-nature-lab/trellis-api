@@ -69,6 +69,8 @@ class FormReportJob extends Job
             $this->report->status = 'saved';
         } catch(Throwable $e){
             $this->report->status = 'failed';
+            $this->error('failed');
+            $this->error($e);
             Log::debug("Form export $this->formId failed");
             Log::error($e);
         } finally{
@@ -165,7 +167,7 @@ class FormReportJob extends Job
                 'tt.translated_text as current_location_name'
             );
 
-        $batchSize = 400;
+        $batchSize = 200;
         $batch = new Collection;
         foreach ($q->cursor() as $survey) {
             $batch->push($survey);
