@@ -473,7 +473,7 @@ class FormController extends Controller {
       ], $validator->statusCode());
     }
 
-    $studyForm = StudyForm::where('study_id', $studyId)->where('form_master_id', $formId)->first();
+    $studyForm = StudyForm::where('study_id', $studyId)->where('current_version_id', $formId)->first();
     $studyForm->fill($request->all());
     $studyForm->save();
     return response()->json([

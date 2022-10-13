@@ -21,6 +21,8 @@ class StudyForm extends Pivot
         'form_master_id',
         'current_version_id',
         'census_type_id',
+        'allow_public_responses',
+        'allow_multiple_responses',
         'geo_type_id',
         'sort_order',
         'created_at',
