@@ -69,8 +69,6 @@ class FormReportJob extends Job
             $this->report->status = 'saved';
         } catch(Throwable $e){
             $this->report->status = 'failed';
-            $this->error('failed');
-            $this->error($e);
             Log::debug("Form export $this->formId failed");
             Log::error($e);
         } finally{
@@ -349,6 +347,11 @@ class FormReportJob extends Job
                 $questionToQuestionDatumMap[$qd->question_id] = [];
             }
             array_push($questionToQuestionDatumMap[$qd->question_id], $qd);
+            $isRandomized = !is_null($qd->follow_up_question_id) && $questionsMap[$qd->follow_up_question_id]->randomize_follow_up;
+            if ($isRandomized) {
+              Log::info("sorting $qd->question_id by random order");
+            }
+            $qd->fullData = $isRandomized ? $qd->fullData->sortBy('random_sort_order') : $qd->fullData->sortBy('sort_order');
             $i = 0;
             foreach ($qd->fullData as $datum) {
                 $datum->repeat_index = $i;
@@ -373,12 +376,6 @@ class FormReportJob extends Job
             $questionOrderMap[$question->id] = $index;
         }
 
-        $datumSortStart = microtime(true);
-        // Sort question datum
-        foreach ($questionDatum as $qd) {
-            $qd->fullData = $qd->fullData->sortBy('repeat_index');
-        }
-        $datumSortTime = microtime(true) - $datumSortStart;
 //        Log::debug("Datum sort time $datumSortTime");
 
         // TODO: Make complete form test to use for exporting. Repeated sections with each question type
@@ -463,7 +460,6 @@ class FormReportJob extends Job
                     if (count($question->other_choice_ids) > 0 && count($qd->fullData) > 0) {
                         $datum = $qd->fullData[0];
                         if (isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
-                            Log::info("Adding other $question->var_name");
                             $this->addOther($this->headers[$baseKey], $survey->id, $survey->respondent_id, $datum->val);
                         }
                     }
@@ -543,15 +539,16 @@ class FormReportJob extends Job
                 $keys = [$baseKey . '_ids', $baseKey . '_actions'];
             default:
                 foreach ($keys as $key) {
-                    $this->metaRows[$this->headers[$key]] = [
-                        'header' => $this->headers[$key],
-                        'question_type' => $question->questionType->name,
-                        'variable_name' => $question->var_name
-                    ];
-                    foreach ($question->questionTranslation->translationText as $t) {
-                        $lang = $t->locale->language_name;
-                        $this->metaRows[$this->headers[$key]]["question_$lang"] = $t->translated_text;
-                    }
+                  $mkey = $this->headers[$key];
+                  $this->metaRows[$mkey] = [
+                      'header' => $mkey,
+                      'question_type' => $question->questionType->name,
+                      'variable_name' => $question->var_name
+                  ];
+                  foreach ($question->questionTranslation->translationText as $t) {
+                      $lang = $t->locale->language_name;
+                      $this->metaRows[$mkey]["question_$lang"] = $t->translated_text;
+                  }
                 }
         }
     }
