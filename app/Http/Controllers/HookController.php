@@ -26,7 +26,7 @@ class HookController extends Controller {
 
     // Join past runs with hooks using the hook_id
     $result = [];
-    $instances = Hook::whereIn('hook_id', array_keys($hooks))->where('entity_id', $geoId)->get();
+    $instances = Hook::whereIn('hook_id', array_keys($hooks))->where('entity_id', $geoId)->orderBy('started_at', 'desc')->get();
     foreach ($hooks as $hook) {
       $result[$hook->def['id']] = $hook->def;
       $result[$hook->def['id']]['instances'] = [];
