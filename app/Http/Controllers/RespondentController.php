@@ -3,12 +3,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Geo;
 use App\Models\Respondent;
-use App\Models\Photo;
+use App\Models\Edge;
 use App\Models\RespondentFill;
 use App\Models\RespondentName;
-use App\Models\Study;
 use App\Models\RespondentPhoto;
-use App\Models\StudyRespondent;
 use App\Services\PreloadActionService;
 use App\Services\RespondentPhotoService;
 use App\Services\RespondentService;
@@ -968,6 +966,36 @@ class RespondentController extends Controller
             $geo_selection = array_merge_recursive($geo_selection, array($row->id => $row->element_name));
             self::get_geo_tree($row->id, $level+1);
         }
+    }
+
+
+    public function listEdges (String $respondentId) {
+      $validator = Validator::make([
+        'respondent_id' => $respondentId
+      ], [
+        'respondent_id' => 'required|exists:respondent,id'
+      ]);
+
+      if ($validator->fails()) {
+        return response()->json([
+            'err' => $validator->errors()
+        ], $validator->statusCode());
+      }
+      $edges = Edge::
+        select('edge.*', 'q.var_name')->
+        join('datum AS d', 'd.edge_id', '=', 'edge.id')->
+        join('question_datum AS qd', 'd.question_datum_id', '=', 'qd.id')->
+        join('question AS q', 'q.id', '=', 'qd.question_id')->
+        whereNull('qd.deleted_at')->
+        whereNull('d.deleted_at')->
+        whereNull('q.deleted_at')->
+        where(function ($q) use ($respondentId) {
+          $q->
+            where('source_respondent_id', $respondentId)->
+            orWhere('target_respondent_id', $respondentId);
+        })->   
+        get();
+      return response()->json($edges);
     }
 
 }

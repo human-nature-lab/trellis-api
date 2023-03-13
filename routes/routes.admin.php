@@ -88,6 +88,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('respondent/{respondent_id}/photos',              ['middleware' => 'requires:ADD_RESPONDENT_PHOTO',     'uses' => 'RespondentController@addPhoto']);
   $router->post('respondent/{respondent_id}/photos',              ['middleware' => 'requires:ADD_RESPONDENT_PHOTO',     'uses' => 'RespondentController@addPhoto']);
   $router->delete('respondent/{respondent_id}/photo/{photo_id}',  ['middleware' => 'requires:REMOVE_RESPONDENT_PHOTO',  'uses' => 'RespondentController@removeRespondentPhoto']);
+  $router->get('respondent/{respondent_id}/edges',                ['middleware' => 'requires:VIEW_RESPONDENTS',         'uses' => 'RespondentController@listEdges']);
   // NOT USED $router->post('respondent/{id}',                                [                                                     'uses' => 'RespondentController@updateRespondent']);
   // NOT USED $router->get('study/{study_id}/respondents',                  'RespondentController@getAllRespondentsByStudyId');
 
