@@ -165,7 +165,7 @@ class FormReportJob extends Job
                 'tt.translated_text as current_location_name'
             );
 
-        $batchSize = 200;
+        $batchSize = (int)env('FORM_BATCH_SIZE', 200);
         $batch = new Collection;
         foreach ($q->cursor() as $survey) {
             $batch->push($survey);

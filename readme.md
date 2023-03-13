@@ -81,6 +81,14 @@ previous step.*
 
 ------
 
+### Clone an existing database
+```bash
+EXISTING_PASS=""
+NEW_PASS=""
+NEW_HOST=""
+mysqldump -utrellis -p"$EXISTING_PASS" --compress --single-transaction --order-by-primary trellis | mysql -utrellisw4 -p"$NEW_PASS" -h"$NEW_HOST" trellisw4
+```
+
 ## PHP
 
 ### Install PHP
