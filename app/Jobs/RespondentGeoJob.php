@@ -50,7 +50,7 @@ class RespondentGeoJob extends Job
             $this->report->status = 'saved';
         } catch(Exception $e){
             $this->report->status = 'failed';
-            Log::debug("Edge report $this->studyId failed");
+            Log::debug("RespondentGeoReport $this->studyId failed");
         } finally{
             $this->report->save();
             if (isset($this->file)) {
@@ -100,7 +100,8 @@ class RespondentGeoJob extends Job
                 )
             ) as removed_survey_id'));
 
-        $q->chunk(200, function ($rGeos) {
+        $batchSize = (int)env('RESPONDENT_GEO_REPORT_BATCH_SIZE', 200);
+        $q->chunk($batchSize, function ($rGeos) {
             $rGeos = $rGeos->map(function ($rGeo) {
                 $rGeo->is_current = $rGeo->is_current === 1;
                 return $rGeo;

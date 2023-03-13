@@ -112,8 +112,6 @@ class SurveyController extends Controller {
             ->where('study_id', $studyId)
             ->with('interviews', 'form');
 
-        Log::debug($q->toSql());
-
         return response()->json([
             'surveys' => $q->get()
         ], Response::HTTP_OK);

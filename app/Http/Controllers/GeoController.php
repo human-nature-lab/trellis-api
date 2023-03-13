@@ -53,7 +53,6 @@ class GeoController extends Controller
     $q = Geo::with('photos', 'nameTranslation', 'geoType');
     if (isset($query)) {
       $terms = explode(" ", $query);
-      Log::debug(json_encode($terms));
       foreach ($terms as $i => $term) {
         $q = $q->whereIn('name_translation_id', function ($sq) use ($term) {
           $sq->select('translation_id')
@@ -82,8 +81,6 @@ class GeoController extends Controller
     }
 
     $q = $q->take($limit)->skip($offset);
-
-    Log::debug($q->toSql());
 
     $geos = $q->get();
 

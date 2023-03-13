@@ -94,9 +94,10 @@ class TimingReportJob extends Job
             return $agg;
         }, []);
 
+        $batchSize = (int)env('TIMING_REPORT_BATCH_SIZE', 200);
         $interviews = Interview::join('survey', 'interview.survey_id', '=', 'survey.id')
             ->where('survey.study_id', '=', $study->id);
-        $interviews->chunk(200, function ($interviews) use ($users, $questionTypes) {
+        $interviews->chunk($batchSize, function ($interviews) use ($users, $questionTypes) {
             $interviewToSurveyMap = [];
             $interviewMap = [];
             $surveyIds = [];

@@ -87,8 +87,9 @@ class RespondentReportJob extends Job
       $this->file->writeHeader();
 
       // Streaming loop
+      $batchSize = (int)env('RESPONDENT_REPORT_BATCH_SIZE', 400);
       $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType');
-      $q->chunk(400, function ($respondents) {
+      $q->chunk($batchSize, function ($respondents) {
         $this->processBatch($respondents);
       });
 
