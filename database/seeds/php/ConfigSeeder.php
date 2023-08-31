@@ -29,7 +29,8 @@ class ConfigSeeder extends Seeder {
         'sentry.offline' => true,                       // Use our custom, offline Transport
         'sentry.onlineIntervalRate' => 3 * 60 * 1000,   // Milliseconds
         'demo.expirationTime' => 24 * 60 * 2,           // Minutes
-        'demo.defaultRole' => 'supervisor'
+        'demo.defaultRole' => 'supervisor',
+        'nearbyComms.dictatorAsync' => false,
       ];
 
       $private = ['mapTileLayer.accessToken', 'demo.expirationTime'];
