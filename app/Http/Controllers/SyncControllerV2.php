@@ -174,9 +174,16 @@ class SyncControllerV2 extends Controller {
     );
   }
 
-  public function generateSnapshot() {
+  public function generateSnapshot(Request $request) {
     set_time_limit(0);
-    $exitCode = Artisan::call('trellis:study:snapshot --quick-check --no-inaccessible-data --vacuum');
+    $args = '--quick-check --no-inaccessible-data --vacuum';
+    $force = $request->get('force', false);
+    if ($force) {
+      Log::info('forcing snapshot');
+      $args .= ' --force';
+    }
+
+    $exitCode = Artisan::call('trellis:study:snapshot ' . $args);
 
     if ($exitCode == 1) {
       return response()->json(

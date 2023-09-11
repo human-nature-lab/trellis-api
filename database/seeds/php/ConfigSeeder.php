@@ -30,7 +30,7 @@ class ConfigSeeder extends Seeder {
         'sentry.onlineIntervalRate' => 3 * 60 * 1000,   // Milliseconds
         'demo.expirationTime' => 24 * 60 * 2,           // Minutes
         'demo.defaultRole' => 'supervisor',
-        'nearbyComms.dictatorAsync' => false,
+        'extraModules.dictatorAsync' => false,
       ];
 
       $private = ['mapTileLayer.accessToken', 'demo.expirationTime'];
