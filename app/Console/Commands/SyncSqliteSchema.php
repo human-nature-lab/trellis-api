@@ -35,7 +35,7 @@ class SyncSqliteSchema extends Command {
     $schemaFile = config('snapshot.sqliteSchema');
     $indexFile = config('snapshot.sqliteIndex');
 
-    $dumpCmd = "mysqldump --no-data --skip-triggers --compact -u$user -p$pass -h$host $ignoreStr $db | ./app/Console/Scripts/mysql2sqlite/mysql2sqlite -"; 
+    $dumpCmd = "mysqldump --no-data --skip-triggers --compact -u$user -p$pass -h$host $ignoreStr $db | awk -f app/Console/Scripts/strip-views.awk | ./app/Console/Scripts/mysql2sqlite/mysql2sqlite -"; 
     $schemaCmd = "$dumpCmd | grep -v 'CREATE INDEX' > $schemaFile";
     $indexCmd = "$dumpCmd | grep 'CREATE INDEX' > $indexFile";
     $process = new Process($schemaCmd, base_path());
