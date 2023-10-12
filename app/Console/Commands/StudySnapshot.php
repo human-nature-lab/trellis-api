@@ -40,7 +40,7 @@ class StudySnapshot extends BaseCommand {
   private $mainConn;
   private $snapshotService;
   private $ignoredTables = [];
-  private $specialTables = ['config'];
+  private $specialTables = ['config', 'kv'];
   private $customTables = ['action'];
   private $surveyTables = ['datum', 'question_datum', 'survey_condition_tag', 'section_condition_tag'];
 
@@ -274,6 +274,12 @@ class StudySnapshot extends BaseCommand {
       $this->time('copying config table', function () {
         $this->mainConn->transaction(function () {
           $this->copyQuery('config', $this->mainConn->table('config')->orderBy('key'), true);
+        });
+      });
+
+      $this->time('copying kv table', function () {
+        $this->mainConn->transaction(function () {
+          $this->copyQuery('kv', $this->mainConn->table('kv')->orderBy('key'), true);
         });
       });
 

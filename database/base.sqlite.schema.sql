@@ -327,6 +327,16 @@ CREATE TABLE `interview_question` (
 ,  CONSTRAINT `fk__interview_question__interview` FOREIGN KEY (`interview_id`) REFERENCES `interview` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 ,  CONSTRAINT `fk__interview_question__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
 );
+CREATE TABLE `kv` (
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+,  `namespace` varchar(255) NOT NULL DEFAULT 'default'
+,  `key` varchar(255) NOT NULL
+,  `value` text COLLATE BINARY
+,  `created_at` datetime NOT NULL
+,  `updated_at` datetime NOT NULL
+,  `deleted_at` datetime DEFAULT NULL
+,  UNIQUE (`namespace`,`key`)
+);
 CREATE TABLE `locale` (
   `id` varchar(41) NOT NULL
 ,  `language_tag` varchar(255) DEFAULT NULL
@@ -478,7 +488,7 @@ CREATE TABLE `question_parameter` (
   `id` varchar(41) NOT NULL
 ,  `question_id` varchar(41) NOT NULL
 ,  `parameter_id` varchar(41) NOT NULL
-,  `val` varchar(255) NOT NULL
+,  `val` text NOT NULL
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
