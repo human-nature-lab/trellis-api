@@ -12,7 +12,7 @@ class AddKeyValStore extends Migration {
    */
   public function up() {
     Schema::create('kv', function (Blueprint $table) {
-      $table->increments('id');
+      $table->string('id', 41)->primary();
       $table->string('namespace')->default('default');
       $table->string('key');
       $table->text('value')->nullable();
