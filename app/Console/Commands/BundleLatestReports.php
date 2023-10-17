@@ -18,6 +18,7 @@ class BundleLatestReports extends Command
      * @var string
      */
     protected $signature = 'trellis:bundle:reports {study} 
+      {--unpublished : Include unpublished forms}
       {--location=exports : The location to save the export at} 
       {--name=reports.zip : The filename to use}';
 
@@ -46,16 +47,20 @@ class BundleLatestReports extends Command
         $studyId = $this->argument('study');
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
-        $formIds = Form::select('id')->
-        whereIn('form_master_id', function ($q) use ($studyId) {
-            $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
-        })->
-        whereNull('deleted_at')->
-        where('is_published', 1)->
-        get()->
-        map(function ($item) {
-            return $item->id;
-        });
+        $formQuery = Form::select('id')->
+          whereIn('form_master_id', function ($q) use ($studyId) {
+              $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);
+          })->
+          whereNull('deleted_at');
+        if (!$this->option('unpublished')) {
+            $formQuery->where('is_published', 1);
+        }
+
+        $formIds = $formQuery->
+          get()->
+          map(function ($item) {
+              return $item->id;
+          });
 
         $reports = new Collection();
         $formReports = new Collection();

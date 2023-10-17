@@ -22,7 +22,13 @@ use Illuminate\Support\Facades\DB;
 use Ramsey\Uuid\Uuid;
 
 class MakeReports extends Command {
-    protected $signature = 'trellis:make:reports {--skip-main} {--skip-forms} {--locale=} {--form=} {--study=*}';
+    protected $signature = 'trellis:make:reports 
+      {--skip-main} 
+      {--skip-forms}
+      {--unpublished : Include unpublished forms}
+      {--locale=}
+      {--form=}
+      {--study=*}';
     protected $description = 'Run each type of report once to get the latest data';
 
     public function handle () {
@@ -73,15 +79,18 @@ class MakeReports extends Command {
         if ($this->option('form')) {
           $formIds = [$this->option('form')];
         } else {
-          $formIds = Form::select('id')->
+          $formQuery = Form::select('id')->
             whereIn('form_master_id', function ($q) use ($studyId) {
               $q->
                 select('form_master_id')->
                 from('study_form')->
                 where('study_id', $studyId);
             })->
-            whereNull('deleted_at')->
-            where('is_published', true)->
+            whereNull('deleted_at');
+          if (!$this->option('unpublished')) {
+            $formQuery = $formQuery->where('is_published', true);
+          }
+          $formIds = $formQuery->
             get()->
             map(function ($item) {
               return $item->id;
