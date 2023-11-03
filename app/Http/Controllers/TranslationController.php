@@ -42,14 +42,20 @@ class TranslationController extends Controller
         ], Response::HTTP_NO_CONTENT);
     }
 
-    public function createTranslation(Request $request)
-    {
+    public function createTranslation(Request $request) {
         $newTranslationModel = new Translation;
         $newTranslationModel->id = Uuid::uuid4();
         $newTranslationModel->save();
 
         return response()->json([
             'translation' => $newTranslationModel
+        ], Response::HTTP_OK);
+    }
+
+    public function getTranslation (String $translationId) {
+        $translation = Translation::with('translationText')->find($translationId);
+        return response()->json([
+            'translation' => $translation
         ], Response::HTTP_OK);
     }
 

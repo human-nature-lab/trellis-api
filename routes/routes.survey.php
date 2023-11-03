@@ -21,7 +21,8 @@ $router->group([
 
     $router->post('translation/{translation_id}/translation-text',  'TranslationTextController@createTranslationText');
     $router->put('translation-text/{translation_text_id}',          'TranslationTextController@updateTranslatedTextById');
-    $router->get('translation/{translation_id}/translation-text',    'TranslationController@getTranslationText');
+    $router->get('translation/{translation_id}/translation-text',   'TranslationController@getTranslationText');
+    $router->get('translation/{translation_id}',                    'TranslationController@getTranslation');
 
     $router->get('form/{form_id}',                                  'FormController@getForm');
 
@@ -62,6 +63,7 @@ $router->group([
 
 
     // Respondent survey routes
+    $router->get('respondents',                                 'RespondentController@getRespondentsByIds');
     $router->group(['prefix' => 'respondent/{respondent_id}'], function () use ($router) {
         $router->get('/',                                       'RespondentController@getRespondentById');
         $router->get('fills',                                   'RespondentController@getRespondentFillsById');
