@@ -109,6 +109,7 @@ class SectionService
 
         $returnSection = Form::find($formId)
             ->sections()
+            ->with('nameTranslation', 'formSections', 'questionGroups')
             ->find($sectionId);
 
         return $returnSection;
