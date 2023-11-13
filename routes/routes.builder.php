@@ -63,7 +63,7 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->patch('section/group/question/choices',                                'QuestionController@updateChoices');
 
   //* Question Type Controller Routers *//
-  $router->get('question/types',                                                       'QuestionTypeController@getAllQuestionTypes');
+  $router->get('question/types',                                    'QuestionTypeController@getAllQuestionTypes');
 
   //* Question Choice Controller Routes *//
   $router->post('question/{question_id}/choice',                    'QuestionChoiceController@createNewQuestionChoice');
@@ -75,7 +75,7 @@ $router->group(['prefix' => 'builder', 'middleware' => ['token', 'requires:EDIT_
   $router->put('question/choice/{question_choice_id}',              'QuestionChoiceController@updateQuestionChoice2');
 
   //* Question Param Controller Routes *//
-  $router->get('parameter/types',                                                'QuestionParamController@getParameterTypes');
-  $router->post('question/{question_id}/parameter',                'QuestionParamController@createOrUpdateParameter');
-  $router->delete('parameter/{parameter_id}',                                         'QuestionParamController@deleteQuestionParameter');
+  $router->get('parameter/types',                                   'QuestionParamController@getParameterTypes');
+  $router->post('question/{question_id}/parameter',                 'QuestionParamController@createOrUpdateParameter');
+  $router->delete('parameter/{parameter_id}',                       'QuestionParamController@deleteQuestionParameter');
 });

@@ -68,7 +68,7 @@ class QuestionParamController extends Controller
         $questionParameterModel->save();
 
         return response()->json([
-            'parameter' => $questionParameterModel
+            'parameter' => QuestionParameter::with('parameter')->find($questionParameterModel->id)
         ], Response::HTTP_OK);
 
     }

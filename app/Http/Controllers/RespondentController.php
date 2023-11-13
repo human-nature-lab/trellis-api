@@ -763,6 +763,30 @@ class RespondentController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function getRespondentsByIds(Request $request) {
+      // Fetch the respondent ids from the request
+      $validator = Validator::make($request->all(), [
+        'ids' => 'required|array|min:1'
+      ]);
+      if ($validator->fails()) {
+        return response()->json([
+          'msg' => "Invalid respondent ids",
+          'err' => $validator->errors()
+        ], $validator->statusCode());
+      }
+      $respondentIds = $request->input('ids');
+      
+      // Fetch the respondents
+      $respondents = Respondent::with('respondentConditionTags', 'photos', 'names', 'rGeos')
+        ->whereIn('id', $respondentIds)
+        ->get();
+      
+      // Return the respondents
+      return response()->json([
+        'respondents' => $respondents
+      ], Response::HTTP_OK);
+    }
+
     public function getRespondentPhotos($respondentId)
     {
         $respondentId = urldecode($respondentId);
