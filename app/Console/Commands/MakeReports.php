@@ -58,7 +58,7 @@ class MakeReports extends Command {
       $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
       $localeId = $this->option('locale') ?: '48984fbe-84d4-11e5-ba05-0800279114ca';
       if (!isset($study)) {
-        throw Exception('Study id must be valid');
+        throw new \Exception('Study id must be valid');
       }
       $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
 

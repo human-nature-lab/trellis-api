@@ -17,10 +17,11 @@ class BundleLatestReports extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:bundle:reports {study} 
+    protected $signature = 'trellis:bundle:reports {study?} 
       {--unpublished : Include unpublished forms}
       {--location=exports : The location to save the export at} 
-      {--name=reports.zip : The filename to use}';
+      {--name=reports.zip : The filename to use}
+      {--study= : The study to bundle reports for}';
 
     /**
      * The console command description.
@@ -44,7 +45,7 @@ class BundleLatestReports extends Command
      */
     public function handle () {
       set_time_limit(0);
-        $studyId = $this->argument('study');
+        $studyId = $this->getStudyId();
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
         $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
         $formQuery = Form::select('id')->
@@ -126,6 +127,18 @@ class BundleLatestReports extends Command
         $zip->close();
         $this->info("Finished writing all reports to the archive");
 
+    }
+
+
+    private function getStudyId () {
+      $studyId = $this->option('study');
+      if (!$studyId) {
+        $studyId = $this->argument('study');
+      }
+      if (!$studyId) {
+        throw new \Exception("No study id provided");
+      }
+      return $studyId;
     }
 
 }
