@@ -59,6 +59,14 @@ class TranslationController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function getTranslations(Request $request) {
+      $ids = $request->query('id', []);
+      $translations = Translation::with('translationText')->whereIn('id', $ids)->get();
+      return response()->json([
+          'translations' => $translations
+      ], Response::HTTP_OK);
+    }
+
     public function getTranslationText($translationId) {
         $translationText = Translation::find($translationId)->translationText()->get();
         return response()->json([
