@@ -60,11 +60,9 @@ class Respondent extends Model
     }
 
     public function respondentConditionTags () {
-        return $this->belongsToMany('App\Models\ConditionTag', 'respondent_condition_tag')
-            ->using('App\Models\RespondentConditionTag')
-            ->withPivot('id')
-            ->whereNull('respondent_condition_tag.deleted_at')
-            ->withTimestamps();
+        return $this->hasMany('App\Models\RespondentConditionTag')
+            ->with('conditionTag')
+            ->whereNull('respondent_condition_tag.deleted_at');
     }
 
     public function currentGeo () {
