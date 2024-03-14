@@ -286,7 +286,7 @@ class RespondentController extends Controller
         if ($conditionTags) {
             $tagNames = explode(',', $conditionTags);
             $respondentQuery = $respondentQuery
-                ->whereHas('respondentConditionTags', function ($query) use ($tagNames) {
+                ->whereHas('respondentConditionTags.conditionTag', function ($query) use ($tagNames) {
                     $query->whereIn('condition_tag.name', $tagNames);
                 }, '=', count($tagNames));
         }
