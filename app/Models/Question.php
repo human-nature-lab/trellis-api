@@ -70,6 +70,23 @@ class Question extends Model
       return $this->hasMany('App\Models\PreloadAction');
     }
 
+    public function sliderLabels () {
+      $integerTypeId = '2d3ff07a-5ab1-4da0-aa7f-440cf8cd0980';
+      $decimalTypeId = '312533dd-5957-453c-ab00-691f869d257f';
+      $tickLabelParameterId = '35';
+      if ($this->question_type_id === $integerTypeId || $this->question_type_id === $decimalTypeId) {
+        $qp = $this->questionParameters->first(function($qp) use ($tickLabelParameterId) {
+          return $qp->parameter_id === $tickLabelParameterId;
+        });
+        if (!$qp) {
+          return [];
+        }
+        $labelIds = collect(json_decode($qp->value))->map(function($label) { return $label->translation_id; });
+        return Translation::with('translationText')->whereIn('id', $labelIds);
+      }
+      return [];
+    }
+
     /*
     public function delete()
     {

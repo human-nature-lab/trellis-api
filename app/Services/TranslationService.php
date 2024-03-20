@@ -99,5 +99,12 @@ class TranslationService {
     }
     return $newTranslation;
   }
+
+  static public function getTranslated(Translation $translation, string $localeId): string {
+    $tt = $translation->translationText->first(function ($tt, $key) use ($localeId) {
+      return $tt->locale_id === $localeId;
+    });
+    return $tt ? $tt->translated_text : 'MISSING TRANSLATION';
+  }
   
 }
