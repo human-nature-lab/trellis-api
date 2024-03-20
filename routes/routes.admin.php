@@ -37,6 +37,9 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study/{studyId}/form/assign',                                ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@assignForm']);
   $router->post('study/form/{formId}/section/import',                         ['middleware' => 'requires:EDIT_FORM',    'uses' => 'FormController@importSection']);
 
+  //* Export import routes *//
+  $router->get('study/{studyId}/form-translation-export',                     [                                         'uses' => 'ExportController@exportFormTranslations']);
+
   //* Study model Routes *//
   $router->get('study/parameter/types',                           [                                                     'uses' => 'QuestionParamController@getParameterTypes']);
   $router->delete('study/{id}/parameter/{parameter_id}',          [                                                     'uses' => 'StudyController@deleteParameter']);

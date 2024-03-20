@@ -67,4 +67,18 @@ class Form extends Model
       return $this->hasMany('App\Models\Form', 'form_master_id', 'form_master_id');
     }
 
+    public function sort () {
+      $this->sections = $this->sections->sortBy('pivot.sort_order');
+      foreach ($this->sections as $section) {
+        $section->questionGroups = $section->questionGroups->sortBy('question_group_order');
+        foreach ($section->questionGroups as $page) {
+          $page->questions = $page->questions->sortBy('sort_order');
+          foreach ($page->questions as $question) {
+            $question->choices = $question->choices->sortBy('pivot.sort_order');
+          }
+        }
+      }
+      return $this;
+    }
+
 }
