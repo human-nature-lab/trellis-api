@@ -56,7 +56,7 @@ class ExportController extends Controller {
       $query->select('locale_id')
         ->from('study_locale')
         ->where('study_id', $studyId);
-    })->get();
+    })->orderBy('language_name')->get();
 
     $mainLocale = $locales->first(function($locale) use ($study) {
       return $locale->id === $study->default_locale_id;
