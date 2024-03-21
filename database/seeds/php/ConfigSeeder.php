@@ -31,11 +31,12 @@ class ConfigSeeder extends Seeder {
         'demo.expirationTime' => 24 * 60 * 2,           // Minutes
         'demo.defaultRole' => 'supervisor',
         'extraModules.dictatorAsync' => false,
+        'search.visibleConditionTags' => '[]',
       ];
 
       $private = ['mapTileLayer.accessToken', 'demo.expirationTime'];
 
-      $objectList = ["logging.levels", "database.logging.levels"];
+      $objectList = ["logging.levels", "database.logging.levels", 'search.visibleConditionTags'];
 
       foreach ($defaults as $key => $value) {
         $c = DB::table('config')->where('key', $key)->first();
