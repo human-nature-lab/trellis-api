@@ -405,13 +405,16 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function duplicateQuestion (QuestionService $questionService, $questionGroupId, $questionId) {
+    public function duplicateQuestion (Request $req, QuestionService $questionService, $questionGroupId, $questionId) {
+      $varName = $req->input('var_name');
       $validator = Validator::make([
         'question_id' => $questionId,
         'question_group_id' => $questionGroupId,
+        'var_name' => $varName,
       ], [
         'question_group_id' => 'required|string|exists:question_group,id',
         'question_id' => 'required|string|exists:question,id',
+        'var_name' => 'required|string|min:1',
       ]);
 
       if ($validator->fails()) {
@@ -424,6 +427,7 @@ class QuestionController extends Controller
         with('questionTranslation', 'questionType', 'questionParameters', 'choices', 'assignConditionTags')
         ->find($questionId);
     
+      $q->var_name = $varName;
       $q = $questionService->copyQuestion($q);
       $q->question_group_id = $questionGroupId;
       return response()->json([
