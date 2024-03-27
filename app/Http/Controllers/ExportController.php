@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Response;
+use Ramsey\Uuid\Uuid;
 
 class ExportController extends Controller {
 
@@ -148,8 +149,8 @@ class ExportController extends Controller {
     $locales = $this->studyLocales($studyId);
 
     // Read each csv file, validate the translations and form ids, and import all translations in a single transaction
-    $translations = [];
     $formIds = [];
+    $translationsByFormId = [];
     foreach($csvs as $csv) {
       $rows = CsvService::stringToAssociativeArrays($csv);
       if (empty($rows)) {
@@ -180,8 +181,12 @@ class ExportController extends Controller {
         foreach ($locales as $locale) {
           $t[$locale->language_name] = $row[$locale->language_name];
         }
-        $formIds[$row['form_id']] = true;
-        array_push($translations, $t);
+        $formId = $row['form_id'] ?? $formId;
+        if (!isset($translationsByFormId[$formId])) {
+          $translationsByFormId[$formId] = [];
+        }
+        $formIds[$formId] = true;
+        array_push($translationsByFormId[$formId], $t);
       }
     }
 
@@ -207,14 +212,25 @@ class ExportController extends Controller {
       foreach ($formTranslations as $t) {
         $formTranslationMap[$t['translation_id']] = $t;
       }
+      if (!isset($translationsByFormId[$formId])) {
+        return response()->json([
+          'err' => "no translations found for form '$formId'",
+        ], Response::HTTP_BAD_REQUEST);
+      }
+      $translations = $translationsByFormId[$formId];
       foreach ($translations as $t) {
-        if ($t['form_id'] === $formId && !isset($formTranslationMap[$t['translation_id']])) {
-          $tid = $t['translation_id'];
+        $tid = $t['translation_id'];
+        $tFormId = isset($t['form_id']) ? $t['form_id'] : $formId;
+        if ($tFormId === $formId && !isset($formTranslationMap[$tid])) {
           return response()->json([
             'err' => "translation '$tid' not found in this form",
           ], Response::HTTP_BAD_REQUEST);
+        } else if ($tFormId !== $formId) {
+          return response()->json([
+            'err' => "translation '$tid' does not belong to form '$formId'",
+          ], Response::HTTP_BAD_REQUEST);
         }
-        $oldTranslation = $formTranslationMap[$t['translation_id']];
+        $oldTranslation = $formTranslationMap[$tid];
         foreach ($locales as $locale) {
           $newText = $t[$locale->language_name];
           if (isset($oldTranslation[$locale->language_name]) && $oldTranslation[$locale->language_name]['translated_text'] !== $newText) {
@@ -225,8 +241,9 @@ class ExportController extends Controller {
             ]);
           } else if (!isset($oldTranslation[$locale->language_name]) && $newText !== '') {
             array_push($newTranslationText, [
-              'translation_id' => $t['translation_id'],
+              'translation_id' => $tid,
               'locale_id' => $locale->id,
+              'id' => Uuid::uuid4()->toString(),
               'translated_text' => $newText,
             ]);
           }
@@ -237,7 +254,7 @@ class ExportController extends Controller {
     $nNew = count($newTranslationText);
     Log::info("updating translations: $nChanged changed, $nNew new");
 
-    if (empty($changedTranslationText)) {
+    if (empty($changedTranslationText) && empty($newTranslationText)) {
       return response()->json([
         'msg' => 'no translations to update',
       ], Response::HTTP_OK);
@@ -251,6 +268,8 @@ class ExportController extends Controller {
         ]);
       }
       foreach ($newTranslationText as $t) {
+        Log::info('creating');
+        Log::info(json_encode($t));
         TranslationText::create($t);
       }
     });
