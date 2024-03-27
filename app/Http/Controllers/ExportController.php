@@ -268,8 +268,6 @@ class ExportController extends Controller {
         ]);
       }
       foreach ($newTranslationText as $t) {
-        Log::info('creating');
-        Log::info(json_encode($t));
         TranslationText::create($t);
       }
     });
