@@ -14,6 +14,12 @@ $router->group([
     $router->get('user/me',                                         'UserController@getMe');
     $router->get('role/{role_id}/permissions',                      'PermissionController@rolePermissions');
 
+    $router->get('asset/{asset_id}',                                'AssetController@getAsset');
+    $router->post('asset',                                          'AssetController@createAsset');
+    $router->put('asset/{asset_id}',                                'AssetController@updateAsset');
+    $router->get('assets',                                          'AssetController@listAssets');
+    $router->delete('asset/{asset_id}',                             'AssetController@deleteAsset');
+
     $router->post('condition-tag',                                  'ConditionTagController@createConditionTag');
     $router->get('condition-tags',                                  'ConditionTagController@getAllConditionTags');
     $router->get('condition-tag-names',                             'ConditionTagController@getConditionTagNames');
