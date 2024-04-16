@@ -23,6 +23,18 @@ CREATE TABLE `action` (
 ,  CONSTRAINT `fk__action_follow_up_action__idx` FOREIGN KEY (`follow_up_action_id`) REFERENCES `action` (`id`)
 ,  CONSTRAINT `fk__preload_preload_action__idx` FOREIGN KEY (`preload_action_id`) REFERENCES `preload_action` (`id`)
 );
+CREATE TABLE `asset` (
+  `id` char(36) NOT NULL
+,  `file_name` varchar(255) NOT NULL
+,  `type` varchar(255) NOT NULL
+,  `size` integer NOT NULL
+,  `mime_type` varchar(255) NOT NULL
+,  `should_sync` integer NOT NULL DEFAULT '0'
+,  `created_at` timestamp NULL DEFAULT NULL
+,  `updated_at` timestamp NULL DEFAULT NULL
+,  `deleted_at` timestamp NULL DEFAULT NULL
+,  PRIMARY KEY (`id`)
+);
 CREATE TABLE `assign_condition_tag` (
   `id` varchar(41) NOT NULL
 ,  `condition_tag_id` varchar(41) NOT NULL
@@ -32,7 +44,7 @@ CREATE TABLE `assign_condition_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__assign_condition_tag__condition` FOREIGN KEY (`condition_tag_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__assign_condition_tag__condition` FOREIGN KEY (`condition_tag_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `census_type` (
   `id` varchar(41) NOT NULL
@@ -47,7 +59,7 @@ CREATE TABLE `choice` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__choice__translation` FOREIGN KEY (`choice_translation_id`) REFERENCES `translation` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__choice__translation` FOREIGN KEY (`choice_translation_id`) REFERENCES `translation` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `condition_tag` (
   `id` varchar(41) NOT NULL
@@ -96,14 +108,14 @@ CREATE TABLE `datum` (
 ,  CONSTRAINT `datum_photo_id_foreign` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`)
 ,  CONSTRAINT `datum_question_datum_id_foreign` FOREIGN KEY (`question_datum_id`) REFERENCES `question_datum` (`id`)
 ,  CONSTRAINT `datum_roster_id_foreign` FOREIGN KEY (`roster_id`) REFERENCES `roster` (`id`)
-,  CONSTRAINT `fk__datum__choice` FOREIGN KEY (`choice_id`) REFERENCES `choice` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
-,  CONSTRAINT `fk__datum__datum_type` FOREIGN KEY (`datum_type_id`) REFERENCES `datum_type` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__datum__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
-,  CONSTRAINT `fk__datum__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__datum__choice` FOREIGN KEY (`choice_id`) REFERENCES `choice` (`id`) ON DELETE SET NULL
+,  CONSTRAINT `fk__datum__datum_type` FOREIGN KEY (`datum_type_id`) REFERENCES `datum_type` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__datum__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL
+,  CONSTRAINT `fk__datum__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE
 ,  CONSTRAINT `fk__datum_action__idx` FOREIGN KEY (`action_id`) REFERENCES `action` (`id`)
 ,  CONSTRAINT `fk__datum_respondent_geo__idx` FOREIGN KEY (`respondent_geo_id`) REFERENCES `respondent_geo` (`id`)
 ,  CONSTRAINT `fk__datum_respondent_name__idx` FOREIGN KEY (`respondent_name_id`) REFERENCES `respondent_name` (`id`)
-,  CONSTRAINT `fk__parent_datum_id__datum` FOREIGN KEY (`parent_datum_id`) REFERENCES `datum` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+,  CONSTRAINT `fk__parent_datum_id__datum` FOREIGN KEY (`parent_datum_id`) REFERENCES `datum` (`id`) ON DELETE SET NULL
 );
 CREATE TABLE `datum_choice` (
   `id` varchar(41) NOT NULL
@@ -115,8 +127,8 @@ CREATE TABLE `datum_choice` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `FK__datum_choice__choice` FOREIGN KEY (`choice_id`) REFERENCES `choice` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `FK__datum_choice__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `FK__datum_choice__choice` FOREIGN KEY (`choice_id`) REFERENCES `choice` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `FK__datum_choice__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `datum_geo` (
   `id` varchar(41) NOT NULL
@@ -127,8 +139,8 @@ CREATE TABLE `datum_geo` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `FK__datum_geo__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `FK__datum_geo__geo` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `FK__datum_geo__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `FK__datum_geo__geo` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `datum_group_tag` (
   `id` varchar(41) NOT NULL
@@ -139,8 +151,8 @@ CREATE TABLE `datum_group_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `FK__datum_group_tag__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `FK__datum_group_tag__group_tag` FOREIGN KEY (`group_tag_id`) REFERENCES `group_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `FK__datum_group_tag__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `FK__datum_group_tag__group_tag` FOREIGN KEY (`group_tag_id`) REFERENCES `group_tag` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `datum_photo` (
   `id` varchar(41) NOT NULL
@@ -152,8 +164,8 @@ CREATE TABLE `datum_photo` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__datum_photo__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__datum_photo__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__datum_photo__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__datum_photo__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `datum_type` (
   `id` varchar(41) NOT NULL
@@ -172,8 +184,8 @@ CREATE TABLE `edge` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `note` varchar(255) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__edge_list_source__respondent` FOREIGN KEY (`source_respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__edge_list_target__respondent` FOREIGN KEY (`target_respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__edge_list_source__respondent` FOREIGN KEY (`source_respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__edge_list_target__respondent` FOREIGN KEY (`target_respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `edge_datum` (
   `id` varchar(41) NOT NULL
@@ -183,8 +195,8 @@ CREATE TABLE `edge_datum` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__connection_datum__connection` FOREIGN KEY (`edge_id`) REFERENCES `edge` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__connection_datum__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__connection_datum__connection` FOREIGN KEY (`edge_id`) REFERENCES `edge` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__connection_datum__datum` FOREIGN KEY (`datum_id`) REFERENCES `datum` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `form` (
   `id` varchar(41) NOT NULL
@@ -196,7 +208,7 @@ CREATE TABLE `form` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__form_name__translation` FOREIGN KEY (`name_translation_id`) REFERENCES `translation` (`id`) ON UPDATE NO ACTION
+,  CONSTRAINT `fk__form_name__translation` FOREIGN KEY (`name_translation_id`) REFERENCES `translation` (`id`)
 );
 CREATE TABLE `form_section` (
   `id` varchar(41) NOT NULL
@@ -212,10 +224,10 @@ CREATE TABLE `form_section` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `randomize_follow_up` integer NOT NULL DEFAULT '0'
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__follow_up_question__question` FOREIGN KEY (`follow_up_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
-,  CONSTRAINT `fk__form_section__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__form_section__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__form_section_repeat_prompt__translation` FOREIGN KEY (`repeat_prompt_translation_id`) REFERENCES `translation` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+,  CONSTRAINT `fk__follow_up_question__question` FOREIGN KEY (`follow_up_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL
+,  CONSTRAINT `fk__form_section__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__form_section__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__form_section_repeat_prompt__translation` FOREIGN KEY (`repeat_prompt_translation_id`) REFERENCES `translation` (`id`) ON DELETE SET NULL
 );
 CREATE TABLE `form_skip` (
   `id` varchar(41) NOT NULL
@@ -225,8 +237,8 @@ CREATE TABLE `form_skip` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__form_skip__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__form_skip__skip` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__form_skip__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__form_skip__skip` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `form_type` (
   `id` integer NOT NULL
@@ -246,9 +258,9 @@ CREATE TABLE `geo` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `assigned_id` varchar(255) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__geo__geo_type` FOREIGN KEY (`geo_type_id`) REFERENCES `geo_type` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__geo__parent_geo` FOREIGN KEY (`parent_id`) REFERENCES `geo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__geo_name__translation` FOREIGN KEY (`name_translation_id`) REFERENCES `translation` (`id`) ON UPDATE NO ACTION
+,  CONSTRAINT `fk__geo__geo_type` FOREIGN KEY (`geo_type_id`) REFERENCES `geo_type` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__geo__parent_geo` FOREIGN KEY (`parent_id`) REFERENCES `geo` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__geo_name__translation` FOREIGN KEY (`name_translation_id`) REFERENCES `translation` (`id`)
 );
 CREATE TABLE `geo_photo` (
   `id` varchar(41) NOT NULL
@@ -260,8 +272,8 @@ CREATE TABLE `geo_photo` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__geo_photo__geo` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__geo_photo__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__geo_photo__geo` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__geo_photo__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `geo_type` (
   `id` varchar(41) NOT NULL
@@ -276,7 +288,7 @@ CREATE TABLE `geo_type` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `zoom_level` decimal(6,3) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `FK__geo_type__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `FK__geo_type__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `group_tag` (
   `id` varchar(41) NOT NULL
@@ -286,7 +298,7 @@ CREATE TABLE `group_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__group_tag__group_tag_type` FOREIGN KEY (`group_tag_type_id`) REFERENCES `group_tag_type` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__group_tag__group_tag_type` FOREIGN KEY (`group_tag_type_id`) REFERENCES `group_tag_type` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `group_tag_type` (
   `id` varchar(41) NOT NULL
@@ -309,8 +321,8 @@ CREATE TABLE `interview` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__survey_session__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__survey_session__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+,  CONSTRAINT `fk__survey_session__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__survey_session__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE SET NULL
 );
 CREATE TABLE `interview_question` (
   `id` varchar(41) NOT NULL
@@ -324,17 +336,18 @@ CREATE TABLE `interview_question` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__interview_question__interview` FOREIGN KEY (`interview_id`) REFERENCES `interview` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__interview_question__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__interview_question__interview` FOREIGN KEY (`interview_id`) REFERENCES `interview` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__interview_question__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `kv` (
-  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
+  `id` varchar(41) NOT NULL
 ,  `namespace` varchar(255) NOT NULL DEFAULT 'default'
 ,  `key` varchar(255) NOT NULL
 ,  `value` text COLLATE BINARY
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
+,  PRIMARY KEY (`id`)
 ,  UNIQUE (`namespace`,`key`)
 );
 CREATE TABLE `locale` (
@@ -378,8 +391,8 @@ CREATE TABLE `photo_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__photo_tag__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__photo_tag__tag` FOREIGN KEY (`tag_id`) REFERENCES `tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__photo_tag__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__photo_tag__tag` FOREIGN KEY (`tag_id`) REFERENCES `tag` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `preload` (
   `id` varchar(41) NOT NULL
@@ -392,10 +405,10 @@ CREATE TABLE `preload` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `completed_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `preload_form_id_foreign` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `preload_last_question_id_foreign` FOREIGN KEY (`last_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
-,  CONSTRAINT `preload_respondent_id_foreign` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `preload_study_id_foreign` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `preload_form_id_foreign` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `preload_last_question_id_foreign` FOREIGN KEY (`last_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL
+,  CONSTRAINT `preload_respondent_id_foreign` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `preload_study_id_foreign` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `preload_action` (
   `id` varchar(41) NOT NULL
@@ -420,9 +433,9 @@ CREATE TABLE `question` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__question__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__question__question_type` FOREIGN KEY (`question_type_id`) REFERENCES `question_type` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__question__translation` FOREIGN KEY (`question_translation_id`) REFERENCES `translation` (`id`) ON UPDATE NO ACTION
+,  CONSTRAINT `fk__question__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__question__question_type` FOREIGN KEY (`question_type_id`) REFERENCES `question_type` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__question__translation` FOREIGN KEY (`question_translation_id`) REFERENCES `translation` (`id`)
 );
 CREATE TABLE `question_assign_condition_tag` (
   `id` varchar(41) NOT NULL
@@ -432,8 +445,8 @@ CREATE TABLE `question_assign_condition_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__question_assign_condition_tag__assign_condition_tag` FOREIGN KEY (`assign_condition_tag_id`) REFERENCES `assign_condition_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__question_assign_condition_tag__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__question_assign_condition_tag__assign_condition_tag` FOREIGN KEY (`assign_condition_tag_id`) REFERENCES `assign_condition_tag` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__question_assign_condition_tag__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `question_choice` (
   `id` varchar(41) NOT NULL
@@ -444,8 +457,8 @@ CREATE TABLE `question_choice` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__question_choice__choice` FOREIGN KEY (`choice_id`) REFERENCES `choice` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__question_choice__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__question_choice__choice` FOREIGN KEY (`choice_id`) REFERENCES `choice` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__question_choice__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `question_datum` (
   `id` varchar(41) NOT NULL
@@ -481,8 +494,8 @@ CREATE TABLE `question_group_skip` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__question_group_skip__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__question_group_skip__skip` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__question_group_skip__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__question_group_skip__skip` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `question_parameter` (
   `id` varchar(41) NOT NULL
@@ -493,8 +506,8 @@ CREATE TABLE `question_parameter` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__question_parameter__parameter` FOREIGN KEY (`parameter_id`) REFERENCES `parameter` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__question_parameter__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__question_parameter__parameter` FOREIGN KEY (`parameter_id`) REFERENCES `parameter` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__question_parameter__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `question_type` (
   `id` varchar(41) NOT NULL
@@ -516,7 +529,7 @@ CREATE TABLE `respondent` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `associated_respondent_id` varchar(41) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__respondent__geo` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+,  CONSTRAINT `fk__respondent__geo` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`) ON DELETE SET NULL
 ,  CONSTRAINT `fk__respondent_associated_respondent__idx` FOREIGN KEY (`associated_respondent_id`) REFERENCES `respondent` (`id`)
 );
 CREATE TABLE `respondent_condition_tag` (
@@ -527,8 +540,8 @@ CREATE TABLE `respondent_condition_tag` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `condition_tag_id` varchar(41) NOT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__respondent_condition_tag__condition_tag` FOREIGN KEY (`condition_tag_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__respondent_condition_tag__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__respondent_condition_tag__condition_tag` FOREIGN KEY (`condition_tag_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__respondent_condition_tag__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `respondent_fill` (
   `id` varchar(41) NOT NULL
@@ -539,7 +552,7 @@ CREATE TABLE `respondent_fill` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `respondent_fill_respondent_id_foreign` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `respondent_fill_respondent_id_foreign` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `respondent_geo` (
   `id` varchar(41) NOT NULL
@@ -564,8 +577,8 @@ CREATE TABLE `respondent_group_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__respondent_group_tag__group_tag` FOREIGN KEY (`group_tag_id`) REFERENCES `group_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__respondent_group_tag__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__respondent_group_tag__group_tag` FOREIGN KEY (`group_tag_id`) REFERENCES `group_tag` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__respondent_group_tag__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `respondent_name` (
   `id` varchar(41) NOT NULL
@@ -592,8 +605,8 @@ CREATE TABLE `respondent_photo` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__respondent_photo__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__respondent_photo__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__respondent_photo__photo` FOREIGN KEY (`photo_id`) REFERENCES `photo` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__respondent_photo__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `role` (
   `id` varchar(255) NOT NULL
@@ -631,7 +644,7 @@ CREATE TABLE `section` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__section_name__translation` FOREIGN KEY (`name_translation_id`) REFERENCES `translation` (`id`) ON UPDATE NO ACTION
+,  CONSTRAINT `fk__section_name__translation` FOREIGN KEY (`name_translation_id`) REFERENCES `translation` (`id`)
 );
 CREATE TABLE `section_condition_tag` (
   `id` varchar(41) NOT NULL
@@ -644,10 +657,10 @@ CREATE TABLE `section_condition_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__follow_up_datum__datum` FOREIGN KEY (`follow_up_datum_id`) REFERENCES `datum` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
-,  CONSTRAINT `fk__section_condition_tag__condition_tag` FOREIGN KEY (`condition_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__section_condition_tag__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__section_condition_tag__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__follow_up_datum__datum` FOREIGN KEY (`follow_up_datum_id`) REFERENCES `datum` (`id`) ON DELETE SET NULL
+,  CONSTRAINT `fk__section_condition_tag__condition_tag` FOREIGN KEY (`condition_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__section_condition_tag__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__section_condition_tag__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `section_question_group` (
   `id` varchar(41) NOT NULL
@@ -658,8 +671,8 @@ CREATE TABLE `section_question_group` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__section_question_group__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__section_question_group__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__section_question_group__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__section_question_group__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `section_skip` (
   `id` varchar(41) NOT NULL
@@ -669,8 +682,8 @@ CREATE TABLE `section_skip` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `section_skip_section_id_foreign` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `section_skip_skip_id_foreign` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `section_skip_section_id_foreign` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `section_skip_skip_id_foreign` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `self_administered_survey` (
   `id` varchar(41) NOT NULL
@@ -704,7 +717,7 @@ CREATE TABLE `skip_condition_tag` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `condition_tag_name` varchar(255) NOT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__skip_condition_tag__skip` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__skip_condition_tag__skip` FOREIGN KEY (`skip_id`) REFERENCES `skip` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `study` (
   `id` varchar(41) NOT NULL
@@ -716,8 +729,18 @@ CREATE TABLE `study` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `test_study_id` varchar(255) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__study__default_locale` FOREIGN KEY (`default_locale_id`) REFERENCES `locale` (`id`) ON UPDATE NO ACTION
+,  CONSTRAINT `fk__study__default_locale` FOREIGN KEY (`default_locale_id`) REFERENCES `locale` (`id`)
 ,  CONSTRAINT `fk__study_test_study__idx` FOREIGN KEY (`test_study_id`) REFERENCES `study` (`id`)
+);
+CREATE TABLE `study_asset` (
+  `id` char(36) NOT NULL
+,  `asset_id` char(36) NOT NULL
+,  `study_id` char(36) NOT NULL
+,  `created_at` timestamp NULL DEFAULT NULL
+,  `updated_at` timestamp NULL DEFAULT NULL
+,  `deleted_at` timestamp NULL DEFAULT NULL
+,  PRIMARY KEY (`id`)
+,  UNIQUE (`asset_id`,`study_id`)
 );
 CREATE TABLE `study_form` (
   `id` varchar(41) NOT NULL
@@ -735,7 +758,7 @@ CREATE TABLE `study_form` (
 ,  CONSTRAINT `fk__form_study_form_type_idx` FOREIGN KEY (`form_type_id`) REFERENCES `form_type` (`id`)
 ,  CONSTRAINT `fk__geo_type_id_geo_type__idx` FOREIGN KEY (`geo_type_id`) REFERENCES `geo_type` (`id`)
 ,  CONSTRAINT `fk__study_form__form` FOREIGN KEY (`form_master_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
-,  CONSTRAINT `fk__study_form__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__study_form__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 ,  CONSTRAINT `fk__study_form_census_type__idx` FOREIGN KEY (`census_type_id`) REFERENCES `census_type` (`id`)
 ,  CONSTRAINT `fk__study_form_current_version__idx` FOREIGN KEY (`current_version_id`) REFERENCES `form` (`id`)
 );
@@ -747,8 +770,8 @@ CREATE TABLE `study_locale` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__study_locale__locale` FOREIGN KEY (`locale_id`) REFERENCES `locale` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__study_locale__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__study_locale__locale` FOREIGN KEY (`locale_id`) REFERENCES `locale` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__study_locale__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `study_parameter` (
   `id` varchar(41) NOT NULL
@@ -759,8 +782,8 @@ CREATE TABLE `study_parameter` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `study_parameter_parameter_id_foreign` FOREIGN KEY (`parameter_id`) REFERENCES `parameter` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `study_parameter_study_id_foreign` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `study_parameter_parameter_id_foreign` FOREIGN KEY (`parameter_id`) REFERENCES `parameter` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `study_parameter_study_id_foreign` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `study_respondent` (
   `id` varchar(41) NOT NULL
@@ -770,8 +793,8 @@ CREATE TABLE `study_respondent` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__study_respondent__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__study_respondent__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__study_respondent__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__study_respondent__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `survey` (
   `id` varchar(41) NOT NULL
@@ -784,10 +807,10 @@ CREATE TABLE `survey` (
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `completed_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__survey__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__survey__last_question` FOREIGN KEY (`last_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
-,  CONSTRAINT `fk__survey__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__survey__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__survey__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__survey__last_question` FOREIGN KEY (`last_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL
+,  CONSTRAINT `fk__survey__respondent` FOREIGN KEY (`respondent_id`) REFERENCES `respondent` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__survey__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `survey_condition_tag` (
   `id` varchar(41) NOT NULL
@@ -797,8 +820,8 @@ CREATE TABLE `survey_condition_tag` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__survey_condition_tag__condition_tag` FOREIGN KEY (`condition_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__survey_condition_tag__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__survey_condition_tag__condition_tag` FOREIGN KEY (`condition_id`) REFERENCES `condition_tag` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__survey_condition_tag__survey` FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `tag` (
   `id` varchar(41) NOT NULL
@@ -824,8 +847,9 @@ CREATE TABLE `translation_text` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__translation_text__locale` FOREIGN KEY (`locale_id`) REFERENCES `locale` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__translation_text__translation` FOREIGN KEY (`translation_id`) REFERENCES `translation` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  UNIQUE (`translation_id`,`locale_id`)
+,  CONSTRAINT `fk__translation_text__locale` FOREIGN KEY (`locale_id`) REFERENCES `locale` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__translation_text__translation` FOREIGN KEY (`translation_id`) REFERENCES `translation` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `user` (
   `id` varchar(41) NOT NULL
@@ -843,7 +867,7 @@ CREATE TABLE `user` (
 ,  UNIQUE (`username`)
 ,  UNIQUE (`username`,`deleted_at`)
 ,  CONSTRAINT `fk__user_role__idx` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`)
-,  CONSTRAINT `fk__user_selected_study__study` FOREIGN KEY (`selected_study_id`) REFERENCES `study` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+,  CONSTRAINT `fk__user_selected_study__study` FOREIGN KEY (`selected_study_id`) REFERENCES `study` (`id`) ON DELETE SET NULL
 );
 CREATE TABLE `user_study` (
   `id` varchar(41) NOT NULL
@@ -853,7 +877,7 @@ CREATE TABLE `user_study` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  PRIMARY KEY (`id`)
-,  CONSTRAINT `fk__user_study__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-,  CONSTRAINT `fk__user_study__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+,  CONSTRAINT `fk__user_study__study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`) ON DELETE CASCADE
+,  CONSTRAINT `fk__user_study__user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 );
 END TRANSACTION;
