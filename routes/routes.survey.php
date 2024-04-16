@@ -17,8 +17,8 @@ $router->group([
     $router->get('asset/{asset_id}',                                'AssetController@getAsset');
     $router->post('asset',                                          'AssetController@createAsset');
     $router->put('asset/{asset_id}',                                'AssetController@updateAsset');
-    $router->get('assets',                                          'AssetController@listAssets');
-    $router->delete('asset/{asset_id}',                             'AssetController@deleteAsset');
+    $router->get('assets',                                          'AssetController@getAssets');
+    $router->delete('assets',                                       'AssetController@deleteAssets');
 
     $router->post('condition-tag',                                  'ConditionTagController@createConditionTag');
     $router->get('condition-tags',                                  'ConditionTagController@getAllConditionTags');

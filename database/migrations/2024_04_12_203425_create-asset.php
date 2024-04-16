@@ -19,15 +19,19 @@ class CreateAsset extends Migration {
     });
 
     Schema::create('study_asset', function (Blueprint $table) {
+      $table->uuid('id')->primary();
       $table->uuid('asset_id')->comment('The asset id')->references('id')->on('asset');
       $table->uuid('study_id')->comment('The study id')->references('id')->on('study');
+      $table->timestamps();
+      $table->softDeletes();
 
-      $table->primary(['asset_id', 'study_id']);
+      $table->unique(['asset_id', 'study_id'], 'idx__study_asset_asset_id_study_id_unique');
     });
   }
 
 
   public function down() {
+    Schema::dropIfExists('study_asset');
     Schema::dropIfExists('asset');
   }
 }

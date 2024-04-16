@@ -196,11 +196,13 @@ class AssetController extends Controller {
     ], 'inline');
   }
 
-  public function deleteAsset(String $assetId) {
+  public function deleteAssets(Request $req) {
+    $ids = $req->input('ids');
     $validator = Validator::make([
-      'asset_id' => $assetId
+      'ids' => $ids
     ], [
-      'asset_id' => 'required|string|min:32'
+      'ids' => 'required|array|min:1',
+      'ids.*' => 'required|string|min:32|exists:asset,id'
     ]);
     if ($validator->fails()) {
       return response()->json([
@@ -208,20 +210,20 @@ class AssetController extends Controller {
         'err' => $validator->errors()
       ], $validator->statusCode());
     }
-    $asset = Asset::find($assetId);
-    if (!$asset) {
-      return response()->json([
-        'msg' => "Asset not found"
-      ], Response::HTTP_NOT_FOUND);
-    }
-    $asset->delete();
+    Asset::destroy($ids);
     return response()->json([
-      'msg' => 'Asset deleted'
+      'msg' => 'Assets deleted'
     ], Response::HTTP_OK);
   }
 
-  public function listAssets() {
-    $assets = Asset::all();
+  public function getAssets(Request $req) {
+    $ids = $req->input('ids');
+    if (!isset($ids) || count($ids) === 0) {
+      return response()->json([
+        'assets' => Asset::all(),
+      ], Response::HTTP_OK);
+    }
+    $assets = Asset::whereIn('id', $ids)->get();
     return response()->json([
       'assets' => $assets
     ], Response::HTTP_OK);
