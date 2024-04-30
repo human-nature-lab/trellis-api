@@ -29,7 +29,8 @@ CREATE TABLE `asset` (
 ,  `type` varchar(255) NOT NULL
 ,  `size` integer NOT NULL
 ,  `mime_type` varchar(255) NOT NULL
-,  `should_sync` integer NOT NULL DEFAULT '0'
+,  `md5_hash` varchar(255) DEFAULT NULL
+,  `is_from_survey` integer NOT NULL DEFAULT '0'
 ,  `created_at` timestamp NULL DEFAULT NULL
 ,  `updated_at` timestamp NULL DEFAULT NULL
 ,  `deleted_at` timestamp NULL DEFAULT NULL
@@ -102,6 +103,7 @@ CREATE TABLE `datum` (
 ,  `respondent_name_id` varchar(255) DEFAULT NULL
 ,  `action_id` varchar(41) DEFAULT NULL
 ,  `random_sort_order` integer NOT NULL
+,  `asset_id` char(36) DEFAULT NULL
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `datum_edge_id_foreign` FOREIGN KEY (`edge_id`) REFERENCES `edge` (`id`)
 ,  CONSTRAINT `datum_geo_id_foreign` FOREIGN KEY (`geo_id`) REFERENCES `geo` (`id`)
@@ -731,16 +733,6 @@ CREATE TABLE `study` (
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `fk__study__default_locale` FOREIGN KEY (`default_locale_id`) REFERENCES `locale` (`id`)
 ,  CONSTRAINT `fk__study_test_study__idx` FOREIGN KEY (`test_study_id`) REFERENCES `study` (`id`)
-);
-CREATE TABLE `study_asset` (
-  `id` char(36) NOT NULL
-,  `asset_id` char(36) NOT NULL
-,  `study_id` char(36) NOT NULL
-,  `created_at` timestamp NULL DEFAULT NULL
-,  `updated_at` timestamp NULL DEFAULT NULL
-,  `deleted_at` timestamp NULL DEFAULT NULL
-,  PRIMARY KEY (`id`)
-,  UNIQUE (`asset_id`,`study_id`)
 );
 CREATE TABLE `study_form` (
   `id` varchar(41) NOT NULL

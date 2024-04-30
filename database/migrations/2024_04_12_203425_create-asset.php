@@ -13,25 +13,22 @@ class CreateAsset extends Migration {
       $table->string('type')->comment('The general type of the asset');
       $table->integer('size')->comment('The size of the asset in bytes');
       $table->string('mime_type')->comment('The specific MIME type of the asset');
-      $table->boolean('should_sync')->default(false)->comment('Whether the asset should be downloaded to the client');
+      $table->string('md5_hash')->nullable()->comment('The MD5 hash of the asset');
+      $table->boolean('is_from_survey')->default(false)->comment('Whether the asset was uploaded as part of a survey');
       $table->timestamps();
       $table->softDeletes();
     });
-
-    Schema::create('study_asset', function (Blueprint $table) {
-      $table->uuid('id')->primary();
-      $table->uuid('asset_id')->comment('The asset id')->references('id')->on('asset');
-      $table->uuid('study_id')->comment('The study id')->references('id')->on('study');
-      $table->timestamps();
-      $table->softDeletes();
-
-      $table->unique(['asset_id', 'study_id'], 'idx__study_asset_asset_id_study_id_unique');
+    
+    Schema::table('datum', function (Blueprint $table) {
+      $table->uuid('asset_id')->nullable()->comment('The asset id')->references('id')->on('asset');
     });
   }
 
 
   public function down() {
-    Schema::dropIfExists('study_asset');
+    Schema::table('datum', function (Blueprint $table) {
+      $table->dropColumn('asset_id');
+    });
     Schema::dropIfExists('asset');
   }
 }

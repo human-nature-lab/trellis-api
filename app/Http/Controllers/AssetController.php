@@ -113,7 +113,8 @@ class AssetController extends Controller {
     $asset->mime_type = $file->getMimeType();
     $asset->size = $file->getSize();
     $asset->type = $this->getAssetType($asset->mime_type);
-    $asset->should_sync = false;
+    $asset->is_from_survey = $req->get('isFromSurvey') === 'true';
+    $asset->md5_hash = md5_file($file->getPathname());
     
     // TODO: store the asset file
     $path = storage_path('assets');
@@ -157,6 +158,8 @@ class AssetController extends Controller {
     $asset->mime_type = $file->getMimeType();
     $asset->size = $file->getSize();
     $asset->type = $this->getAssetType($asset->mime_type);
+    $asset->is_from_survey = $req->get('isFromSurvey') === 'true';
+    $asset->md5_hash = md5_file($file->getPathname());
     $path = storage_path('assets');
     $file->move($path, $asset->id);
     $asset->save();
