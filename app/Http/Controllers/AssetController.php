@@ -1,14 +1,15 @@
 <?php namespace App\Http\Controllers;
 
 use App\Models\Asset;
-use DB;
+use App\Traits\AssetDownloader;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class AssetController extends Controller {
+
+  use AssetDownloader;
 
   private $audioMimeTypes = [
     'audio/mpeg',
@@ -189,14 +190,7 @@ class AssetController extends Controller {
       ], Response::HTTP_NOT_FOUND);
     }
 
-    // TODO: send the asset file to the client
-    $assetPath = storage_path('assets/') . $asset->id;
-    Log::info("Asset path: $assetPath");
-    $mimeType = \GuzzleHttp\Psr7\mimetype_from_filename($asset->file_name);
-    return response()->download($assetPath, $asset->file_name, [
-      'Content-Type' => $mimeType,
-      'Original-Mime-Type' => $asset->mime_type,
-    ], 'inline');
+    return $this->downloadAsset($asset);
   }
 
   public function deleteAssets(Request $req) {
