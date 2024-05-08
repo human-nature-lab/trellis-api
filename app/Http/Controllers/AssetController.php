@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class AssetController extends Controller {
 
@@ -16,6 +17,7 @@ class AssetController extends Controller {
     'audio/ogg',
     'audio/wav',
     'audio/aac',
+    'audio/webm',
   ];
   
   private $imageMimeTypes = [
@@ -107,11 +109,15 @@ class AssetController extends Controller {
         'msg' => 'No file uploaded'
       ], Response::HTTP_BAD_REQUEST);
     }
+    Log::info($req->all());
     $file = $req->file('file');
     $asset = new Asset();
     $asset->id = Uuid::uuid4();
     $asset->file_name = $file->getClientOriginalName();
     $asset->mime_type = $file->getMimeType();
+    if ($req->input('mimeType')) {
+      $asset->mime_type = $req->input('mimeType');
+    }
     $asset->size = $file->getSize();
     $asset->type = $this->getAssetType($asset->mime_type);
     $asset->is_from_survey = $req->get('isFromSurvey') === 'true';
