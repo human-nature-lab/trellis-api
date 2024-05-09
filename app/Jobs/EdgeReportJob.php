@@ -3,8 +3,6 @@
 namespace App\Jobs;
 
 use App\Library\CsvFileWriter;
-use App\Models\Edge;
-use App\Models\QuestionDatum;
 use App\Services\ReportService;
 use Log;
 use App\Models\Report;

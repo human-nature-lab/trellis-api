@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\ActionReportJob;
 use App\Jobs\EdgeReportJob;
+use App\Jobs\AssetReportJob;
 use App\Jobs\FormReportJob;
 use App\Jobs\GeoReportJob;
 use App\Jobs\InterviewReportJob;
@@ -60,7 +61,16 @@ class MakeReports extends Command {
       if (!isset($study)) {
         throw new \Exception('Study id must be valid');
       }
-      $mainJobConstructors = [TimingReportJob::class, RespondentGeoJob::class, InterviewReportJob::class, EdgeReportJob::class, GeoReportJob::class, ActionReportJob::class, RespondentReportJob::class];
+      $mainJobConstructors = [
+        // TimingReportJob::class, 
+        // RespondentGeoJob::class, 
+        // InterviewReportJob::class, 
+        // EdgeReportJob::class, 
+        // GeoReportJob::class, 
+        // ActionReportJob::class,
+        // RespondentReportJob::class,
+        AssetReportJob::class,
+      ];
 
       if (!$this->option('skip-main')) {
         foreach ($mainJobConstructors as $constructor){
