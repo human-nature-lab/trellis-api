@@ -6,6 +6,7 @@ use App\Library\FileHelper;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use SplFileObject;
 use App\Models\UploadLog;
 use App\Models\Upload;
@@ -54,7 +55,7 @@ class ImportUpload extends BaseCommand {
     $this->info("Starting import of $n uploads...");
 
     if ($n !== 0) {
-      $uploads = Upload::whereIn('id', $uploadIds)->where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
+      $uploads = Upload::whereIn('id', $uploadIds)->where('status', '<>', 'SUCCESS')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
     } else {
       $uploads = Upload::where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
     }
@@ -123,6 +124,7 @@ class ImportUpload extends BaseCommand {
         DB::beginTransaction();
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
+        $assets = [];
         while (!$file->eof()) {
           $line = trim($file->fgets());
           if ($line != '') { // Skip empty lines
@@ -131,6 +133,9 @@ class ImportUpload extends BaseCommand {
             $tableName = $row['table_name'];
             $rowId = $row['id'];
             unset($row['table_name']);
+            if ($tableName === 'asset') {
+              $assets[] = $row;
+            }
             try {
               DB::table($tableName)->insert($row);
               $this->info("New row, inserting.");
@@ -162,12 +167,24 @@ class ImportUpload extends BaseCommand {
           }
         }
 
+        // Check md5 hash of assets
+        foreach($assets as $asset) {
+          $assetId = $asset['id'];
+          $expectedMd5 = $asset['md5_hash'];
+          $filePath = storage_path('assets/' . $assetId);
+          $actualMd5 = md5_file($filePath);
+          if ($expectedMd5 !== $actualMd5) {
+            throw new Exception("MD5 hash mismatch for asset: $assetId. Expected: $expectedMd5, Actual: $actualMd5");
+          }
+        }
+
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         // Check foreign keys
         ob_start();
 
-        Artisan::call('trellis:check:mysql:foreignkeys');
+        $res = Artisan::call('trellis:check:mysql:foreignkeys');
+        Log::info("Foreign key check result: $res");
 
         $inconsistencies = ob_get_clean();
 
