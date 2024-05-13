@@ -62,13 +62,13 @@ class MakeReports extends Command {
         throw new \Exception('Study id must be valid');
       }
       $mainJobConstructors = [
-        // TimingReportJob::class, 
-        // RespondentGeoJob::class, 
-        // InterviewReportJob::class, 
-        // EdgeReportJob::class, 
-        // GeoReportJob::class, 
-        // ActionReportJob::class,
-        // RespondentReportJob::class,
+        TimingReportJob::class, 
+        RespondentGeoJob::class, 
+        InterviewReportJob::class, 
+        EdgeReportJob::class, 
+        GeoReportJob::class, 
+        ActionReportJob::class,
+        RespondentReportJob::class,
         AssetReportJob::class,
       ];
 

@@ -59,7 +59,6 @@ class AssetReportJob extends Job {
     $this->file->open();
     $this->file->writeHeader();
     foreach ($q->cursor() as $asset) {
-      Log::info("writing asset: $asset->id");
       $this->file->writeRow([
         $asset->id,
         $asset->file_name,

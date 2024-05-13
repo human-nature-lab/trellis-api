@@ -55,7 +55,7 @@ class ImportUpload extends BaseCommand {
     $this->info("Starting import of $n uploads...");
 
     if ($n !== 0) {
-      $uploads = Upload::whereIn('id', $uploadIds)->where('status', '<>', 'SUCCESS')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
+      $uploads = Upload::whereIn('id', $uploadIds)->where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
     } else {
       $uploads = Upload::where('status', 'PENDING')->whereNull('deleted_at')->orderBy('created_at', 'asc')->get();
     }

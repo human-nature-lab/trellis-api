@@ -109,7 +109,6 @@ class AssetController extends Controller {
         'msg' => 'No file uploaded'
       ], Response::HTTP_BAD_REQUEST);
     }
-    Log::info($req->all());
     $file = $req->file('file');
     $asset = new Asset();
     $asset->id = Uuid::uuid4();
@@ -123,7 +122,6 @@ class AssetController extends Controller {
     $asset->is_from_survey = $req->get('isFromSurvey') === 'true';
     $asset->md5_hash = md5_file($file->getPathname());
     
-    // TODO: store the asset file
     $path = storage_path('assets');
     $file->move($path, $asset->id);
     $asset->save();
