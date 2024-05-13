@@ -3,6 +3,7 @@ CREATE INDEX "idx_geo_photo_fk__geo_photo__photo_idx" ON "geo_photo" (`photo_id`
 CREATE INDEX "idx_respondent_name_respondent_name_respondent_id_foreign" ON "respondent_name" (`respondent_id`);
 CREATE INDEX "idx_respondent_name_respondent_name_locale_id_foreign" ON "respondent_name" (`locale_id`);
 CREATE INDEX "idx_respondent_name_respondent_name_previous_respondent_name_id_foreign" ON "respondent_name" (`previous_respondent_name_id`);
+CREATE INDEX "idx_respondent_name_rn_name_idx" ON "respondent_name" (`name`);
 CREATE INDEX "idx_respondent_group_tag_fk__respondent_group__respondent_idx" ON "respondent_group_tag" (`respondent_id`);
 CREATE INDEX "idx_respondent_group_tag_fk__respondent_group__group_idx" ON "respondent_group_tag" (`group_tag_id`);
 CREATE INDEX "idx_translation_text_fk__translation_text__translation_idx" ON "translation_text" (`translation_id`);
@@ -29,8 +30,9 @@ CREATE INDEX "idx_question_fk__question__question_group_idx" ON "question" (`que
 CREATE INDEX "idx_study_parameter_study_parameter_study_id_foreign" ON "study_parameter" (`study_id`);
 CREATE INDEX "idx_study_parameter_study_parameter_parameter_id_foreign" ON "study_parameter" (`parameter_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_geo_id_foreign" ON "respondent_geo" (`geo_id`);
-CREATE INDEX "idx_respondent_geo_respondent_geo_respondent_id_foreign" ON "respondent_geo" (`respondent_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_previous_respondent_geo_id_foreign" ON "respondent_geo" (`previous_respondent_geo_id`);
+CREATE INDEX "idx_respondent_geo_res_geo_is_current_idx" ON "respondent_geo" (`is_current`);
+CREATE INDEX "idx_respondent_geo_res_geo_res_id_is_current_idx" ON "respondent_geo" (`respondent_id`,`is_current`);
 CREATE INDEX "idx_question_assign_condition_tag_fk__question_assign_condition_tag__question_idx" ON "question_assign_condition_tag" (`question_id`);
 CREATE INDEX "idx_question_assign_condition_tag_fk__question_assign_condition_tag__assign_condition_tag_idx" ON "question_assign_condition_tag" (`assign_condition_tag_id`);
 CREATE INDEX "idx_respondent_fill_respondent_fill_respondent_id_foreign" ON "respondent_fill" (`respondent_id`);
@@ -68,10 +70,8 @@ CREATE INDEX "idx_action_action_survey_id_foreign" ON "action" (`survey_id`);
 CREATE INDEX "idx_action_action_interview_id_foreign" ON "action" (`interview_id`);
 CREATE INDEX "idx_action_fk__preload_preload_action__idx" ON "action" (`preload_action_id`);
 CREATE INDEX "idx_action_fk__action_follow_up_action__idx" ON "action" (`follow_up_action_id`);
-CREATE INDEX "idx_action_idx_action_deleted_at" ON "action" (`deleted_at`);
 CREATE INDEX "idx_preload_action_preload_action_respondent_id_foreign" ON "preload_action" (`respondent_id`);
 CREATE INDEX "idx_preload_action_preload_action_question_id_foreign" ON "preload_action" (`question_id`);
-CREATE INDEX "idx_preload_action_idx_preload_action_deleted_at" ON "preload_action" (`deleted_at`);
 CREATE INDEX "idx_preload_preload_respondent_id_foreign" ON "preload" (`respondent_id`);
 CREATE INDEX "idx_preload_preload_form_id_foreign" ON "preload" (`form_id`);
 CREATE INDEX "idx_preload_preload_study_id_foreign" ON "preload" (`study_id`);
@@ -109,7 +109,7 @@ CREATE INDEX "idx_respondent_photo_fk__respondent_photo__respondent_idx" ON "res
 CREATE INDEX "idx_respondent_photo_fk__respondent_photo__photo_idx" ON "respondent_photo" (`photo_id`);
 CREATE INDEX "idx_condition_tag_ct_name_idx" ON "condition_tag" (`name`);
 CREATE INDEX "idx_question_group_skip_fk__question_group_skip__question_group_idx" ON "question_group_skip" (`question_group_id`);
-CREATE INDEX "idx_question_group_skip_fk__form_skip__skip_idx" ON "question_group_skip" (`skip_id`);
+CREATE INDEX "idx_question_group_skip_fk__question_group__skip_idx" ON "question_group_skip" (`skip_id`);
 CREATE INDEX "idx_assign_condition_tag_fk__assign_condition_tag__condition_idx" ON "assign_condition_tag" (`condition_tag_id`);
 CREATE INDEX "idx_section_skip_section_skip_section_id_foreign" ON "section_skip" (`section_id`);
 CREATE INDEX "idx_section_skip_section_skip_skip_id_foreign" ON "section_skip" (`skip_id`);

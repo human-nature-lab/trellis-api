@@ -216,14 +216,23 @@ class FormReportJob extends Job
                 $headers[$key] = $baseName . '_' . $choice->val;
             }
         };
+        
+        $expandAsset = function ($baseKey, $baseName) use (&$headers) {
+            $headers[$baseKey . '_id'] = $baseName;
+            $headers[$baseKey . '_file_name'] = $baseName . '_file_name';
+            $headers[$baseKey . '_type'] = $baseName . '_type';
+        };
 
-        $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect, $expandRespondentGeo) {
+        $assignQuestionHeaders = function ($baseKey, $baseName, $question) use (&$headers, $expandMultiSelect, $expandRespondentGeo, $expandAsset) {
             switch ($question->questionType->name) {
                 case 'multiple_select':
                     $expandMultiSelect($baseKey, $baseName, $question->choices);
                     break;
                 case 'respondent_geo':
                     $expandRespondentGeo($baseKey, $baseName);
+                    break;
+                case 'asset':
+                    $expandAsset($baseKey, $baseName);
                     break;
                 default:
                     $headers[$baseKey] = $baseName;
@@ -428,6 +437,35 @@ class FormReportJob extends Job
                         $this->addNote($this->headers[$baseKey], $survey, $this->mapDkRf($qd->dk_rf), $qd->dk_rf_val);
                     }
                     break;
+                case 'asset':
+                  $idKey = $baseKey . '_id';
+                  $fileNameKey = $baseKey . '_file_name';
+                  $typeKey = $baseKey . '_type';
+                  $keys = [$idKey, $fileNameKey, $typeKey];
+                  foreach ($keys as $k) {
+                    if (!isset($this->headers[$k])) {
+                      throw new Exception("Header $k should already be defined");
+                    }
+                  }
+                  if (!is_null($qd->dk_rf)) {
+                    $row[$idKey] = $this->mapDkRf($qd->dk_rf);
+                    $row[$fileNameKey] = $this->mapDkRf($qd->dk_rf);
+                    $row[$typeKey] = $this->mapDkRf($qd->dk_rf);
+                    $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                    break;
+                  }
+                  $ids = [];
+                  $fileNames = [];
+                  $types = [];
+                  foreach ($qd->fullData as $datum) {
+                    array_push($ids, $datum->asset_id);
+                    array_push($fileNames, $datum->asset->file_name);
+                    array_push($types, $datum->asset->type);
+                  }
+                  $row[$idKey] = $ids;
+                  $row[$fileNameKey] = $fileNames;
+                  $row[$typeKey] = $types;
+                  break;
                 case 'respondent_geo':
                     $idKey = $baseKey . '_ids';
                     $actionKey = $baseKey . '_actions';
@@ -486,6 +524,7 @@ class FormReportJob extends Job
 
     private function addMetadata (String $baseKey, Question $question) {
         $keys = [$baseKey];
+        $runDefault = false;
         switch ($question->questionType->name) {
             case 'multiple_select':
                 foreach ($keys as $bKey) {
@@ -535,21 +574,30 @@ class FormReportJob extends Job
                     }
                 }
                 break;
+            case 'asset':
+              $runDefault = true;
+              $keys = [$baseKey . '_id', $baseKey . '_file_name', $baseKey . '_type'];
+              break;
             case 'respondent_geo':
-                $keys = [$baseKey . '_ids', $baseKey . '_actions'];
+              $runDefault = true;
+              $keys = [$baseKey . '_ids', $baseKey . '_actions'];
+              break;
             default:
-                foreach ($keys as $key) {
-                  $mkey = $this->headers[$key];
-                  $this->metaRows[$mkey] = [
-                      'header' => $mkey,
-                      'question_type' => $question->questionType->name,
-                      'variable_name' => $question->var_name
-                  ];
-                  foreach ($question->questionTranslation->translationText as $t) {
-                      $lang = $t->locale->language_name;
-                      $this->metaRows[$mkey]["question_$lang"] = $t->translated_text;
-                  }
-                }
+            $runDefault = true;
+        }
+        if ($runDefault) {
+          foreach ($keys as $key) {
+            $mkey = $this->headers[$key];
+            $this->metaRows[$mkey] = [
+                'header' => $mkey,
+                'question_type' => $question->questionType->name,
+                'variable_name' => $question->var_name
+            ];
+            foreach ($question->questionTranslation->translationText as $t) {
+                $lang = $t->locale->language_name;
+                $this->metaRows[$mkey]["question_$lang"] = $t->translated_text;
+            }
+          }
         }
     }
 

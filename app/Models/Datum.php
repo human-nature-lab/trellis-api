@@ -14,6 +14,7 @@ class Datum extends Model
     protected $table = 'datum';
 
     public $fillable = [
+        'asset_id',
         'choice_id',
         'datum_type_id',
         'edge_id',
@@ -53,6 +54,11 @@ class Datum extends Model
         return $this->hasOne('App\Models\Geo', 'id', 'geo_id')
             ->whereNull('geo.deleted_at')
             ->with('nameTranslation');
+    }
+
+    public function asset () {
+        return $this->hasOne('App\Models\Asset', 'id', 'asset_id')
+            ->whereNull('asset.deleted_at');
     }
 
     public function edge () {

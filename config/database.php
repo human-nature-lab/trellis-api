@@ -76,6 +76,7 @@ return [
             'version'   => '5.7.2', // required to prevent: 1235 This version of MySQL doesn't yet support 'multiple triggers with the same action time and event for one table'
             'options' => [
               'PDO::ATTR_TIMEOUT' => 0,
+              'PDO::ATTR_EMULATE_PREPARES' => 1,
             ]
         ],
 

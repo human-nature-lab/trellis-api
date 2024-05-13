@@ -2,6 +2,7 @@
 
 namespace app\Http\Controllers;
 
+use App\Models\Asset;
 use App\Models\ClientLog;
 use App\Models\Photo;
 use App\Models\Snapshot;
@@ -11,7 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 
 use App\Models\Upload;
-
+use App\Traits\AssetDownloader;
 use Laravel\Lumen\Routing\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -24,9 +25,12 @@ use Emgag\Flysystem\Hash\HashPlugin;
 use Symfony\Component\Finder\Finder;
 
 use Ramsey\Uuid\Uuid;
-
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SyncControllerV2 extends Controller {
+
+  use AssetDownloader;
+
   public function heartbeat() {
     return response()->json([], Response::HTTP_OK);
   }
@@ -86,7 +90,7 @@ class SyncControllerV2 extends Controller {
     return $this->doSnapshotDownload($request, $snapshotId);
   }
 
-  private function doSnapshotDownload (Request $request, $snapshotId) {
+  private function doSnapshotDownload(Request $request, $snapshotId) {
     $validator = Validator::make(array_merge($request->all(), [
       'id' => $snapshotId
     ]), [
@@ -316,7 +320,39 @@ class SyncControllerV2 extends Controller {
     return response()->json([], Response::HTTP_OK);
   }
 
-  public function getLatestSnapshot () {
+  public function uploadAsset(Request $request, String $deviceId, String $assetId) {
+    if (!$request->hasFile('file')) {
+      return response()->json([
+        'msg' => 'File not present in request.',
+      ], Response::HTTP_BAD_REQUEST);
+    }
+
+    $file = $request->file('file');
+    $fileName = $request->get('fileName');
+    $uploadPath = storage_path() . '/assets';
+
+    if (!$request->file('file')->isValid()) {
+      return response()->json([
+        'msg' => 'Upload failed.',
+      ], Response::HTTP_BAD_REQUEST);
+    }
+
+    $asset = Asset::find($assetId);
+    if ($asset) {
+      $md5 = md5_file($file->getRealPath());
+      if ($md5 !== $asset->md5_hash) {
+        return response()->json([
+          'msg' => 'MD5 hash does not match.'
+        ], Response::HTTP_BAD_REQUEST);
+      }
+    }
+
+    $file->move($uploadPath, $assetId);
+
+    return response()->json([], Response::HTTP_OK);
+  }
+
+  public function getLatestSnapshot() {
     $latestSnapshot = Snapshot::where('deleted_at', null)
       ->orderBy('created_at', 'desc')
       ->first();
@@ -324,7 +360,7 @@ class SyncControllerV2 extends Controller {
     return response()->json($latestSnapshot, Response::HTTP_OK);
   }
 
-  public function tokenSnapshotDownload (Request $request, $snapshotId) {
+  public function tokenSnapshotDownload(Request $request, $snapshotId) {
     return $this->doSnapshotDownload($request, $snapshotId);
   }
 
@@ -385,22 +421,80 @@ class SyncControllerV2 extends Controller {
 
 
   public function getImage($deviceId, $fileName) {
-
     $adapter = new Local(storage_path() . '/respondent-photos');
-    $filesystem = new Filesystem($adapter);
-    $exists = $filesystem->has($fileName);
+    $fs = new Filesystem($adapter);
 
-    if (!$exists) {
-      return response()->json([], Response::HTTP_NOT_FOUND);
+    if (!$fs->has($fileName)) {
+      return response()->json([
+        'msg' => 'File not found.'
+      ], Response::HTTP_NOT_FOUND);
     }
-
-    $image = $filesystem->read($fileName);
-    $mimetype = $filesystem->getMimetype($fileName);
-
-    return response()->make($image, Response::HTTP_OK, ['content-type' => $mimetype]);
+    return new StreamedResponse(function () use ($fs, $fileName) {
+      $stream = $fs->readStream($fileName);
+      fpassthru($stream);
+    }, Response::HTTP_OK, [
+      'Content-Type' => 'image/jpeg',
+      'Content-disposition' => 'attachment; filename="' . $fileName . '"',
+    ]);
   }
 
-  public function listMissingImages($deviceId) {
+  public function getAsset (String $deviceId, String $assetId) {
+    $validator = Validator::make([
+      'asset_id' => $assetId
+    ], [
+      'asset_id' => 'required|string|min:32'
+    ]);
+    if ($validator->fails()) {
+      return response()->json([
+        'msg' => "Invalid asset id",
+        'err' => $validator->errors()
+      ], $validator->statusCode());
+    }
+    $asset = Asset::find($assetId);
+    if (!$asset) {
+      return response()->json([
+        'msg' => "Asset not found"
+      ], Response::HTTP_NOT_FOUND);
+    }
+
+    return $this->downloadAsset($asset);
+  }
+
+  public function listMissingAssets($deviceId) {
+    if (ob_get_length()) {
+      ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
+    }
+
+    http_response_code(Response::HTTP_OK);
+
+    $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
+
+    foreach (explode("\r\n", $response->headers) as $header) {
+      header($header);
+    }
+
+    header('Content-Type: ' . response()->json()->headers->get('content-type'));    // override content type to ensure that it's application/json
+
+    echo '[';
+
+    $first = true;
+    Asset::chunk(1000, function ($assets) use (&$first) {
+        foreach ($assets as $asset) {
+          $fileName = storage_path() . '/assets/' . $asset->id;
+          if (!file_exists($fileName)) {
+            if ($first) {
+              $first = false;
+            } else {
+              echo ',';
+            }
+            echo '"' . $asset->id . '"';
+          }
+        }
+      });
+    echo ']';
+  }
+
+  public function listMissingImages (String $deviceId) {
     if (ob_get_length()) {
       ob_end_clean(); // disable Lumen's output buffering in order to allow infinite response length without using up memory
     }

@@ -47,7 +47,7 @@ class BundleLatestReports extends Command
       set_time_limit(0);
         $studyId = $this->getStudyId();
         $study = Study::where("id", "=", $studyId)->with("defaultLocale")->first();
-        $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action'];
+        $types = ['respondent_geo', 'geo', 'respondent', 'timing', 'interview', 'edge', 'action', 'asset'];
         $formQuery = Form::select('id')->
           whereIn('form_master_id', function ($q) use ($studyId) {
               $q->select('form_master_id')->from('study_form')->where('study_id', $studyId);

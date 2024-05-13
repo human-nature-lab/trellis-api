@@ -26,8 +26,11 @@ $router->group(['prefix' => 'sync'], function () use ($router) {
     $router->post('verify-upload',                                                                          'SyncControllerV2@verifyUpload');
     $router->post('upload',                             ['middleware' => 'requires:CAN_UPLOAD',   'uses' => 'SyncControllerV2@upload']);
     $router->post('upload/image',                                                                           'SyncControllerV2@uploadImage');
+    $router->post('upload/asset/{asset_id}',                                                                'SyncControllerV2@uploadAsset');
     $router->post('upload/logs',                                                                            'SyncControllerV2@uploadLogs');
 
+    $router->get('asset/{asset_id}',                                                                        'SyncControllerV2@getAsset');
+    $router->get('missing-assets',                                                                          'SyncControllerV2@listMissingAssets');
 //   NOT USED     $router->put('sync',                                'SyncController@upload');
 //   NOT USED     $router->post('sync',                               'SyncController@download');
 //   NOT USED     $router->get('download',                            'SyncController@downloadSync');
