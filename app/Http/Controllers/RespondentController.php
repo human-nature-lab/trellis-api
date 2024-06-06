@@ -994,6 +994,7 @@ class RespondentController extends Controller
 
 
     public function listEdges (String $respondentId) {
+      $respondentId = urldecode($respondentId);
       $validator = Validator::make([
         'respondent_id' => $respondentId
       ], [
