@@ -742,20 +742,12 @@ class RespondentController extends Controller
     public function getRespondentById($respondentId)
     {
         $respondentId = urldecode($respondentId);
-        $validator = Validator::make([
-            'respondentId' => $respondentId
-        ], [
-            'respondentId' => 'required|string|min:32|exists:respondent,id'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'msg' => "Invalid respondent id",
-                'err' => $validator->errors()
-            ], $validator->statusCode());
-        }
-
         $respondent = Respondent::with('respondentConditionTags', 'photos', 'names', 'rGeos')->find($respondentId);
+        if ($respondent === null) {
+            return response()->json([
+                'msg' => 'Respondent not found'
+            ], Response::HTTP_NOT_FOUND);
+        }
         $respondent->geos = $respondent->rGeos;
         unset($respondent->rGeos);
         return response()->json([
