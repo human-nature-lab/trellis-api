@@ -467,11 +467,11 @@ class SyncControllerV2 extends Controller {
 
     http_response_code(Response::HTTP_OK);
 
-    $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
+    // $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
 
-    foreach (explode("\r\n", $response->headers) as $header) {
-      header($header);
-    }
+    // foreach (explode("\r\n", $response->headers) as $header) {
+    //   header($header);
+    // }
 
     header('Content-Type: ' . response()->json()->headers->get('content-type'));    // override content type to ensure that it's application/json
 
@@ -501,11 +501,11 @@ class SyncControllerV2 extends Controller {
 
     http_response_code(Response::HTTP_OK);
 
-    $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
+    // $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
 
-    foreach (explode("\r\n", $response->headers) as $header) {
-      header($header);
-    }
+    // foreach (explode("\r\n", $response->headers) as $header) {
+    //   header($header);
+    // }
 
     header('Content-Type: ' . response()->json()->headers->get('content-type'));    // override content type to ensure that it's application/json
 
@@ -536,11 +536,11 @@ class SyncControllerV2 extends Controller {
 
     http_response_code(Response::HTTP_OK);
 
-    $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
+    // $response = app()->handle(Request::create(app('request')->getRequestURI(), app('request')->getMethod()));   // get original response headers for cookies, CORS, etc
 
-    foreach (explode("\r\n", $response->headers) as $header) {
-      header($header);
-    }
+    // foreach (explode("\r\n", $response->headers) as $header) {
+    //   header($header);
+    // }
 
     header('Content-Type: ' . response()->json()->headers->get('content-type'));    // override content type to ensure that it's application/json
 
