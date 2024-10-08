@@ -172,7 +172,12 @@ class ImportUpload extends BaseCommand {
           $assetId = $asset['id'];
           $expectedMd5 = $asset['md5_hash'];
           $filePath = storage_path('assets/' . $assetId);
-          $actualMd5 = md5_file($filePath);
+          // Only verify the md5 hash if the file exists
+          try {
+            $actualMd5 = md5_file($filePath);
+          } catch (Exception $e) {
+            continue;
+          }
           if ($expectedMd5 !== $actualMd5) {
             throw new Exception("MD5 hash mismatch for asset: $assetId. Expected: $expectedMd5, Actual: $actualMd5");
           }
