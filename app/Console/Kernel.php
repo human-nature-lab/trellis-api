@@ -90,7 +90,11 @@ class Kernel extends ConsoleKernel
 
     if (env('GENERATE_REPORTS', 0)) {
       $reportTime = env('GENERATE_REPORTS_TIME', '00:00');
-      $schedule->command('trellis:make:reports')->dailyAt($reportTime);
+      $args = '';
+      if (env('INCLUDE_UNPUBLISHED_FORMS', 0)) {
+        $args .= ' --unpublished';
+      } 
+      $schedule->command('trellis:make:reports ' . $args)->dailyAt($reportTime);
     }
 
   }
