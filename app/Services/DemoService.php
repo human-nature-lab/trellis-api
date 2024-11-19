@@ -89,6 +89,6 @@ class DemoService {
       $importedForm->is_published = false;
       $importedForm->save();
 
-      FormService::publishForm($importedForm, $testStudy, $study);
+      FormService::publishForm($importedForm->id, $testStudy, $study);
     }
 }

@@ -191,7 +191,9 @@ class FormService {
     $newFormId = null;
     DB::transaction(function () use ($formId, $testStudy, $prodStudy, &$newFormId) {
       $testForm = Form::with('nameTranslation', 'studyForm', 'sections', 'skips', 'sections.questionGroups', 'sections.nameTranslation', 'sections.formSections.repeatPromptTranslation')->find($formId);
-      
+      if (!isset($testForm)) {
+        throw new \Exception("Form not found");
+      }
       $testStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $testStudy->id)->first();
       $prodStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $prodStudy->id)->first();
 
