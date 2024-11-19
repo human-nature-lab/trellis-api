@@ -85,8 +85,10 @@ class DemoService {
       Log::debug("Added $numRespondentGeos respondent geos to study: $study->name");
 
       // Load all of the forms
-      $importedForm = FormService::importFormAndAddToStudy(resource_path('demo/forms/example-question-types.json'), 'Example Question Types', $study->id, 0);
-      $importedForm->is_published = true;
+      $importedForm = FormService::importFormAndAddToStudy(resource_path('demo/forms/example-question-types.json'), 'Example Question Types', $testStudy->id, 0);
+      $importedForm->is_published = false;
       $importedForm->save();
+
+      FormService::publishForm($importedForm, $testStudy, $study);
     }
 }

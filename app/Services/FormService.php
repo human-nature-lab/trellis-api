@@ -187,6 +187,32 @@ class FormService {
     return $form;
   }
 
+  public static function publishForm(string $formId, Study $testStudy, Study $prodStudy): Form {
+    $newFormId = null;
+    DB::transaction(function () use ($formId, $testStudy, $prodStudy, &$newFormId) {
+      $testForm = Form::with('nameTranslation', 'studyForm', 'sections', 'skips', 'sections.questionGroups', 'sections.nameTranslation', 'sections.formSections.repeatPromptTranslation')->find($formId);
+      
+      $testStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $testStudy->id)->first();
+      $prodStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $prodStudy->id)->first();
+
+      // Create a new prod StudyForm if one doesn't exist for this form yet
+      if (!isset($prodStudyForm)) {
+        $prodStudyForm = $testStudyForm->replicate()->fill([
+          'id' => Uuid::uuid4(),
+          'study_id' => $prodStudy->id,
+        ]);
+      }
+      
+      $newForm = FormService::copyForm($testForm, $testForm->version);
+      $prodStudyForm->current_version_id = $newForm->id;
+      $prodStudyForm->save();
+      $testForm->version += 1;
+      $testForm->save();
+      $newFormId = $newForm->id;
+    });
+    return Form::with('nameTranslation', 'skips', 'studyForm', 'versions')->find($newFormId);
+  }
+
   /**
    * Copy a form in the database
    */

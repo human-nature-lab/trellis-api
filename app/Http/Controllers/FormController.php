@@ -531,28 +531,13 @@ class FormController extends Controller {
     set_time_limit(0);
 
     $prodStudy = Study::where('test_study_id', $studyId)->first();
+    if ($prodStudy === null) {
+      return response()->json([
+        'msg' => 'No prod study found for this test study'
+      ], Response::HTTP_INTERNAL_SERVER_ERROR);
+    }
 
-    $newForm = DB::transaction(function () use ($formId, $testStudy, $prodStudy) {
-      $testForm = Form::with('nameTranslation', 'studyForm', 'sections', 'skips', 'sections.questionGroups', 'sections.nameTranslation', 'sections.formSections.repeatPromptTranslation')->find($formId);
-      
-      $testStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $testStudy->id)->first();
-      $prodStudyForm = StudyForm::where('form_master_id', $testForm->form_master_id)->where('study_id', $prodStudy->id)->first();
-
-      // Create a new prod StudyForm if one doesn't exist for this form yet
-      if (!isset($prodStudyForm)) {
-        $prodStudyForm = $testStudyForm->replicate()->fill([
-          'id' => Uuid::uuid4(),
-          'study_id' => $prodStudy->id,
-        ]);
-      }
-      
-      $newForm = FormService::copyForm($testForm, $testForm->version);
-      $prodStudyForm->current_version_id = $newForm->id;
-      $prodStudyForm->save();
-      $testForm->version += 1;
-      $testForm->save();
-      return Form::find($newForm->id)->with('nameTranslation', 'skips', 'studyForm', 'versions');
-    });
+    $newForm = FormService::publishForm($formId, $testStudy, $prodStudy);
 
     return response()->json($newForm);
   }
