@@ -1,4 +1,4 @@
-INSERT IGNORE INTO `question_type` (`id`, `name`, `created_at`, `updated_at`, `deleted_at`)
+INSERT UPDATE INTO `question_type` (`id`, `name`, `created_at`, `updated_at`, `deleted_at`)
 VALUES
 ('06162912-8048-4978-a8d2-92b6dd0c2ed1','time','2015-11-24 12:01:48','2015-11-24 12:01:48',NULL),
   ('0f76b96f-613a-4925-bacd-74db45368edb','multiple_select','2015-11-24 12:01:48','2015-11-24 12:01:48',NULL),
