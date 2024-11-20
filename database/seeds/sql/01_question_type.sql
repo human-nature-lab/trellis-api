@@ -1,4 +1,4 @@
-INSERT UPDATE INTO `question_type` (`id`, `name`, `created_at`, `updated_at`, `deleted_at`)
+INSERT INTO `question_type` (`id`, `name`, `created_at`, `updated_at`, `deleted_at`)
 VALUES
 ('06162912-8048-4978-a8d2-92b6dd0c2ed1','time','2015-11-24 12:01:48','2015-11-24 12:01:48',NULL),
   ('0f76b96f-613a-4925-bacd-74db45368edb','multiple_select','2015-11-24 12:01:48','2015-11-24 12:01:48',NULL),
@@ -21,4 +21,9 @@ VALUES
   ('d9a2de9f-411a-11ee-81c8-0242ac120003','distribution','2023-08-22 18:36:47','2023-08-22 18:36:47', '2024-11-20 12:00:00'),
   ('adf49a4d-79a4-11ee-80e7-0242ac120004','social_ring','2023-11-02 17:24:29','2023-11-02 17:24:29', '2024-11-20 12:00:00'),
   ('82fb8139-7d9b-11ee-964a-0242ac120004','duration','2023-11-07 18:28:56','2023-11-07 18:28:56', '2024-11-20 12:00:00'),
-  ('572020ee-0720-11ef-b6c1-0242ac120003','asset','2024-04-30 18:28:56','2024-04-30 18:28:56',NULL);
+  ('572020ee-0720-11ef-b6c1-0242ac120003','asset','2024-04-30 18:28:56','2024-04-30 18:28:56',NULL)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `updated_at` = VALUES(`updated_at`),
+  `created_at` = VALUES(`created_at`),
+  `deleted_at` = VALUES(`deleted_at`);
