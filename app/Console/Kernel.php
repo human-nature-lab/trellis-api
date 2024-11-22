@@ -82,7 +82,7 @@ class Kernel extends ConsoleKernel
       $schedule->command('trellis:clean:reports --keep-last-days=' . $cleanReportsOlderThan)->dailyAt($cleanReportsTime);
     }
     if (env('EXPORT_SNAPSHOTS', 0)) {
-      $schedule->command('trellis:export:snapshotv2')->everyFiveMinutes();
+      $schedule->command('trellis:study:snapshot')->everyFiveMinutes();
     }
     if (env('IMPORT_UPLOADS', 0)) {
       $schedule->command('trellis:import:upload')->everyMinute();

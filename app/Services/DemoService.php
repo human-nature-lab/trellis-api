@@ -62,31 +62,33 @@ class DemoService {
       $userStudy->save();
 
       // Import demo respondents and assign them to this study
-      $numRespondents = count(RespondentService::importRespondentsFromFile(resource_path('demo/respondents.csv'), $study->id, true));
+      $numRespondents = count(RespondentService::importRespondentsFromFile(resource_path('demo/respondents.csv'), $testStudy->id, true));
       Log::debug("Added $numRespondents respondents to study: $study->name");
-      $numPhotos = RespondentService::importRespondentPhotos(resource_path('demo/respondent_photos.zip'), $study->id);
+      $numPhotos = RespondentService::importRespondentPhotos(resource_path('demo/respondent_photos.zip'), $testStudy->id);
       Log::debug("Added $numPhotos photos to study: $study->name");
 
       $geoService = new GeoService();
 
-      $numGeos = count($geoService->importGeosFromFile(resource_path('demo/states.csv'), $study->id));
-      $numGeos += count($geoService->importGeosFromFile(resource_path('demo/cities.csv'), $study->id));
+      $numGeos = count($geoService->importGeosFromFile(resource_path('demo/states.csv'), $testStudy->id));
+      $numGeos += count($geoService->importGeosFromFile(resource_path('demo/cities.csv'), $testStudy->id));
       Log::debug("Added $numGeos geos to study: $study->name");
 
-      $numGeoPhotos = $geoService->importGeoPhotos(resource_path('demo/state_capital_photos.zip'), $study->id);
+      $numGeoPhotos = $geoService->importGeoPhotos(resource_path('demo/state_capital_photos.zip'), $testStudy->id);
       Log::debug("Added $numGeoPhotos geo photos to study: $study->name");
 
       $conditionTagService = new ConditionTagService();
-      $numRespondentConditionTags = count($conditionTagService->importRespondentConditionTagsFromFile(resource_path('demo/respondent_condition_tags.csv'), $study->id));
+      $numRespondentConditionTags = count($conditionTagService->importRespondentConditionTagsFromFile(resource_path('demo/respondent_condition_tags.csv'), $testStudy->id));
       Log::debug("Added $numRespondentConditionTags respondent condition tags to study: $study->name");
 
       $respondentService = new RespondentService();
-      $numRespondentGeos = count($respondentService->importRespondentGeosFromFile(resource_path('demo/respondent_locations.csv'), $study->id));
+      $numRespondentGeos = count($respondentService->importRespondentGeosFromFile(resource_path('demo/respondent_locations.csv'), $testStudy->id));
       Log::debug("Added $numRespondentGeos respondent geos to study: $study->name");
 
       // Load all of the forms
-      $importedForm = FormService::importFormAndAddToStudy(resource_path('demo/forms/example-question-types.json'), 'Example Question Types', $study->id, 0);
-      $importedForm->is_published = true;
+      $importedForm = FormService::importFormAndAddToStudy(resource_path('demo/forms/example-question-types.json'), 'Example Question Types', $testStudy->id, 0);
+      $importedForm->is_published = false;
       $importedForm->save();
+
+      FormService::publishForm($importedForm->id, $testStudy, $study);
     }
 }
