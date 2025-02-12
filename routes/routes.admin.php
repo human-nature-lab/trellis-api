@@ -83,6 +83,7 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('study/{studyId}/respondent-photo/import',        ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@importRespondentPhotos']);
   $router->post('study/{study_id}/respondent-tag/import',         ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'ConditionTagController@importRespondentConditionTags']);
   $router->post('study/{study_id}/respondent-geo/import',         ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentGeoController@importRespondentGeos']);
+  $router->post('respondent/assign-tag-via-geo/{conditionTagId}', ['middleware' => 'requires:ADD_RESPONDENT_CONDITION_TAG','uses' => 'ConditionTagController@assignTagViaGeos']);
   
   $router->post('respondent-preload-data/import',                 ['middleware' => 'requires:IMPORT_RESPONDENTS',       'uses' => 'RespondentController@preloadRespondentData']);
   $router->get('respondent/{study_id}/count',                     ['middleware' => 'requires:VIEW_RESPONDENTS',         'uses' => 'RespondentController@getRespondentCountByStudyId']);

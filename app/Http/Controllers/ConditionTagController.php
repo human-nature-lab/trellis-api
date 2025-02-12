@@ -5,14 +5,16 @@
 use App\Models\ConditionTag;
 use App\Models\RespondentConditionTag;
 use App\Services\ConditionTagService;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Ramsey\Uuid\Uuid;
 use Throwable;
-use Validator;
-use Log;
-
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use App\Services\GeoService;
+use Exception;
+use Carbon\Carbon;
 class ConditionTagController extends Controller {
 
 	/**
@@ -155,6 +157,76 @@ class ConditionTagController extends Controller {
         }
 
 	}
+  
+  public function assignTagViaGeos (Request $request, GeoService $geoService, $conditionTagName) {
+    $validator = Validator::make(array_merge($request->all(), [
+      'conditionTagName' => $conditionTagName
+    ]), [
+      'conditionTagName' => 'required|string|min:3|exists:condition_tag,name',
+      'includeChildren' => 'required|boolean',
+      'geoIds' => 'required|array',
+      'onlyUseCurrentGeo' => 'required|boolean'
+    ]);
+
+    if ($validator->fails() === true) {
+      return response()->json([
+        'msg' => 'Validation failed',
+        'err' => $validator->errors()
+      ], $validator->statusCode());
+    }
+
+    $geoIds = $request->get('geoIds');
+    $includeChildren = $request->get('includeChildren');
+    $onlyUseCurrentGeo = $request->get('onlyUseCurrentGeo');
+
+    $respondentIds = DB::transaction(function () use ($includeChildren, $geoIds, $conditionTagName, $geoService, $onlyUseCurrentGeo) {
+      $conditionTag = ConditionTag::where('name', $conditionTagName)->first();
+      if (!$conditionTag) {
+        throw new Exception('Condition tag not found');
+      }
+      $conditionTagId = $conditionTag->id;
+      if ($includeChildren) {
+        $geoIds = $geoService->getNestedGeoIds($geoIds);
+      }
+  
+      $respondentIdsQuery = DB::table('respondent_geo')
+        ->select('respondent_geo.respondent_id')
+        ->join('respondent', 'respondent.id', '=', 'respondent_geo.respondent_id')
+        ->whereIn('respondent_geo.geo_id', $geoIds)
+        ->whereNull('respondent.deleted_at')
+        ->whereNull('respondent_geo.deleted_at')
+        ->whereNotIn('respondent_geo.respondent_id', function ($query) use ($conditionTagName) {
+          $query->select('respondent_id')
+            ->from('respondent_condition_tag')
+            ->whereIn('condition_tag_id', function ($query) use ($conditionTagName) {
+              $query->select('id')
+                ->from('condition_tag')
+                ->where('name', $conditionTagName);
+            });
+        });
+  
+      if ($onlyUseCurrentGeo) {
+        $respondentIdsQuery->where('respondent_geo.is_current', true);
+      }
+      $respondentIds = $respondentIdsQuery->pluck('respondent_id');
+      $rcts = $respondentIds->map(function ($respondentId) use ($conditionTagId) {
+        return [
+          'id' => Uuid::uuid4(),
+          'respondent_id' => $respondentId,
+          'condition_tag_id' => $conditionTagId,
+          'created_at' => Carbon::now(),
+          'updated_at' => Carbon::now()
+        ];
+      });
+      DB::table('respondent_condition_tag')->insert($rcts->toArray());
+      return $respondentIds;
+    });
+    
+    return response()->json([
+      'status' => 'success',
+      'respondent_ids' => $respondentIds
+    ], Response::HTTP_OK);
+  }
 
   public function importRespondentConditionTags (Request $request, ConditionTagService $ctService, $studyId) {
     $validator = Validator::make(array_merge($request->all(), [
