@@ -73,34 +73,34 @@ class RespondentGeoJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
+
+        $tmpTableName = 'respondent_geo_job_qd_rg';
+        DB::statement('drop table if exists '.$tmpTableName);
+        $q = 'create table '.$tmpTableName.' (survey_id int, question_id int, val text, respondent_geo_id int) as 
+        select qd.survey_id, qd.question_id, d.val, d.respondent_geo_id from question_datum qd
+        inner join datum d on d.question_datum_id = qd.id
+        where d.respondent_geo_id is not null and d.deleted_at is null and qd.deleted_at is null';
+        DB::statement($q);
+
+        $q = "create index idx_qd_rg_rgeo_id_val on $tmpTableName (respondent_geo_id, val(100))";
+        DB::statement($q);
+
         $q = RespondentGeo::withTrashed()
             ->addSelect(DB::raw('*'))
-            ->addSelect(DB::raw('(select qd.question_id from question_datum qd where qd.id = (
-                select question_datum_id from datum d 
-                where d.respondent_geo_id = respondent_geo.id and (d.val = "Add respondent geo" or d.val = "Move respondent")
-                limit 1
-                )
-            ) as added_question_id'))
-            ->addSelect(DB::raw('(select qd.survey_id from question_datum qd where qd.id = (
-                select question_datum_id from datum d 
-                where d.respondent_geo_id = respondent_geo.id and (d.val = "Add respondent geo" or d.val = "Move respondent")
-                limit 1
-                )
-            ) as added_survey_id'))
-            ->addSelect(DB::raw('(select qd.question_id from question_datum qd where qd.id = (
-                select question_datum_id from datum d 
-                where d.respondent_geo_id = respondent_geo.id and d.val = "Remove respondent geo"
-                limit 1
-                )
-            ) as removed_question_id'))
-            ->addSelect(DB::raw('(select qd.survey_id from question_datum qd where qd.id = (
-                select question_datum_id from datum d 
-                where d.respondent_geo_id = respondent_geo.id and d.val = "Remove respondent geo"
-                limit 1
-                )
-            ) as removed_survey_id'));
+            ->addSelect(DB::raw("(select qd_rg.question_id from $tmpTableName qd_rg 
+            where qd_rg.respondent_geo_id = respondent_geo.id and (qd_rg.val = 'Add respondent geo' or qd_rg.val = 'Move respondent') limit 1
+            ) as added_question_id"))
+            ->addSelect(DB::raw("(select qd_rg.survey_id from $tmpTableName qd_rg 
+                where qd_rg.respondent_geo_id = respondent_geo.id and (qd_rg.val = 'Add respondent geo' or qd_rg.val = 'Move respondent') limit 1
+                ) as added_survey_id"))
+            ->addSelect(DB::raw("(select qd_rg.question_id from $tmpTableName qd_rg 
+                where qd_rg.respondent_geo_id = respondent_geo.id and qd_rg.val = 'Remove respondent geo' limit 1
+                ) as removed_question_id"))
+            ->addSelect(DB::raw("(select qd_rg.survey_id from $tmpTableName qd_rg 
+                where qd_rg.respondent_geo_id = respondent_geo.id and qd_rg.val = 'Remove respondent geo' limit 1
+                ) as removed_survey_id"));
 
-        $batchSize = (int)env('RESPONDENT_GEO_REPORT_BATCH_SIZE', 200);
+        $batchSize = (int)env('RESPONDENT_GEO_REPORT_BATCH_SIZE', 2000);
         $q->chunk($batchSize, function ($rGeos) {
             $rGeos = $rGeos->map(function ($rGeo) {
                 $rGeo->is_current = $rGeo->is_current === 1;
@@ -108,6 +108,7 @@ class RespondentGeoJob extends Job
             })->toArray();
             $this->file->writeRows($rGeos);
         });
+        DB::statement('drop table if exists '.$tmpTableName);
         ReportService::saveFileStream($this->report, $fileName);
         // TODO: create zip file with location images
 
