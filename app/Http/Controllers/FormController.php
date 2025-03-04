@@ -506,6 +506,7 @@ class FormController extends Controller {
   }
 
   public function publishForm(String $studyId, String $formId) {
+    ini_set('memory_limit','512M');
     $validator = Validator::make([
       'form_id' => $formId,
       'study_id' => $studyId,
