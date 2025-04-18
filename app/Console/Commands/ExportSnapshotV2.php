@@ -57,8 +57,8 @@ class ExportSnapshotV2 extends Command
 
         $excludeTables = array_keys(array_filter(config('snapshot.substitutions.download'), function ($fields) {
             return $fields == [
-                    '*' => null,
-                ];    // for now, can only exclude entire tables with wildcard
+                '*' => null,
+            ];    // for now, can only exclude entire tables with wildcard
         }));
 
         $excludeTablesString = implode(',', array_map(function ($table) {
