@@ -88,7 +88,7 @@ class RespondentReportJob extends Job
 
       // Streaming loop
       $batchSize = (int)env('RESPONDENT_REPORT_BATCH_SIZE', 400);
-      $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType');
+      $q = Respondent::with('currentGeo', 'currentGeo.geo.nameTranslation', 'currentGeo.geo.geoType')->withTrashed();
       $q->chunk($batchSize, function ($respondents) {
         $this->processBatch($respondents);
       });
@@ -105,7 +105,8 @@ class RespondentReportJob extends Job
           'associated_respondent_id' => 'associated_respondent_id',
           'assigned_id' => 'assigned_id',
           'created_at' => 'created_at',
-          'updated_at' => 'updated_at'
+          'updated_at' => 'updated_at',
+          'deleted_at' => 'deleted_at'
         ];
 
         $geoHeaders = [
