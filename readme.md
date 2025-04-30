@@ -46,8 +46,7 @@ address of your server (optionally also `www.yourdomainname.com`).
 
 ## MySQL
 
-We'll be using the MySQL database to store the Trellis data, other relational databases such as Postgres, Oracle, and 
-Amazon RDS can also be used.
+We'll be using MySQL 8 to store the Trellis data.
 
 ### Install MySQL
 
@@ -74,10 +73,6 @@ mysql> grant all privileges on trellis.* to 'trellis'@'localhost';
 mysql> flush privileges;
 mysql> exit
 ```
-
-*Note: in MySQL 5.7+ the **root** user is authenticated automatically using the logged in user's credentials. If you get
-an error when starting mysql in without credentials, try `mysql -u root -p` and enter the password provided in the 
-previous step.*
 
 ------
 
