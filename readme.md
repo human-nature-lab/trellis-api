@@ -91,7 +91,7 @@ mysqldump -utrellis -p"$EXISTING_PASS" --compress --single-transaction --order-b
 
 ## PHP
 
-### Install PHP
+### Install PHP 7
 
 ```
 $ sudo apt install php-fpm php-mysql php-gmp php-mbstring php-dom php-cli
