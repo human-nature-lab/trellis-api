@@ -14,7 +14,14 @@ class DownloadApp extends Command
      *
      * @var string
      */
-    protected $signature = 'trellis:download-app {--asset-name=trellis-web.zip} {--timeout=120}';
+    protected $signature = 'trellis:download-app 
+    {--asset-name=trellis-web.zip}
+    {--api-endpoint=}
+    {--timeout=120} 
+    {--latest}
+    {--prerelease}
+    {--source=https://api.github.com/repos/human-nature-lab/trellis-app/releases}
+    {--temp-dir=}';
 
     /**
      * The console command description.
@@ -35,10 +42,23 @@ class DownloadApp extends Command
         $this->info("Checking for trellis app releases...");
         $assetName = $this->option('asset-name');
         $timeout = $this->option('timeout');
+        $tempDir = $this->option('temp-dir');
+        if (!$tempDir) {
+          $tempDir = storage_path('temp');
+        }
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Trellis API');
-        curl_setopt($ch, CURLOPT_URL, 'https://api.github.com/repos/human-nature-lab/trellis-app/releases?prerelease=true');
+        $source = $this->option('source');
+        $prerelease = $this->option('prerelease');
+        $latest = $this->option('latest');
+        if ($prerelease) {
+          $source = $source . '?prerelease=true';
+        }
+        curl_setopt($ch, CURLOPT_URL, $source);
         $result = curl_exec($ch);
         curl_close($ch);
         $versions = json_decode($result, true);
@@ -54,8 +74,11 @@ class DownloadApp extends Command
           return $v['tag_name'];
         }, $versions);
 
-
-        $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, 0);
+        if ($latest) {
+          $chosenVersionName = $choices[0];
+        } else {
+          $chosenVersionName = $this->choice("Which version of the Trellis app do you want to download and install?", $choices, 0);
+        }
         $this->info($chosenVersionName);
         $chosenVersions = array_filter($versions, function($v) use ($chosenVersionName) { return $v["tag_name"] == $chosenVersionName; });
         $chosenVersion = array_pop($chosenVersions);
@@ -64,9 +87,9 @@ class DownloadApp extends Command
           return $a['name'] === $assetName;
         }))[0];
         $chosenVersionUrl = $chosenAsset['browser_download_url'];
-        $this->info($chosenVersionUrl);
+        $this->info("installing $chosenVersionUrl");
         
-        $zipPath = storage_path('temp/trellis-web.zip');
+        $zipPath = join_paths($tempDir, $assetName);
         $this->info("Downloading to $zipPath...");
         
         $ch = curl_init( $chosenVersionUrl);
@@ -110,7 +133,10 @@ class DownloadApp extends Command
         unlink($zipPath);
 
         $this->info("");
-        $apiEndpoint = $this->ask("What is the URL of your server's API endpoint? (e.g. https://api.yourdomainname.com)");
+        $apiEndpoint = $this->option('api-endpoint');
+        if (!$apiEndpoint) {
+          $apiEndpoint = $this->ask("What is the URL of your server's API endpoint? (e.g. https://api.yourdomainname.com)");
+        }
         $this->info("Writing APP config file...");
 
         $configFile = "window.config = {

@@ -1,0 +1,11 @@
+.git
+.env
+.gitignore
+composer
+*.yaml
+*.sh
+*.awk
+*.sql
+vendor
+node_modules
+storage
