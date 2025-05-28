@@ -9,13 +9,19 @@ class AdminSeeder extends Seeder
     public function run()
     {
         try {
-            $password = $this->command->secret('Enter a password for the admin user');
-            $confirmPassword = $this->command->secret('Confirm the password');
+            $password = $this->command->argument('password');
+            if (!$password) {
+              $password = env('TRELLIS_ADMIN_PASSWORD');
+            }
+            if (!$password) {
+              $password = $this->command->secret('Enter a password for the admin user');
+              $confirmPassword = $this->command->secret('Confirm the password');
 
-            while ($password !== $confirmPassword) {
+              while ($password !== $confirmPassword) {
                 $this->command->error('Passwords do not match.');
                 $password = $this->command->secret('Enter a password for the admin user');
                 $confirmPassword = $this->command->secret('Confirm the password');
+              }
             }
             $u = User::find('c1f277ab-e181-11e5-84c9-a45e60f0e921');
             if (!$u) {

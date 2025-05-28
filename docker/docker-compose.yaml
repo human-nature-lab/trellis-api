@@ -1,0 +1,59 @@
+version: '3.3'
+
+services:
+  trellis_mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: trellis
+    # uncomment ports to allow external access to the database
+    # ports:
+    #   - 3306:3306
+    # uncomment this to persist data
+    # volumes:
+    #   - mysql_data:/var/lib/mysql
+    networks:
+      - trellis-network
+
+  trellis_nginx:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.app
+    ports:
+      - 8080:80
+    depends_on:
+      - trellis_api
+    networks:
+      - trellis-network
+
+  trellis_api:
+    image: trellis-api:latest
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - 9213:80
+    depends_on:
+      - trellis_mysql
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=trellis_mysql
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - TRELLIS_ADMIN_PASSWORD=testpass
+    volumes:
+      - ./conf.d/:/etc/nginx/conf.d/
+    networks:
+      - trellis-network
+    # uncomment this to persist data
+    # volumes:
+    #   - trellis-api-storage:/var/www/trellis-api/storage
+
+networks:
+  trellis-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  trellis-api-storage:
