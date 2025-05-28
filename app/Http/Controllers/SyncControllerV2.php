@@ -180,8 +180,13 @@ class SyncControllerV2 extends Controller {
 
   public function generateSnapshot(Request $request) {
     set_time_limit(0);
-    $args = '--quick-check --no-inaccessible-data --vacuum';
+    $args = '--quick-check --vacuum';
     $force = $request->get('force', false);
+
+    $complete = $request->get('complete', false);
+    if (!$complete) {
+      $args .= ' --no-inaccessible-data';
+    }
     if ($force) {
       Log::info('forcing snapshot');
       $args .= ' --force';
