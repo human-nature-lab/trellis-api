@@ -250,8 +250,7 @@ class PreloadActionService {
         $line++;
         $row = $csv->getNextRowHash();
       }
-      // DB::commit();
-      DB::rollBack();
+      DB::commit();
       return $actions;
     } catch (\Exception $err) {
       DB::rollBack();
