@@ -225,6 +225,7 @@ CREATE TABLE `form_section` (
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
 ,  `randomize_follow_up` integer NOT NULL DEFAULT '0'
+,  `randomize_pages` integer NOT NULL DEFAULT '0'
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `fk__follow_up_question__question` FOREIGN KEY (`follow_up_question_id`) REFERENCES `question` (`id`) ON DELETE SET NULL
 ,  CONSTRAINT `fk__form_section__form` FOREIGN KEY (`form_id`) REFERENCES `form` (`id`) ON DELETE CASCADE
@@ -672,6 +673,7 @@ CREATE TABLE `section_question_group` (
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
+,  `randomize_questions` integer NOT NULL DEFAULT '0'
 ,  PRIMARY KEY (`id`)
 ,  CONSTRAINT `fk__section_question_group__question_group` FOREIGN KEY (`question_group_id`) REFERENCES `question_group` (`id`) ON DELETE CASCADE
 ,  CONSTRAINT `fk__section_question_group__section` FOREIGN KEY (`section_id`) REFERENCES `section` (`id`) ON DELETE CASCADE

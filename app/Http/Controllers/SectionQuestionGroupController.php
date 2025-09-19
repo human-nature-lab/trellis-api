@@ -8,6 +8,7 @@ use Illuminate\Http\Response;
 use App\Models\SectionQuestionGroup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class SectionQuestionGroupController extends Controller {
 
@@ -26,8 +27,8 @@ class SectionQuestionGroupController extends Controller {
 
     DB::transaction(function () use ($request, $id) {
       $sqg = SectionQuestionGroup::find($id);
-      $sqg->section_id = $request->input('section_id');
-      $sqg->question_group_order = $request->input('question_group_order');
+      Log::debug('sqg', $sqg->toArray());
+      $sqg->fill($request->input());
       $sqg->save();
 
       // reorder the other members of the group

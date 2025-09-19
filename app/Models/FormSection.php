@@ -24,6 +24,7 @@ class FormSection extends Pivot
         'sort_order',
         'is_repeatable',
         'max_repetitions',
+        'randomize_pages',
         'repeat_prompt_translation_id',
         'follow_up_question_id',
         'randomize_follow_up',

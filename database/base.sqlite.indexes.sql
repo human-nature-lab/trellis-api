@@ -30,6 +30,7 @@ CREATE INDEX "idx_question_fk__question__question_group_idx" ON "question" (`que
 CREATE INDEX "idx_study_parameter_study_parameter_study_id_foreign" ON "study_parameter" (`study_id`);
 CREATE INDEX "idx_study_parameter_study_parameter_parameter_id_foreign" ON "study_parameter" (`parameter_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_geo_id_foreign" ON "respondent_geo" (`geo_id`);
+CREATE INDEX "idx_respondent_geo_respondent_geo_respondent_id_foreign" ON "respondent_geo" (`respondent_id`);
 CREATE INDEX "idx_respondent_geo_respondent_geo_previous_respondent_geo_id_foreign" ON "respondent_geo" (`previous_respondent_geo_id`);
 CREATE INDEX "idx_respondent_geo_res_geo_is_current_idx" ON "respondent_geo" (`is_current`);
 CREATE INDEX "idx_respondent_geo_res_geo_res_id_is_current_idx" ON "respondent_geo" (`respondent_id`,`is_current`);
@@ -109,7 +110,7 @@ CREATE INDEX "idx_respondent_photo_fk__respondent_photo__respondent_idx" ON "res
 CREATE INDEX "idx_respondent_photo_fk__respondent_photo__photo_idx" ON "respondent_photo" (`photo_id`);
 CREATE INDEX "idx_condition_tag_ct_name_idx" ON "condition_tag" (`name`);
 CREATE INDEX "idx_question_group_skip_fk__question_group_skip__question_group_idx" ON "question_group_skip" (`question_group_id`);
-CREATE INDEX "idx_question_group_skip_fk__question_group__skip_idx" ON "question_group_skip" (`skip_id`);
+CREATE INDEX "idx_question_group_skip_fk__form_skip__skip_idx" ON "question_group_skip" (`skip_id`);
 CREATE INDEX "idx_assign_condition_tag_fk__assign_condition_tag__condition_idx" ON "assign_condition_tag" (`condition_tag_id`);
 CREATE INDEX "idx_section_skip_section_skip_section_id_foreign" ON "section_skip" (`section_id`);
 CREATE INDEX "idx_section_skip_section_skip_skip_id_foreign" ON "section_skip" (`skip_id`);
