@@ -58,6 +58,9 @@ class SnapshotService {
       ->select('created_at')
       ->orderBy('created_at', 'desc')
       ->first();
+    if (!$latestSnapshot) {
+      return 0;
+    }
     return strtotime($latestSnapshot['created_at']);
   }
 
