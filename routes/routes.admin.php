@@ -16,6 +16,10 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   //* Photo Controller Routes *//
   $router->get('photo/{id}',                                [                                                           'uses' => 'PhotoController@getPhoto']);
 
+
+  //* Report Controller Routes *//
+  $router->get('study/{studyId}/report/custom/{reportName}', ['middleware' => 'requires:VIEW_REPORTS', 'uses' => 'ReportController@runCustomReport']);
+  
   //* Census Form Controller Routes *//
   $router->get('form/census/types',   'CensusFormController@getCensusFormTypes');
 

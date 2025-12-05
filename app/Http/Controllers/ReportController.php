@@ -241,4 +241,43 @@ class ReportController extends Controller {
 
     }
 
+    public function runCustomReport(Request $request, Response $response, $studyId, $reportName) {
+        $validator = Validator::make([
+            'studyId' => $studyId,
+        ], [
+            'studyId' => 'string|min:36|max:41|exists:study,id',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'msg' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        // Attempt to dynamically load the Reports class
+        if (!class_exists('App\Reports\Reports')) {
+            return response()->json([
+                'msg' => 'Reports class not found.'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $reportsClass = 'App\Reports\Reports';
+
+        if (!property_exists($reportsClass, 'reports') || !isset($reportsClass::$reports[$reportName])) {
+            return response()->json([
+                'msg' => 'Requested report type not found.'
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $reportClass = $reportsClass::$reports[$reportName];
+        if (!class_exists($reportClass)) {
+            return response()->json([
+                'msg' => "Report class {$reportClass} not found."
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        $report = new $reportClass();
+        $res = $report->run($request, $response, $studyId);
+        return response()->json($res, Response::HTTP_OK);
+    }
+
 }
