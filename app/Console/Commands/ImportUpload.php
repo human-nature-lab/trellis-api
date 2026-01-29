@@ -162,6 +162,8 @@ class ImportUpload extends BaseCommand {
                 $rowId = $row['id'];
                 unset($row['id']);
                 DB::table($tableName)->where('id', $rowId)->update($row);
+              } else {
+                throw $e;
               }
             }
           }
