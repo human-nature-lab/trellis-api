@@ -21,6 +21,7 @@ class BundleLatestReports extends Command
       {--unpublished : Include unpublished forms}
       {--location=exports : The location to save the export at} 
       {--name=reports.zip : The filename to use}
+      {--exclude-form-timing : Exclude the timing report from the form reports}
       {--study= : The study to bundle reports for}';
 
     /**
@@ -116,6 +117,9 @@ class BundleLatestReports extends Command
             $form = Form::with("nameTranslation")
                 ->find($report->form_id);
             foreach($report->files as $file){
+                if ($this->option('exclude-form-timing') && $file->file_type === 'timing') {
+                    continue;
+                }
                 $nameTranslation = $form->nameTranslation;
                 $formName = $nameTranslation->translationText[0]->translated_text;
                 $zipName = "forms/$formName/v$form->version/$file->file_type/$file->file_type"."_export.csv";
@@ -136,6 +140,10 @@ class BundleLatestReports extends Command
         $studyId = $this->argument('study');
       }
       if (!$studyId) {
+        $studies = Study::all();
+        foreach ($studies as $study) {
+          $this->info("Study: " . $study->name . " (" . $study->id . ")");
+        }
         throw new \Exception("No study id provided");
       }
       return $studyId;

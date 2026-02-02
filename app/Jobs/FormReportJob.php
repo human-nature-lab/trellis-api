@@ -37,6 +37,8 @@ class FormReportJob extends Job
     protected $defaultColumns;
     private $localeId;
     private $file;
+    private $timingFile;
+    private $includeTimingReport = false;
     private $count = 0;
 
     /**
@@ -49,6 +51,7 @@ class FormReportJob extends Job
     {
         Log::debug("FormReportJob - constructing: $formId");
         $this->config = $config;
+        $this->includeTimingReport = $this->shouldCreateTimingReport();
         $this->formId = $formId;
         $this->report = new Report();
         $this->report->id = Uuid::uuid4();
@@ -75,6 +78,9 @@ class FormReportJob extends Job
             $this->report->save();
             if (isset($this->file)) {
                 $this->file->close();
+            }
+            if (isset($this->timingFile)) {
+                $this->timingFile->close();
             }
             $duration = microtime(true) - $startTime;
             Log::debug("FormReportJob - finished: $this->formId in $duration seconds. Processed $this->count surveys.");
@@ -148,6 +154,16 @@ class FormReportJob extends Job
         $this->file->open();
         $this->file->writeHeader();
 
+        $timingFileName = null;
+        if ($this->includeTimingReport) {
+            $timingId = Uuid::uuid4();
+            $timingFileName = $timingId . '.csv';
+            $timingFilePath = storage_path('app/' . $timingFileName);
+            $this->timingFile = new CsvFileWriter($timingFilePath, $this->headers);
+            $this->timingFile->open();
+            $this->timingFile->writeHeader();
+        }
+
         $q = Survey::where('form_id', '=', $this->formId)
             ->leftJoin('respondent_geo as rg', function ($join) {
                 $join->on('rg.respondent_id', '=', 'survey.respondent_id');
@@ -181,6 +197,9 @@ class FormReportJob extends Job
         }
 
         ReportService::saveFileStream($this->report, $fileName);
+        if ($this->includeTimingReport && $timingFileName) {
+            ReportService::saveFileStream($this->report, $timingFileName, 'timing');
+        }
         ReportService::saveMetaFile($this->report, $this->metaRows);
         ReportService::saveDataFile($this->report, $this->otherHeaders, $this->otherRows, 'other');
         ReportService::saveDataFile($this->report, $this->notesHeaders, $this->notesRows, 'notes');
@@ -310,36 +329,59 @@ class FormReportJob extends Job
         }, []);
 
         $rows = [];
+        $timingRows = $this->includeTimingReport ? [] : null;
         foreach ($surveys as $survey) {
             if (isset($surveyDataMap[$survey->id])) {
                 $formatStart = microtime(true);
-                $row = $this->formatSurveyData($survey, $questions, $questionsMap, $surveyDataMap[$survey->id]);
+                $formatResult = $this->formatSurveyData($survey, $questions, $questionsMap, $surveyDataMap[$survey->id]);
+                if ($this->includeTimingReport) {
+                    $row = $formatResult['row'];
+                    $timingRow = $formatResult['timingRow'];
+                } else {
+                    $row = $formatResult;
+                }
                 $formatTime = microtime(true) - $formatStart;
             } else {
                 $row = [];
+                if ($this->includeTimingReport) {
+                    $timingRow = [];
+                }
             }
-            foreach($this->defaultColumns as $key => $name){
+            if ($this->includeTimingReport) {
+              foreach($this->defaultColumns as $key => $name){
+                $timingRow[$key] = $survey->$key;
                 $row[$key] = $survey->$key;
+              }
+            } else {
+              foreach($this->defaultColumns as $key => $name){
+                $row[$key] = $survey->$key;
+              }
             }
             // Show a different value for the Unknown location besides null
             if (!is_null($survey->rg_id) && is_null($survey->current_location_id)) {
                 $row['current_location_name'] = 'UNKNOWN LOCATION';
                 $row['current_location_id'] = 'UNKNOWN LOCATION';
-            }
-            array_push($rows, $row);
-        }
-
-        // Implode any cells that are represented as an array
-        foreach ($rows as &$row) {
-            foreach ($row as $key => $cell) {
-                if (is_array($cell)) {
-                    $row[$key] = implode(';', $cell);
+                if ($this->includeTimingReport) {
+                    $timingRow['current_location_name'] = 'UNKNOWN LOCATION';
+                    $timingRow['current_location_id'] = 'UNKNOWN LOCATION';
                 }
             }
+            array_push($rows, $row);
+            if ($this->includeTimingReport) {
+                array_push($timingRows, $timingRow);
+            }
+        }
+
+        $this->implodeRowArrays($rows);
+        if ($this->includeTimingReport) {
+            $this->implodeRowArrays($timingRows);
         }
 
         // Write the batch to file
         $this->file->writeRows($rows);
+        if ($this->includeTimingReport) {
+            $this->timingFile->writeRows($timingRows);
+        }
     }
 
     private function formatSurveyData ($survey, $questions, $questionsMap, $questionDatum) {
@@ -347,6 +389,7 @@ class FormReportJob extends Job
 //            ->with('fullData');
 //        $questionDatum2 = $questionDatum2->get();
         $row = [];
+        $timingRow = $this->includeTimingReport ? [] : null;
 
         // Create indexes
         $questionToQuestionDatumMap = [];
@@ -426,6 +469,9 @@ class FormReportJob extends Job
                         } else {
                             $row[$key] = ReportService::translationToText($datum->choice->choiceTranslation, $this->localeId);
                         }
+                        if ($this->includeTimingReport) {
+                            $timingRow[$key] = isset($qd->dk_rf) ? null : $datum->created_at;
+                        }
 
                         // This seems like the safest way to check if it's an other response
                         if (isset($question->other_choice_ids) && isset($datum->choice_id) && in_array($datum->choice_id, $question->other_choice_ids)) {
@@ -435,6 +481,9 @@ class FormReportJob extends Job
                     if (!is_null($qd->dk_rf)) {
                         $row[$baseKey] = $this->mapDkRf($qd->dk_rf);
                         $this->addNote($this->headers[$baseKey], $survey, $this->mapDkRf($qd->dk_rf), $qd->dk_rf_val);
+                        if ($this->includeTimingReport) {
+                            $timingRow[$baseKey] = null;
+                        }
                     }
                     break;
                 case 'asset':
@@ -452,19 +501,31 @@ class FormReportJob extends Job
                     $row[$fileNameKey] = $this->mapDkRf($qd->dk_rf);
                     $row[$typeKey] = $this->mapDkRf($qd->dk_rf);
                     $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                    if ($this->includeTimingReport) {
+                        $timingRow[$idKey] = null;
+                        $timingRow[$fileNameKey] = null;
+                        $timingRow[$typeKey] = null;
+                    }
                     break;
                   }
                   $ids = [];
                   $fileNames = [];
                   $types = [];
+                  $createdAts = [];
                   foreach ($qd->fullData as $datum) {
                     array_push($ids, $datum->asset_id);
                     array_push($fileNames, $datum->asset->file_name);
                     array_push($types, $datum->asset->type);
+                    array_push($createdAts, $datum->created_at);
                   }
                   $row[$idKey] = $ids;
                   $row[$fileNameKey] = $fileNames;
                   $row[$typeKey] = $types;
+                  if ($this->includeTimingReport) {
+                      $timingRow[$idKey] = $createdAts;
+                      $timingRow[$fileNameKey] = $createdAts;
+                      $timingRow[$typeKey] = $createdAts;
+                  }
                   break;
                 case 'respondent_geo':
                     $idKey = $baseKey . '_ids';
@@ -478,20 +539,33 @@ class FormReportJob extends Job
                         $row[$idKey] = $this->mapDkRf($qd->dk_rf);
                         $row[$actionKey] = $this->mapDkRf($qd->dk_rf);
                         $this->addOther($this->headers[$idKey], $survey, $qd->dk_rf, $qd->dk_rf_val);
+                        if ($this->includeTimingReport) {
+                            $timingRow[$idKey] = null;
+                            $timingRow[$actionKey] = null;
+                        }
                     } else {
                         $ids = [];
                         $actions = [];
+                        $createdAts = [];
                         foreach ($qd->fullData as $datum) {
                             array_push($ids, $datum->respondent_geo_id);
                             array_push($actions, $datum->val);
+                            array_push($createdAts, $datum->created_at);
                         }
                         $row[$idKey] = $ids;
                         $row[$actionKey] = $actions;
+                        if ($this->includeTimingReport) {
+                            $timingRow[$idKey] = $createdAts;
+                            $timingRow[$actionKey] = $createdAts;
+                        }
                     }
                     break;
                 case 'relationship':
                     if (isset($qd->no_one) && $qd->no_one) {
                         $row[$baseKey] = ['No_One'];
+                        if ($this->includeTimingReport) {
+                            $timingRow[$baseKey] = null;
+                        }
                         break;
                     }
                 case 'multiple_choice':
@@ -507,17 +581,33 @@ class FormReportJob extends Job
                         throw new Exception("Header $key should already be defined");
                     }
                     $vals = [];
+                    $timingVals = [];
                     if (isset($qd->dk_rf)) {
                         $dkRf = $this->mapDkRf($qd->dk_rf);
                         array_push($vals, $dkRf);
                         $this->addNote($this->headers[$key], $survey, $dkRf, $qd->dk_rf_val);
+                        if ($this->includeTimingReport) {
+                            $timingRow[$key] = null;
+                        }
                     } else {
                         foreach ($qd->fullData as $datum) {
                             array_push($vals, $this->getDatumValue($datum, $this->localeId));
+                            if ($this->includeTimingReport) {
+                                array_push($timingVals, $datum->created_at);
+                            }
                         }
                     }
                     $row[$key] = $vals;
+                    if ($this->includeTimingReport && !isset($timingRow[$key])) {
+                        $timingRow[$key] = $timingVals;
+                    }
             }
+        }
+        if ($this->includeTimingReport) {
+            return [
+                'row' => $row,
+                'timingRow' => $timingRow
+            ];
         }
         return $row;
     }
@@ -637,6 +727,26 @@ class FormReportJob extends Job
             'respondent_id' => $respondentId,
             'text' => $response
         ]);
+    }
+
+    private function shouldCreateTimingReport () {
+        if (is_array($this->config)) {
+            return isset($this->config['includeTimingReport']) && $this->config['includeTimingReport'];
+        }
+        if (is_object($this->config)) {
+            return isset($this->config->includeTimingReport) && $this->config->includeTimingReport;
+        }
+        return false;
+    }
+
+    private function implodeRowArrays (&$rows) {
+        foreach ($rows as &$row) {
+            foreach ($row as $key => $cell) {
+                if (is_array($cell)) {
+                    $row[$key] = implode(';', $cell);
+                }
+            }
+        }
     }
 
 }

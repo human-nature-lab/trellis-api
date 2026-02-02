@@ -112,6 +112,7 @@ class MakeReports extends Command {
         $config->useChoiceNames = true;
         $config->locale = $study->defaultLocale->id;
         $config->locale = "48984fbe-84d4-11e5-ba05-0800279114ca";
+        $config->includeTimingReport = true;
 
         foreach ($formIds as $formId){
           $reportJob = new FormReportJob($studyId, $formId, $config);
