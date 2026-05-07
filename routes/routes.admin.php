@@ -243,27 +243,8 @@ $router->group(['middleware' => 'token'], function () use ($router) {
   $router->post('hooks/geo/{geoId}/{hookId}',                 ['middleware' => 'requires:ADD_SNAPSHOT',                 'uses' => 'HookController@runGeoHook']);
   $router->get('hooks/respondent/{respondentId}',             [                                                         'uses' => 'HookController@respondentHookStatuses']);
   $router->post('hooks/respondent/{respondentId}/{hookId}',   ['middleware' => 'requires:ADD_SNAPSHOT',                 'uses' => 'HookController@runRespondentHook']);
-  //* Group Tag Type Controller Routes *//
-// NOT USED   $router->delete('group_tag_type/{id}',                          'GroupTagTypeController@removeGroupTagType');
-// NOT USED   $router->get('group_tag_type',                                  'GroupTagTypeController@getAllGroupTagTypes');
-// NOT USED   $router->put('group_tag_type',                                  'GroupTagTypeController@createGroupTagType');
-
-  //* Interview Controller Routes *//
-//  NOT USED      $router->get('study/{id}/interview',                            'InterviewController@getInterviewPage');
-//  NOT USED      $router->get('study/{id}/interview/count',                      'InterviewController@getInterviewCount');
-
-
-  // NOT USED   $router->get('report/completed',                             ['middleware' => 'requires:', 'uses' => 'ReportController@getAllSavedReports']);
-// NOT USED   $router->get('report/download/{file_name}',                  ['middleware' => 'requires:', 'uses' => 'ReportController@downloadFile']);
-// NOT USED   $router->get('report/{report_id}',                           ['middleware' => 'requires:', 'uses' => 'ReportController@getReport']);
-// NOT USED   $router->get('report/{report_id}/status',                    ['middleware' => 'requires:', 'uses' => 'ReportController@getReportStatus']);
-// NOT USED   $router->post('report/images',                               ['middleware' => 'requires:', 'uses' => 'PhotoController@getZipPhotos']);
-// NOT USED   $router->post('report/clean',                                ['middleware' => 'requires:', 'uses' => 'ReportController@cleanReports']);
-// NOT USED    $router->post('report/form/{form_id}',                       ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchFormReport']);
-// NOT USED    $router->post('report/study/{study_id}/respondents',         ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchRespondentReport']);
-// NOT USED    $router->post('report/study/{study_id}/edges',               ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchEdgesReport']);
-// NOT USED    $router->post('report/study/{study_id}/geo',                 ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchGeoReport']);
-// NOT USED    $router->post('report/study/{study_id}/interview',           ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchInterviewReport']);
-// NOT USED    $router->post('report/study/{study_id}/actions',             ['middleware' => 'requires:', 'uses' => 'ReportController@dispatchActionsReport']);
+  
+  //* Admin Survey Controller Routes *//
+  $router->post('survey/{survey_id}/transfer',                 ['middleware' => 'requires:EDIT_STUDY',                  'uses' => 'SurveyController@transferSurvey']);
 
 });
