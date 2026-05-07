@@ -340,7 +340,7 @@ class SurveyController extends Controller
     }
     
     // Check if this form assigns respondent condition tags and bail if so
-    $assignsRespondentConditionTags = DB::table('question_assign_condition_tag')
+    $assignsRespondentConditionTags = DB::table('question_assign_condition_tag as qact')
     ->leftJoin('assign_condition_tag as act', 'qact.assign_condition_tag_id', '=', 'act.id')
     ->where('act.scope', 'respondent')
     ->whereRaw(
