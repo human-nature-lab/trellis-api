@@ -338,6 +338,27 @@ class SurveyController extends Controller
     if ($survey->respondent_id === $newRespondentId) {
       return response()->json([ 'msg' => 'already matching' ], Response::HTTP_OK);
     }
+    
+    // Check if this form assigns respondent condition tags and bail if so
+    $assignsRespondentConditionTags = DB::table('question_assign_condition_tag')
+    ->leftJoin('assign_condition_tag as act', 'qact.assign_condition_tag_id', '=', 'act.id')
+    ->where('act.scope', 'respondent')
+    ->whereRaw(
+      'qact.question_id in (
+        select q.id from question q where q.question_group_id in (
+          select question_group_id from section_question_group
+          where section_id in (
+            select section_id from form_section where form_id = ?
+          )
+        )
+      )', [ $survey->form_id ])
+    ->exists();
+
+    if ($assignsRespondentConditionTags) {
+      return response()->json([ 
+        'msg' => 'This form assigns respondent condition tags and cannot be transferred'
+       ], Response::HTTP_BAD_REQUEST);
+    }
 
     DB::transaction(function () use ($surveyId, $newRespondentId, $survey) {
       $surveyEdgeIds = DB::table('datum')
