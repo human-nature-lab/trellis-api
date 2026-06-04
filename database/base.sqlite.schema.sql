@@ -343,14 +343,13 @@ CREATE TABLE `interview_question` (
 ,  CONSTRAINT `fk__interview_question__question` FOREIGN KEY (`question_id`) REFERENCES `question` (`id`) ON DELETE CASCADE
 );
 CREATE TABLE `kv` (
-  `id` varchar(41) NOT NULL
+  `id` integer  NOT NULL PRIMARY KEY AUTOINCREMENT
 ,  `namespace` varchar(255) NOT NULL DEFAULT 'default'
 ,  `key` varchar(255) NOT NULL
-,  `value` text COLLATE BINARY
+,  `value` longtext COLLATE BINARY
 ,  `created_at` datetime NOT NULL
 ,  `updated_at` datetime NOT NULL
 ,  `deleted_at` datetime DEFAULT NULL
-,  PRIMARY KEY (`id`)
 ,  UNIQUE (`namespace`,`key`)
 );
 CREATE TABLE `locale` (

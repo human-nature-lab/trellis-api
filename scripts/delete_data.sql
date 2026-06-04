@@ -8,8 +8,8 @@ delete from upload;
 delete from datum;
 delete from question_datum;
 delete from edge;
-delete from respondent_condition_tag;
-delete from form_condition_tag
+-- delete from respondent_condition_tag;
+delete from survey_condition_tag;
 delete from section_condition_tag;
 delete from survey;
 delete from interview;

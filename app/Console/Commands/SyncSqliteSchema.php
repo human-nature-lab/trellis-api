@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
@@ -32,10 +33,20 @@ class SyncSqliteSchema extends Command {
       $ignoreStr .= "--ignore-table=$db.$t ";
     }
 
+    // Exclude views by ignoring each one at the dump level rather than
+    // stripping CREATE VIEW statements from the output afterwards.
+    $views = DB::connection('mysql')->select(
+      'select TABLE_NAME as name from information_schema.VIEWS where TABLE_SCHEMA = ?',
+      [$db]
+    );
+    foreach ($views as $v) {
+      $ignoreStr .= "--ignore-table={$db}.{$v->name} ";
+    }
+
     $schemaFile = config('snapshot.sqliteSchema');
     $indexFile = config('snapshot.sqliteIndex');
 
-    $dumpCmd = "mysqldump --no-data --skip-triggers --compact -u$user -p$pass -h$host $ignoreStr $db | awk -f app/Console/Scripts/strip-views.awk | ./app/Console/Scripts/mysql2sqlite/mysql2sqlite -"; 
+    $dumpCmd = "mysqldump --no-data --skip-triggers --compact -u$user -p$pass -h$host $ignoreStr $db | ./app/Console/Scripts/mysql2sqlite/mysql2sqlite -";
     $schemaCmd = "$dumpCmd | grep -v 'CREATE INDEX' > $schemaFile";
     $indexCmd = "$dumpCmd | grep 'CREATE INDEX' > $indexFile";
     $process = new Process($schemaCmd, base_path());
