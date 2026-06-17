@@ -279,6 +279,7 @@ class RespondentController extends Controller
                 // TODO: prefer matches to first name first
                 $nameQuery = $nameQuery->whereRaw("concat(' ', name) like ?", ["% $term%"]);
             }
+            $nameQuery = $nameQuery->whereNull('deleted_at');
             $respondentQuery = $respondentQuery->whereIn('id', $nameQuery);
         }
 
@@ -330,6 +331,83 @@ class RespondentController extends Controller
                 'page' => $page,
                 'size' => $size
             ],Response::HTTP_OK
+        );
+    }
+
+    /**
+     * Get a page of respondents associated with the provided respondent (their
+     * associated_respondent_id points at it), scoped to the study. This is the dedicated
+     * counterpart to searchRespondentsByStudyId for surfacing "associated" respondents on their
+     * own, without the geo/condition tag filtering that endpoint applies. An optional query (q)
+     * narrows the list by name (or by id when a single term is provided).
+     * @param Request $request
+     * @param $studyId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchAssociatedRespondentsByStudyId(Request $request, $studyId) {
+        $validator = Validator::make([
+            'studyId' => $studyId,
+            'associatedRespondent' => $request->get('associated_respondent_id'),
+            'page' => $request->get('page'),
+            'size' => $request->get('size'),
+            'seed' => $request->get('seed')
+        ], [
+            'studyId' => 'required|string|min:36|exists:study,id',
+            'associatedRespondent' => 'required|string|min:36|exists:respondent,id',
+            'page' => 'nullable|integer|min:0',
+            'size' => 'nullable|integer|min:0|max:200',
+            'seed' => 'nullable|integer|min:0'
+        ]);
+
+        if ($validator->fails() === true) {
+            return response()->json([
+                'msg' => 'Validation failed',
+                'err' => $validator->errors()
+            ], $validator->statusCode());
+        }
+
+        $query = $request->query('q');
+
+        // Default to page = 0 and size = 50
+        $page = $request->get('page', 0);
+        $size = $request->get('size', $request->get('limit', 50));
+        $seed = $request->get('seed', rand());
+        $associatedRespondentId = $request->get('associated_respondent_id');
+
+        $respondentQuery = Respondent::whereRaw('`respondent`.`id` in (select respondent_id from study_respondent where study_id = ?)', [$studyId])
+            ->with('photos', 'respondentConditionTags', 'names')
+            ->where('associated_respondent_id', '=', $associatedRespondentId);
+
+        // Optional query narrows the associated respondents by name (or by id for a single term)
+        if ($query) {
+            $terms = explode(' ', $query);
+            $respondentQuery = $respondentQuery->where(function ($q) use ($terms) {
+                $nameQuery = RespondentName::select('respondent_id')->distinct();
+                foreach ($terms as $term) {
+                    $nameQuery = $nameQuery->whereRaw("concat(' ', name) like ?", ["% $term%"]);
+                }
+                $nameQuery = $nameQuery->whereNull('deleted_at');
+                $q->whereIn('id', $nameQuery);
+                if (count($terms) === 1) {
+                    $q->orWhere('id', 'like', '%' . $terms[0] . '%');
+                }
+            });
+        }
+
+        $total = $respondentQuery->count();
+
+        // Stable ordering so pagination over the associated list is deterministic
+        $skip = $page * $size;
+        $respondents = $respondentQuery->orderBy('id')->take($size)->skip($skip)->get();
+
+        return response()->json(
+            [
+                'data' => $respondents,
+                'seed' => $seed,
+                'total' => $total,
+                'page' => $page,
+                'size' => $size
+            ], Response::HTTP_OK
         );
     }
 
@@ -767,12 +845,12 @@ class RespondentController extends Controller
         ], $validator->statusCode());
       }
       $respondentIds = $request->input('ids');
-      
+
       // Fetch the respondents
       $respondents = Respondent::with('respondentConditionTags', 'photos', 'names', 'rGeos')
         ->whereIn('id', $respondentIds)
         ->get();
-      
+
       // Return the respondents
       return response()->json([
         'respondents' => $respondents
@@ -1010,7 +1088,7 @@ class RespondentController extends Controller
           $q->
             where('source_respondent_id', $respondentId)->
             orWhere('target_respondent_id', $respondentId);
-        })->   
+        })->
         get();
       return response()->json($edges);
     }
