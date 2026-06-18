@@ -243,13 +243,11 @@ class RespondentController extends Controller
         $randomize = $request->query('r');
         $validator = Validator::make([
             'studyId' => $studyId,
-            'associatedRespondent' => $request->get('associated_respondent_id'),
             'page' => $request->get('page'),
             'size' => $request->get('size'),
             'seed' => $request->get('seed')
         ], [
             'studyId' => 'required|string|min:36|exists:study,id',
-            'associatedRespondent' => 'nullable|string|min:36|exists:respondent,id',
             'page' => 'nullable|integer|min:0',
             'size' => 'nullable|integer|min:0|max:200',
             'seed' => 'nullable|integer|min:0'
@@ -259,7 +257,6 @@ class RespondentController extends Controller
         $page = $request->get('page', 0);
         $size = $request->get('size', $request->get('limit', 50));
         $seed = $request->get('seed', rand());
-        $associatedRespondentId = $request->get('associated_respondent_id');
 
         if ($validator->fails() === true) {
             return response()->json([
@@ -292,10 +289,13 @@ class RespondentController extends Controller
                 }, '=', count($tagNames));
         }
 
+        // Associated respondents are excluded from the normal flow; they are surfaced via the
+        // dedicated associated-respondents endpoint (searchAssociatedRespondentsByStudyId) instead.
+        $respondentQuery->whereNull('associated_respondent_id');
+
         // Add geo id filter
-        $respondentQuery->where(function ($q) use ($geos, $includeChildren, $associatedRespondentId, $orConditionTags) {
+        $respondentQuery->where(function ($q) use ($geos, $includeChildren, $orConditionTags) {
             $q->where(function ($gq) use ($geos, $includeChildren) {
-                $gq->whereNull('associated_respondent_id');
                 if ($geos) {
                     $geoIds = explode(',', $geos);
                     if ($includeChildren) {
@@ -306,9 +306,6 @@ class RespondentController extends Controller
                     });
                 }
             });
-            if (isset($associatedRespondentId)) {
-                $q->orWhere('associated_respondent_id', '=', $associatedRespondentId);
-            }
 
             // Or condition tag filters
             if (isset($orConditionTags)) {
